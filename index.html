@@ -143,6 +143,8 @@
     position:fixed; inset:0; background:rgba(20,24,30,0.5); backdrop-filter:blur(1px);
     display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
   }
+  .modal-overlay[hidden]{display:none;}
+  #view-dashboard[hidden], #view-insights[hidden], #view-help[hidden]{display:none !important;}
   .modal{
     background:var(--bg-raised); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
     width:100%; max-width:520px; max-height:90vh; overflow-y:auto;
@@ -405,6 +407,38 @@
   }
   .help-step-title{font-size:14.5px; font-weight:600; margin-bottom:3px;}
   .help-step-text{font-size:13.5px; line-height:1.55; color:var(--ink-soft); max-width:64ch;}
+
+  /* ---- insights view ---- */
+  #view-insights{display:flex; flex-direction:column; gap:18px;}
+  .insights-intro{
+    background:var(--accent-soft); border:1px solid transparent; border-radius:10px;
+    padding:20px 22px; display:flex; flex-direction:column; gap:6px;
+  }
+  .insights-intro h2{font-size:24px; font-weight:700; color:var(--accent-soft-ink); margin:0;}
+  .insights-intro p{margin:0; font-size:14px; color:var(--accent-soft-ink); max-width:70ch; line-height:1.55;}
+
+  .ibar-list{display:flex; flex-direction:column; gap:2px;}
+  .ibar-row{display:grid; grid-template-columns:200px 1fr 78px; align-items:center; gap:14px; padding:8px 0;}
+  .ibar-row + .ibar-row{border-top:1px solid var(--line-soft);}
+  .ibar-label{font-size:12.5px; color:var(--ink-soft); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ibar-track{height:13px; border-radius:99px; background:var(--line-soft); overflow:hidden;}
+  .ibar-track > span{display:block; height:100%; border-radius:99px; background:var(--accent);}
+  .ibar-value{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); text-align:right; white-space:nowrap;}
+  @media (max-width:620px){
+    .ibar-row{grid-template-columns:1fr; gap:5px; padding:10px 0;}
+    .ibar-value{text-align:left;}
+  }
+
+  .sev-mix-track{display:flex; height:22px; border-radius:8px; overflow:hidden; border:1px solid var(--line);}
+  .sev-mix-seg{height:100%;}
+  .sev-mix-seg.crit{background:var(--crit);}
+  .sev-mix-seg.warn{background:var(--warn);}
+  .sev-mix-seg.good{background:var(--good);}
+  .sev-mix-legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-soft); margin-top:12px;}
+  .sev-mix-legend span{display:inline-flex; align-items:center; gap:6px;}
+  .sev-mix-legend b{color:var(--ink); font-family:"IBM Plex Mono",monospace; font-weight:600;}
+
+  .insight-note{font-size:12px; color:var(--ink-faint); margin:0;}
 </style>
 </head>
 <body>
@@ -443,6 +477,10 @@
         <a class="active" href="#" data-view="dashboard">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg>
           Dashboard
+        </a>
+        <a href="#" data-view="insights">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
+          Insights
         </a>
         <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Folded into Dashboard in this concept">
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/></svg><span class="nav-label">Exception queue</span></span>
@@ -595,6 +633,99 @@
         </div>
 
       </section>
+
+    </div>
+
+    <div id="view-insights" hidden>
+
+      <section class="insights-intro">
+        <span class="help-eyebrow">UPAE &middot; Analytics</span>
+        <h2>What UPAE catches, and what it's worth</h2>
+        <p>Illustrative pattern-detection view across the last 90 days &middot; pilot scope (IUOE Local 542, 4 active jobs). Figures are synthetic, sized to a plausible pilot volume &mdash; not live payroll data.</p>
+      </section>
+
+      <section class="kpis">
+        <div class="kpi">
+          <div class="k-label">Exceptions detected</div>
+          <div class="k-value">187</div>
+          <div class="k-delta down">↑ 41 more caught vs. prior quarter</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Est. $ impact caught</div>
+          <div class="k-value">$146.8<span class="unit">k</span></div>
+          <div class="k-delta down">before payroll finalized</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Caught pre-finalize</div>
+          <div class="k-value">89<span class="unit">%</span></div>
+          <div class="k-delta down">↑ 12 pts vs. prior quarter</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Avg. detection lead time</div>
+          <div class="k-value">2.3<span class="unit">days</span></div>
+          <div class="k-delta down">ahead of pay-run cutoff</div>
+        </div>
+      </section>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Exceptions by category</h2>
+          <span class="panel-sub">Count of flagged items &middot; last 90 days &middot; all active jobs</span>
+        </div>
+        <div class="panel-body">
+          <div class="ibar-list" id="catBarList" role="img" aria-label="Exceptions by category: Overtime miscalculation 42, Union or classification mismatch 31, Missing hours 27, Job cost allocation error 19, Duplicate entries 14, Union work-rule violation 11"></div>
+        </div>
+      </div>
+
+      <section class="lower">
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Detection trend</h2>
+            <span class="panel-sub">Last 8 pay periods &middot; rule-based vs. AI-flagged</span>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--accent)"></i>Rule-based</span>
+            <span><i style="background:var(--ai-tag)"></i>AI-flagged</span>
+          </div>
+          <div class="panel-body" style="padding-top:4px;">
+            <svg id="insightsTrendChart" viewBox="0 0 560 200" width="100%" height="200" role="img" aria-label="Detection trend over the last eight pay periods, rule-based rising from 9 to 16, AI-flagged rising from 2 to 8"></svg>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Severity mix</h2>
+            <span class="panel-sub">Of all exceptions caught this quarter</span>
+          </div>
+          <div class="panel-body">
+            <div class="sev-mix-track" role="img" aria-label="Severity mix: 22 percent critical, 53 percent warning, 25 percent informational">
+              <span class="sev-mix-seg crit" style="width:22%"></span>
+              <span class="sev-mix-seg warn" style="width:53%"></span>
+              <span class="sev-mix-seg good" style="width:25%"></span>
+            </div>
+            <div class="sev-mix-legend">
+              <span><span class="legend-dot crit"></span>Critical &middot; <b>22%</b></span>
+              <span><span class="legend-dot warn"></span>Warning &middot; <b>53%</b></span>
+              <span><span class="legend-dot good"></span>Informational &middot; <b>25%</b></span>
+            </div>
+            <p class="insight-note" style="margin-top:14px;">Critical items (duplicate entries, union work-rule violations) are routed for same-day review; informational flags are typically auto-resolved before finalize.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Estimated dollar impact avoided, by category</h2>
+          <span class="panel-sub">Modeled cost of the exception had it reached a finalized pay run &middot; last 90 days</span>
+        </div>
+        <div class="panel-body">
+          <div class="ibar-list" id="dollarBarList" role="img" aria-label="Estimated dollar impact avoided by category: Overtime miscalculation 58,400 dollars, Job cost allocation error 34,200 dollars, Union or classification mismatch 27,900 dollars, Missing hours 14,600 dollars, Duplicate entries 7,300 dollars, Union work-rule violation 4,400 dollars"></div>
+        </div>
+      </div>
+
+      <p class="help-footnote">This page illustrates the categories and volume UPAE is designed to surface once connected to CMiC. Actual detection rates and dollar-impact figures will be calibrated during the pilot using real payroll and correction history.</p>
 
     </div>
 
@@ -1064,7 +1195,7 @@
   (function initViews(){
     var navLinks = document.querySelectorAll('.rail nav a[data-view]');
     var allTriggers = document.querySelectorAll('a[data-view]');
-    var views = { dashboard: document.getElementById('view-dashboard'), help: document.getElementById('view-help') };
+    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), help: document.getElementById('view-help') };
     allTriggers.forEach(function(link){
       link.addEventListener('click', function(e){
         e.preventDefault();
@@ -1312,6 +1443,111 @@
     var lastAi = el('text', {x:x(n-1)+7, y:y(aiData[n-1])+4, 'font-size':11, fill:'var(--ai-tag)', 'font-family':'IBM Plex Mono, monospace', 'font-weight':'600'});
     lastAi.textContent = aiData[n-1];
     svg.appendChild(lastAi);
+  })();
+
+  // ---- insights: category / dollar-impact bar lists ----
+  (function drawInsightBars(){
+    function renderBars(containerId, rows, formatValue){
+      var el = document.getElementById(containerId);
+      if(!el) return;
+      var max = Math.max.apply(null, rows.map(function(r){ return r.value; }));
+      el.innerHTML = rows.map(function(r){
+        var pct = Math.round((r.value / max) * 100);
+        return '<div class="ibar-row">' +
+          '<span class="ibar-label">' + r.label + '</span>' +
+          '<span class="ibar-track"><span style="width:' + pct + '%"></span></span>' +
+          '<span class="ibar-value">' + formatValue(r.value) + '</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    renderBars('catBarList', [
+      { label: 'Overtime miscalculation', value: 42 },
+      { label: 'Union / classification mismatch', value: 31 },
+      { label: 'Missing hours', value: 27 },
+      { label: 'Job cost allocation error', value: 19 },
+      { label: 'Duplicate entries', value: 14 },
+      { label: 'Union work-rule violation', value: 11 }
+    ], function(v){ return v; });
+
+    renderBars('dollarBarList', [
+      { label: 'Overtime miscalculation', value: 58400 },
+      { label: 'Job cost allocation error', value: 34200 },
+      { label: 'Union / classification mismatch', value: 27900 },
+      { label: 'Missing hours', value: 14600 },
+      { label: 'Duplicate entries', value: 7300 },
+      { label: 'Union work-rule violation', value: 4400 }
+    ], function(v){ return '$' + v.toLocaleString('en-US'); });
+  })();
+
+  // ---- insights: detection trend chart ----
+  (function drawInsightsTrend(){
+    var svg = document.getElementById('insightsTrendChart');
+    if(!svg) return;
+    var periods = ['Cyc 1','Cyc 2','Cyc 3','Cyc 4','Cyc 5','Cyc 6','Cyc 7','Cyc 8'];
+    var ruleData = [9, 11, 10, 13, 12, 15, 14, 16];
+    var aiData   = [2, 3, 4, 3, 5, 6, 6, 8];
+
+    var W = 560, H = 200;
+    var padL = 24, padR = 12, padT = 14, padB = 26;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var maxV = 18;
+    var n = periods.length;
+
+    function x(i){ return padL + (plotW / (n - 1)) * i; }
+    function y(v){ return padT + plotH - (v / maxV) * plotH; }
+
+    var ns = 'http://www.w3.org/2000/svg';
+    function el(tag, attrs){
+      var e = document.createElementNS(ns, tag);
+      for(var k in attrs){ e.setAttribute(k, attrs[k]); }
+      return e;
+    }
+
+    [0, 6, 12, 18].forEach(function(v){
+      var gl = el('line', {x1:padL, x2:W-padR, y1:y(v), y2:y(v), stroke:'var(--line-soft)', 'stroke-width':1});
+      svg.appendChild(gl);
+      var lab = el('text', {x:padL - 6, y:y(v)+3, 'text-anchor':'end', 'font-size':9, fill:'var(--ink-faint)', 'font-family':'IBM Plex Mono, monospace'});
+      lab.textContent = v;
+      svg.appendChild(lab);
+    });
+
+    periods.forEach(function(p, i){
+      var lab = el('text', {x:x(i), y:H-6, 'text-anchor':'middle', 'font-size':9.5, fill:'var(--ink-faint)', 'font-family':'IBM Plex Mono, monospace'});
+      lab.textContent = p;
+      svg.appendChild(lab);
+    });
+
+    function path(data){
+      return data.map(function(v,i){ return (i===0?'M':'L') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' ');
+    }
+    function areaPath(data){
+      return 'M' + x(0) + ' ' + y(0) + ' ' + data.map(function(v,i){ return 'L' + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' ') + ' L' + x(n-1) + ' ' + y(0) + ' Z';
+    }
+
+    svg.appendChild(el('path', {d:areaPath(ruleData), fill:'var(--accent)', opacity:'0.10', stroke:'none'}));
+    svg.appendChild(el('path', {d:path(ruleData), fill:'none', stroke:'var(--accent)', 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+    svg.appendChild(el('path', {d:path(aiData), fill:'none', stroke:'var(--ai-tag)', 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+
+    ruleData.forEach(function(v,i){
+      var c = el('circle', {cx:x(i), cy:y(v), r:i===n-1?3.5:2.5, fill:'var(--accent)'});
+      var t = el('title', {}); t.textContent = periods[i] + ' — Rule-based: ' + v;
+      c.appendChild(t);
+      svg.appendChild(c);
+    });
+    aiData.forEach(function(v,i){
+      var c = el('circle', {cx:x(i), cy:y(v), r:i===n-1?3.5:2.5, fill:'var(--ai-tag)'});
+      var t = el('title', {}); t.textContent = periods[i] + ' — AI-flagged: ' + v;
+      c.appendChild(t);
+      svg.appendChild(c);
+    });
+
+    var lastRule = el('text', {x:x(n-1)+7, y:y(ruleData[n-1])+4, 'font-size':11, fill:'var(--accent)', 'font-family':'IBM Plex Mono, monospace', 'font-weight':'600'});
+    lastRule.textContent = ruleData[n-1];
+    svg.appendChild(lastRule);
+    var lastAi2 = el('text', {x:x(n-1)+7, y:y(aiData[n-1])+4, 'font-size':11, fill:'var(--ai-tag)', 'font-family':'IBM Plex Mono, monospace', 'font-weight':'600'});
+    lastAi2.textContent = aiData[n-1];
+    svg.appendChild(lastAi2);
   })();
 })();
 </script>
