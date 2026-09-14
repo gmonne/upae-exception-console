@@ -574,6 +574,44 @@
 
       <section class="panel">
         <div class="panel-head">
+          <h2>Technology &amp; estimated cost</h2>
+          <span class="panel-sub">Microsoft Azure &middot; GitHub</span>
+        </div>
+        <div class="panel-body help-body">
+          <p>This showcase runs on <b>GitHub</b> (source &amp; auto-deploy) and the <b>Azure Static Web Apps</b> free tier &mdash; enough for a single-page demo, but not the full pilot architecture. A working pilot adds a real integration layer, a rules/AI engine, and a database behind the console:</p>
+          <table>
+            <thead>
+              <tr><th>Layer</th><th>Azure service</th><th>Role</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="route-name">Front end</td><td class="mono">Static Web Apps</td><td>Hosts the console UI; auto-deploys from GitHub on every push.</td></tr>
+              <tr><td class="route-name">Integration &amp; rules</td><td class="mono">Functions</td><td>Polls CMiC on a schedule, runs the rules engine and AI scoring. Serverless &mdash; scales to zero between runs.</td></tr>
+              <tr><td class="route-name">Structured data</td><td class="mono">SQL Database</td><td>Payroll transactions, exceptions, and resolution history &mdash; the auditable system of record.</td></tr>
+              <tr><td class="route-name">Raw data &amp; logs</td><td class="mono">Blob Storage</td><td>Raw CMiC payloads, exports, and integration logs.</td></tr>
+              <tr><td class="route-name">Secrets</td><td class="mono">Key Vault</td><td>CMiC service-account credentials &mdash; never stored in code.</td></tr>
+              <tr><td class="route-name">Sign-in</td><td class="mono">Entra ID</td><td>Reviewers sign in with existing organizational accounts.</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:16px;">Planning-level estimate for a one-union/job pilot on a weekly cycle &mdash; based on published Azure list pricing, confirm with the Azure Pricing Calculator before committing budget:</p>
+          <table>
+            <thead>
+              <tr><th>Service</th><th>Pricing basis</th><th class="num">Est. monthly</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="route-name">Static Web Apps</td><td>Standard tier, flat rate</td><td class="num mono">~$9</td></tr>
+              <tr><td class="route-name">Functions</td><td>1M executions + 400K GB-s free/mo</td><td class="num mono">~$0</td></tr>
+              <tr><td class="route-name">SQL Database</td><td>Serverless, auto-pauses when idle</td><td class="num mono">$15&ndash;40</td></tr>
+              <tr><td class="route-name">Blob Storage</td><td>Hot tier, pilot data volume</td><td class="num mono">$1&ndash;5</td></tr>
+              <tr><td class="route-name">Key Vault</td><td>Per 10,000 operations</td><td class="num mono">&lt;$1</td></tr>
+              <tr><td class="route-name">GitHub</td><td>Free (public) or Team (private)</td><td class="num mono">$0&ndash;20</td></tr>
+            </tbody>
+          </table>
+          <p class="help-footnote">Estimated total: roughly <b>$25&ndash;$75/month</b> for the pilot, dominated by SQL Database. Excludes generative-AI/LLM costs (relevant only once the virtual analyst phase is scoped) and any org-wide landing-zone or compliance tooling. Full detail is in the Technical Document, Section 11.</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
           <h2>Next steps</h2>
           <span class="panel-sub">Concept &rarr; pilot, ~3&ndash;4 months</span>
         </div>
