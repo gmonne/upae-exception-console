@@ -539,16 +539,21 @@
   }
   .admin-empty{padding:20px 18px; text-align:center; font-size:12.5px; color:var(--ink-faint);}
   .code-multiselect{
-    display:flex; flex-direction:column; gap:2px; border:1px solid var(--line); border-radius:8px; padding:4px;
-    max-height:200px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:1px; border:1px solid var(--line); border-radius:8px; padding:3px;
+    max-height:150px; overflow-y:auto;
   }
-  .code-row{display:flex; align-items:center; gap:10px; padding:7px 9px; border-radius:6px; font-size:13px;}
+  /* Higher specificity than ".rule-form-grid label{flex-direction:column}" so these rows stay single-line */
+  .rule-form-grid .code-multiselect label.code-row{
+    display:flex !important; flex-direction:row !important; align-items:center; gap:8px;
+    padding:4px 7px; border-radius:5px; font-size:12px; line-height:1.3; cursor:pointer;
+  }
   .code-row:hover{background:var(--line-soft);}
-  .code-row input{accent-color:var(--accent); width:15px; height:15px; flex:none;}
-  .code-row .code-id{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); flex:none; width:52px;}
+  .code-row input{accent-color:var(--accent); width:14px; height:14px; flex:none; margin:0;}
+  .code-row .code-id{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-soft); flex:none; width:44px;}
   .code-row .code-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .code-row .code-union{font-size:11px; color:var(--ink-faint); flex:none; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .code-row .code-union{font-size:10.5px; color:var(--ink-faint); flex:none; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .code-picked-summary{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
+  .code-multiselect .admin-empty{padding:10px;}
 </style>
 </head>
 <body>
@@ -1205,6 +1210,7 @@
           <label>Effective date range<input type="text" id="rf_effdate" placeholder="e.g. 7/1/2026 &ndash; 6/30/2029"></label>
           <label>Last verified by / date<input type="text" id="rf_verified" placeholder="Name, date"></label>
           <label class="full">Labor type codes covered
+            <select id="rf_codesUnionFilter" class="week-select" style="margin-bottom:6px;"></select>
             <div class="code-multiselect" id="rf_codesList"></div>
             <div class="code-picked-summary" id="rf_codesSummary">No codes selected &mdash; managed on the Admin screen.</div>
           </label>
@@ -2344,25 +2350,54 @@
   function setfv(id, val){ var el = document.getElementById(id); if(el) el.value = val || ''; }
   function clearForm(){ Object.keys(formIds).forEach(function(k){ setfv(formIds[k], ''); }); }
 
+  function applyCodesUnionFilter(){
+    var filterSel = document.getElementById('rf_codesUnionFilter');
+    var listEl = document.getElementById('rf_codesList');
+    if(!filterSel || !listEl) return;
+    var val = filterSel.value; // '' = all, 'UNASSIGNED' = unassigned, else a union name
+    var anyVisible = false;
+    listEl.querySelectorAll('.code-row').forEach(function(row){
+      var u = row.getAttribute('data-union') || '';
+      var match = (val === '') || (val === 'UNASSIGNED' ? u === '' : u === val);
+      row.style.display = match ? 'flex' : 'none';
+      if(match) anyVisible = true;
+    });
+    var emptyEl = document.getElementById('rf_codesEmpty');
+    if(emptyEl) emptyEl.style.display = anyVisible ? 'none' : 'block';
+  }
+
   function renderCodesMultiselect(r){
     var listEl = document.getElementById('rf_codesList');
     var summaryEl = document.getElementById('rf_codesSummary');
+    var filterSel = document.getElementById('rf_codesUnionFilter');
     if(!listEl) return;
+
+    // Union filter dropdown: defaults to the rule's own union so you see its codes first,
+    // but "All unions" is one click away.
+    if(filterSel){
+      var defaultVal = r ? r.name : '';
+      filterSel.innerHTML = '<option value="">All unions</option>' +
+        unions.map(function(u){ return '<option value="' + u.name + '"' + (u.name === defaultVal ? ' selected' : '') + '>' + u.name + '</option>'; }).join('') +
+        '<option value="UNASSIGNED">Unassigned codes</option>';
+      filterSel.onchange = applyCodesUnionFilter;
+    }
+
     if(!laborTypes.length){
-      listEl.innerHTML = '<div class="admin-empty" style="padding:10px;">No labor type codes yet — add some on the Admin screen.</div>';
+      listEl.innerHTML = '<div class="admin-empty">No labor type codes yet — add some on the Admin screen.</div>';
       summaryEl.textContent = '';
       return;
     }
     var picked = (r && r.laborTypeIds) || [];
     listEl.innerHTML = laborTypes.map(function(lt){
       var checked = picked.indexOf(lt.code) > -1 ? ' checked' : '';
-      return '<label class="code-row"><input type="checkbox" value="' + lt.code + '"' + checked + '>' +
+      return '<label class="code-row" data-union="' + (lt.unionName || '') + '"><input type="checkbox" value="' + lt.code + '"' + checked + '>' +
         '<span class="code-id">' + lt.code + '</span><span class="code-name">' + lt.name + '</span>' +
         '<span class="code-union">' + (lt.unionName || 'Unassigned') + '</span></label>';
-    }).join('');
+    }).join('') + '<div class="admin-empty" id="rf_codesEmpty" style="display:none;">No codes assigned to this union yet &mdash; switch to "All unions" or assign some on the Admin screen.</div>';
     listEl.querySelectorAll('input[type="checkbox"]').forEach(function(cb){
       cb.addEventListener('change', updateCodesSummary);
     });
+    applyCodesUnionFilter();
     updateCodesSummary();
   }
   function getSelectedCodes(){
