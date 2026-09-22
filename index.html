@@ -1883,11 +1883,19 @@
       '<button class="btn ghost" type="button" id="editRuleBtn" style="padding:6px 11px; font-size:12px;">Edit rule</button>' +
       '</div></div>';
 
+    html += '<div class="field-block"><div class="field-block-title">Labor type mapping</div>' +
+      '<div style="font-size:13px; line-height:1.55;">' + r.codes + '</div>';
+    if(r.status === 'ambiguous'){
+      html += '<button class="btn primary" type="button" id="resolveMappingBtn" style="margin-top:10px; padding:7px 12px; font-size:12.5px;">Resolve mapping &mdash; confirm this labor type assignment</button>';
+    }
+    html += '</div>';
+
     if(!r.fields){
       html += '<div class="form-note" style="margin-top:16px;">Not yet structured against the Rule Definition Schema. Currently exists as a prose CBA summary; being rewritten after Payroll confirms the employee&rarr;union crosswalk and related open items. Click "Edit rule" to fill it in.</div>';
       detailEl.innerHTML = html;
       renderExamples(r);
       wireEditButton(r);
+      wireResolveButton(r);
       return;
     }
 
@@ -1908,11 +1916,24 @@
     detailEl.innerHTML = html;
     renderExamples(r);
     wireEditButton(r);
+    wireResolveButton(r);
   }
 
   function wireEditButton(r){
     var btn = document.getElementById('editRuleBtn');
     if(btn) btn.addEventListener('click', function(){ openRuleModal(r); });
+  }
+
+  function wireResolveButton(r){
+    var btn = document.getElementById('resolveMappingBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      r.codes = r.codes.replace(/\s*—\s*(needs confirm|needs Payroll confirmation|pending confirm)\.?$/i, '') + ' — confirmed';
+      r.status = r.fields ? 'structured' : 'draft';
+      r.statusLabel = r.fields ? 'Structured' : 'Draft — prose only';
+      renderList(r.id);
+      renderDetail(r);
+    });
   }
 
   function renderExamples(r){
