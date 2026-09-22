@@ -860,8 +860,8 @@
         </div>
         <div class="kpi">
           <div class="k-label">Labor type codes mapped</div>
-          <div class="k-value">86<span class="unit">/131</span></div>
-          <div class="k-delta up">45 unmatched &middot; reviewing with Payroll</div>
+          <div class="k-value">69<span class="unit">/131</span></div>
+          <div class="k-delta up">62 unmatched &middot; reviewing with Payroll</div>
         </div>
         <div class="kpi">
           <div class="k-label">Example pairs on file</div>
@@ -905,7 +905,7 @@
         <span class="help-eyebrow">UPAE &middot; Admin</span>
         <h2>Manage the Unions and Labor Type codes UPAE rules are built on</h2>
         <p>This is the reference data behind the Rule Library &mdash; the master list of Unions and the Labor Type codes each one covers. Add or remove entries here; the "Labor type codes covered" field on a rule then lets you pick from this list instead of typing codes freehand.</p>
-        <span class="phase-tag">12 sample codes shown &middot; full 131-code list to be imported from Union Rules.xlsx</span>
+        <span class="phase-tag">Full 131-code list imported from Union Rules.xlsx &middot; 69 auto-matched to a union, 62 need Payroll's help</span>
       </section>
 
       <div class="admin-workspace">
@@ -1943,18 +1943,137 @@
   var unions = rules.map(function(r){ return { id: r.id, name: r.name }; });
 
   var laborTypes = [
-    { id:'LT-001', code:'L041', name:'Operator, Crane', unionName:'Local 14 Operating Engineers' },
-    { id:'LT-002', code:'L044', name:'Operator, Backhoe', unionName:'Local 14 Operating Engineers' },
-    { id:'LT-003', code:'L052', name:'Operator, Grader', unionName:'Local 14 Operating Engineers' },
-    { id:'LT-004', code:'L015', name:'Operator Paid As Operator 14', unionName:'Local 15 Operating Engineers' },
-    { id:'LT-005', code:'L062', name:'Plumbers Helper B', unionName:null },
-    { id:'LT-006', code:'L071', name:'Mechanic, Heavy Equipment', unionName:'Local 15C Mechanics' },
-    { id:'LT-007', code:'L088', name:'Surveyor, Instrument', unionName:'Local 15D Surveyors' },
-    { id:'LT-008', code:'L102', name:'Laborer, General', unionName:'Local 731 Laborers Union' },
-    { id:'LT-009', code:'L118', name:'Paver Operator', unionName:'Local 1010 Pavers & Road Builders' },
-    { id:'LT-010', code:'L133', name:'Carpenter, Journeyman', unionName:'Local 157 Carps' },
-    { id:'LT-011', code:'L149', name:'Field Assistant', unionName:null },
-    { id:'LT-012', code:'L160', name:'Estimator', unionName:null }
+    { id:'LT-001', code:'L062', name:'1 Plumbers Helper B', unionName:null },
+    { id:'LT-002', code:'L060', name:'1 Plumbers Journeyman A', unionName:null },
+    { id:'LT-003', code:'L100', name:'14 Driller', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-004', code:'L106', name:'14 Operator Utility Compressor', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-005', code:'L008', name:'14 Operators Backhoe/Excavator', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-006', code:'L073', name:'14 Operators Compressor Engineer', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-007', code:'L087', name:'14 Operators Concrete Pumps', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-008', code:'L061', name:'14 Operators Crane', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-009', code:'L083', name:'14 Operators Crane-2', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-010', code:'L037', name:'14 Operators Maintenance Engineer', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-011', code:'L088', name:'14 Operators Portable Compressor', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-012', code:'L025', name:'14 Operators Roller', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-013', code:'L009', name:'14 Operators Spreader', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-014', code:'L118', name:'14 Well Pumps', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-015', code:'L107', name:'15 Operator Paid As Operator 14 Crane', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-016', code:'L010', name:'15 Operators Backhoe', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-017', code:'L078', name:'15 Operators Backhoe/Large', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-018', code:'L084', name:'15 Operators Generator Engineer', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-019', code:'L081', name:'15 Operators Junior Engineer-2', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-020', code:'L011', name:'15 Operators Maintenance Engineer', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-021', code:'L047', name:'15 Operators Maintenance Engineer Foreman', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-022', code:'L031', name:'15 Operators Maintenance Engineer/Welder', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-023', code:'L021', name:'15 Operators Maintenance Foreman', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-024', code:'L012', name:'15 Operators Oiler', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-025', code:'L039', name:'15 Operators Oiler-Large Crane', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-026', code:'L013', name:'15 Operators Pump Engineers', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-027', code:'L074', name:'15 Operators Utility Welder', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-028', code:'L101', name:'15-15A Jr.Engineer #2', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-029', code:'GALT11', name:'Barge-Conveyor Operatir', unionName:null },
+    { id:'LT-030', code:'GALT12', name:'Barge-Excavator Operator', unionName:null },
+    { id:'LT-031', code:'GALT10', name:'Barge-Level Monitor', unionName:null },
+    { id:'LT-032', code:'GALT13', name:'Barge-Material Handler Operator', unionName:null },
+    { id:'LT-033', code:'GALT14', name:'Barge-Skid Steer', unionName:null },
+    { id:'LT-034', code:'L132', name:'CARPENTERS LOCAL 157', unionName:null },
+    { id:'LT-035', code:'CA001', name:'Castcapa-Foreman', unionName:null },
+    { id:'LT-036', code:'CA002', name:'Castcapa-Laborer', unionName:null },
+    { id:'LT-037', code:'GALT21', name:'Cold Patch Delivery Driver', unionName:null },
+    { id:'LT-038', code:'GALT7', name:'Cold Patch-Bagger', unionName:null },
+    { id:'LT-039', code:'GALT8', name:'Cold Patch-Bobcat Operator', unionName:null },
+    { id:'LT-040', code:'GALT5', name:'Crush-Crusher Operator', unionName:null },
+    { id:'LT-041', code:'GALT6', name:'Crush-Picker', unionName:null },
+    { id:'LT-042', code:'GALT4', name:'Crushing-Excavator Operator', unionName:null },
+    { id:'LT-043', code:'L068', name:'Field Assistant', unionName:null },
+    { id:'LT-044', code:'L149', name:'FIELD ENGINEER', unionName:null },
+    { id:'LT-045', code:'L001', name:'Flagman', unionName:null },
+    { id:'LT-046', code:'GALT19', name:'General-Foreman', unionName:null },
+    { id:'LT-047', code:'GALT20', name:'General-Laborer', unionName:null },
+    { id:'LT-048', code:'GALT18', name:'General-Mechanic', unionName:null },
+    { id:'LT-049', code:'L150', name:'Iron worker local 361 2nd yr Apprentice', unionName:null },
+    { id:'LT-050', code:'L133', name:'JR. ESTIMATOR', unionName:null },
+    { id:'LT-051', code:'L153', name:'LOCAL 14 MASTER MECHANIC', unionName:null },
+    { id:'LT-052', code:'L148', name:'LOCAL 14 VERMEER OPERATOR', unionName:null },
+    { id:'LT-053', code:'L154', name:'Local 15 Concrete Pump', unionName:null },
+    { id:'LT-054', code:'L135', name:'LOCAL 60 FIRST YR O.Q GAS MECH (A)', unionName:null },
+    { id:'LT-055', code:'L119', name:'Local 60 Flagperson', unionName:null },
+    { id:'LT-056', code:'L136', name:'LOCAL 60 GROUP 1', unionName:null },
+    { id:'LT-057', code:'L137', name:'LOCAL 60 GROUP 1 A', unionName:null },
+    { id:'LT-058', code:'L138', name:'LOCAL 60 GROUP III', unionName:null },
+    { id:'LT-059', code:'L139', name:'LOCAL 60 GROUP IV', unionName:null },
+    { id:'LT-060', code:'L140', name:'LOCAL 60 GROUP V', unionName:null },
+    { id:'LT-061', code:'L141', name:'LOCAL 60 GROUP VI', unionName:null },
+    { id:'LT-062', code:'L142', name:'LOCAL 60 GROUP VIA', unionName:null },
+    { id:'LT-063', code:'L120', name:'Local 60 Labor Group II', unionName:null },
+    { id:'LT-064', code:'L134', name:'LOCAL 60 O.Q GAS MECH (A MECHANIC)', unionName:null },
+    { id:'LT-065', code:'L143', name:'LOCAL 60 TIER 1 APPRENTICE', unionName:null },
+    { id:'LT-066', code:'L144', name:'LOCAL 60 TIER 2 APPRENTICE', unionName:null },
+    { id:'LT-067', code:'L030', name:'46 Lathers Journeyman', unionName:'Local 46 Metallic Lathers' },
+    { id:'LT-068', code:'L070', name:'60 Laborers Laborer', unionName:'Local 60 Metallic Lathers' },
+    { id:'LT-069', code:'L076', name:'137 Operators Backhoe', unionName:null },
+    { id:'LT-070', code:'L016', name:'282 Teamster Driver', unionName:null },
+    { id:'LT-071', code:'L027', name:'282 Teamsters Shop Steward', unionName:null },
+    { id:'LT-072', code:'L125', name:'361 Ironworkers 1st year Apprentice', unionName:null },
+    { id:'LT-073', code:'L126', name:'361 Ironworkers 3rd year Apprentice', unionName:null },
+    { id:'LT-074', code:'127', name:'361 Ironworkers Apprentice 2', unionName:null },
+    { id:'LT-075', code:'L124', name:'361 Ironworkers Foreman', unionName:null },
+    { id:'LT-076', code:'L123', name:'361 Ironworkers Journeyman', unionName:null },
+    { id:'LT-077', code:'L019', name:'731 Laborers Apprentice 0 - 1000', unionName:'Local 731 Laborers Union' },
+    { id:'LT-078', code:'L041', name:'731 Laborers Apprentice 1000 - 2000', unionName:'Local 731 Laborers Union' },
+    { id:'LT-079', code:'L055', name:'731 Laborers Apprentice 2000 - 3000', unionName:'Local 731 Laborers Union' },
+    { id:'LT-080', code:'L082', name:'731 Laborers Apprentice 3000 - 4000', unionName:'Local 731 Laborers Union' },
+    { id:'LT-081', code:'L006', name:'731 Laborers Foreman', unionName:'Local 731 Laborers Union' },
+    { id:'LT-082', code:'L004', name:'731 Laborers Laborer', unionName:'Local 731 Laborers Union' },
+    { id:'LT-083', code:'L121', name:'740 Millwright Journeyman', unionName:null },
+    { id:'LT-084', code:'L007', name:'780 Masons Mason', unionName:null },
+    { id:'LT-085', code:'L103', name:'1010 Laborer Micro Paver', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-086', code:'L104', name:'1010 Laborer Small Equip Oper', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-087', code:'L079', name:'1010 Laborers Apprentice', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-088', code:'L005', name:'1010 Laborers Forman', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-089', code:'L024', name:'1010 Laborers Formsetter', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-090', code:'L002', name:'1010 Laborers Laborer', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-091', code:'L028', name:'1010 Laborers Paving Raker', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-092', code:'L044', name:'1010 Laborers Paving Screed Person', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-093', code:'L075', name:'1010 Laborers Paving Shoveler', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-094', code:'L003', name:'1010/1018 Laborers Raker', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-095', code:'L117', name:'1536 Timberman App 4th Year', unionName:'Local 1536 Timberman' },
+    { id:'LT-096', code:'L122', name:'1556 Carpenter Foreman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-097', code:'L128', name:'1556 MARINE DIVERS', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-098', code:'L029', name:'1556/45 Carpenter Journeyman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-099', code:'L097', name:'1556/608 Carpenter General Foreman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-100', code:'L038', name:'1556/926 Carpenter Journeyman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-101', code:'L089', name:'1556/1456 Dockbuilders Apprentice 1st Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-102', code:'L091', name:'1556/1456 Dockbuilders Apprentice 2nd Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-103', code:'L095', name:'1556/1456 Dockbuilders Apprentice 3rd Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-104', code:'L098', name:'1556/1456 Dockbuilders Apprentice 4th Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-105', code:'L034', name:'1556/1456 Dockbuilders Foreman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-106', code:'L056', name:'1556/1456 Dockbuilders Journeyman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-107', code:'L080', name:'1556/1536 Timbermen Apprentice 1st Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-108', code:'L090', name:'1556/1536 Timbermen Apprentice 2nd Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-109', code:'L092', name:'1556/1536 Timbermen Apprentice 3rd Year', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-110', code:'L018', name:'1556/1536 Timbermen Foreman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-111', code:'L017', name:'1556/1536 Timbermen Journeyman', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-112', code:'L059', name:'1556/1536 Timbermen Shop Steward', unionName:'Local 1556 Marine Divers' },
+    { id:'LT-113', code:'GALT22', name:'Asphalt Plant Management', unionName:null },
+    { id:'LT-114', code:'GALT23', name:'Asphalt Plant Quality Assurance', unionName:null },
+    { id:'LT-115', code:'GALT3', name:'Asphalt-Loader Operator', unionName:null },
+    { id:'LT-116', code:'GALT1', name:'Asphalt-Plant Operator', unionName:null },
+    { id:'LT-117', code:'GALT2', name:'Asphalt-Temp Monitor', unionName:null },
+    { id:'LT-118', code:'L094', name:'Assistant Project Manager', unionName:null },
+    { id:'LT-119', code:'L096', name:'15-C Helper', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-120', code:'L108', name:'15C Operator B-Helper', unionName:'Local 15C Mechanics' },
+    { id:'LT-121', code:'L014', name:'15C Operator Mechanic', unionName:'Local 15C Mechanics' },
+    { id:'LT-122', code:'L015', name:'15D Surveyors Instrument Man', unionName:'Local 15D Surveyors' },
+    { id:'LT-123', code:'L045', name:'15D Surveyors Party Chief', unionName:'Local 15D Surveyors' },
+    { id:'LT-124', code:'L051', name:'15D Surveyors Rodman', unionName:'Local 15D Surveyors' },
+    { id:'LT-125', code:'L077', name:'29 Drill Runners Jackhammer Op', unionName:null },
+    { id:'LT-126', code:'L105', name:'29 Laborer Jackhammer', unionName:null },
+    { id:'LT-127', code:'L066', name:'40 Ironworkers Apprentice', unionName:null },
+    { id:'LT-128', code:'L064', name:'40 Ironworkers Assistant Foreman', unionName:null },
+    { id:'LT-129', code:'L063', name:'40 Ironworkers Foreman', unionName:null },
+    { id:'LT-130', code:'L065', name:'40 Ironworkers Journeyman', unionName:null },
+    { id:'LT-131', code:'L035', name:'46 Lathers Foreman', unionName:'Local 46 Metallic Lathers' }
   ];
 
   function unionNameById(){ return unions.map(function(u){ return u.name; }); }
@@ -1985,7 +2104,8 @@
   function renderLaborAdminList(){
     var el = document.getElementById('laborList');
     var countEl = document.getElementById('laborCount');
-    countEl.textContent = laborTypes.length + ' code' + (laborTypes.length === 1 ? '' : 's') + ' (sample)';
+    var unassigned = laborTypes.filter(function(lt){ return !lt.unionName; }).length;
+    countEl.textContent = laborTypes.length + ' code' + (laborTypes.length === 1 ? '' : 's') + ' · ' + unassigned + ' unassigned';
     if(!laborTypes.length){ el.innerHTML = '<div class="admin-empty">No labor type codes yet — add one below.</div>'; return; }
     var html = '';
     laborTypes.forEach(function(lt, i){
