@@ -144,7 +144,7 @@
     display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
   }
   .modal-overlay[hidden]{display:none;}
-  #view-dashboard[hidden], #view-insights[hidden], #view-help[hidden]{display:none !important;}
+  #view-dashboard[hidden], #view-insights[hidden], #view-rules[hidden], #view-help[hidden]{display:none !important;}
   .modal{
     background:var(--bg-raised); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
     width:100%; max-width:520px; max-height:90vh; overflow-y:auto;
@@ -439,6 +439,81 @@
   .sev-mix-legend b{color:var(--ink); font-family:"IBM Plex Mono",monospace; font-weight:600;}
 
   .insight-note{font-size:12px; color:var(--ink-faint); margin:0;}
+
+  /* ---- rule library view ---- */
+  #view-rules{display:flex; flex-direction:column; gap:18px;}
+  .rules-intro{
+    background:var(--accent-soft); border:1px solid transparent; border-radius:10px;
+    padding:20px 22px; display:flex; flex-direction:column; gap:6px;
+  }
+  .rules-intro h2{font-size:24px; font-weight:700; color:var(--accent-soft-ink); margin:0;}
+  .rules-intro p{margin:0; font-size:14px; color:var(--accent-soft-ink); max-width:74ch; line-height:1.55;}
+  .rules-intro .phase-tag{
+    display:inline-flex; align-items:center; gap:6px; align-self:flex-start; margin-top:2px;
+    padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:0.02em;
+    background:var(--bg-raised); color:var(--accent-soft-ink); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  .rule-workspace{display:grid; grid-template-columns:1fr 1.35fr; gap:18px; align-items:start;}
+  @media (max-width:980px){ .rule-workspace{grid-template-columns:1fr;} }
+
+  .rule-list{display:flex; flex-direction:column;}
+  .rule-row{
+    display:flex; align-items:center; gap:10px; padding:12px 18px; border-top:1px solid var(--line-soft); cursor:pointer;
+  }
+  .rule-row:first-child{border-top:none;}
+  .rule-row:hover{background:var(--line-soft);}
+  .rule-row.selected{background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent);}
+  .rule-row .r-main{min-width:0; flex:1; display:flex; flex-direction:column; gap:3px;}
+  .rule-row .r-name{font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rule-row .r-meta{font-size:11.5px; color:var(--ink-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rule-status{
+    font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap; flex:none;
+    text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .rule-status.structured{background:var(--good-soft); color:var(--good);}
+  .rule-status.draft{background:var(--warn-soft); color:var(--warn);}
+  .rule-status.ambiguous{background:var(--crit-soft); color:var(--crit);}
+
+  .rule-detail-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px;}
+  .rule-detail-id{font-size:11.5px; color:var(--ink-faint); letter-spacing:0.02em;}
+  .rule-detail-title{font-size:20px; font-weight:600; margin-top:3px;}
+  .rule-detail-cba{font-size:12.5px; color:var(--ink-soft); margin-top:4px;}
+
+  .field-block{margin-top:18px; padding-top:14px; border-top:1px solid var(--line-soft);}
+  .field-block:first-of-type{margin-top:16px; padding-top:0; border-top:none;}
+  .field-block-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); margin-bottom:10px;}
+  .field-block-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px;}
+  .field-block-grid .f-label{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); font-weight:600;}
+  .field-block-grid .f-value{font-size:13px; margin-top:3px; font-weight:500;}
+
+  .example-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;}
+  @media (max-width:700px){ .example-grid{grid-template-columns:1fr;} }
+  .example-card{
+    border-radius:9px; padding:13px 14px; font-size:12.5px; line-height:1.55;
+    border:1px solid var(--line);
+  }
+  .example-card.good{background:var(--good-soft); border-color:color-mix(in srgb, var(--good) 30%, transparent);}
+  .example-card.bad{background:var(--crit-soft); border-color:color-mix(in srgb, var(--crit) 30%, transparent);}
+  .example-card .ex-head{display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:7px;}
+  .example-card.good .ex-head{color:var(--good);}
+  .example-card.bad .ex-head{color:var(--crit);}
+  .example-card p{margin:0 0 6px; color:var(--ink);}
+  .example-card p:last-child{margin-bottom:0;}
+  .example-category{font-size:13.5px; font-weight:600; margin:16px 0 4px;}
+  .example-category:first-child{margin-top:0;}
+
+  .rule-form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;}
+  @media (max-width:560px){ .rule-form-grid{grid-template-columns:1fr;} }
+  .rule-form-grid label{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--ink-soft);}
+  .rule-form-grid label.full{grid-column:1 / -1;}
+  .rule-form-grid input, .rule-form-grid select, .rule-form-grid textarea{
+    padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;
+  }
+  .rule-form-grid textarea{resize:vertical; min-height:56px;}
+  .form-note{
+    margin-top:2px; padding:10px 12px; border-radius:8px; background:var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;
+  }
 </style>
 </head>
 <body>
@@ -486,9 +561,9 @@
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/></svg><span class="nav-label">Exception queue</span></span>
           <span class="soon-tag">Merged</span>
         </a>
-        <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Not built in this concept">
-          <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg><span class="nav-label">Rule library</span></span>
-          <span class="soon-tag">Roadmap</span>
+        <a href="#" data-view="rules">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+          Rule library
         </a>
         <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Folded into Dashboard in this concept">
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 7l8 10"/></svg><span class="nav-label">Routing matrix</span></span>
@@ -726,6 +801,62 @@
       </div>
 
       <p class="help-footnote">This page illustrates the categories and volume UPAE is designed to surface once connected to CMiC. Actual detection rates and dollar-impact figures will be calibrated during the pilot using real payroll and correction history.</p>
+
+    </div>
+
+    <div id="view-rules" hidden>
+
+      <section class="rules-intro">
+        <span class="help-eyebrow">UPAE &middot; Rule Library</span>
+        <h2>Union rule sets that drive the payroll validation engine</h2>
+        <p>Every discrepancy UPAE flags traces back to a rule defined here &mdash; per-union pay conditions, plus correct/incorrect examples that ground the AI layer. Built against B2W (Weekly Employee Hours export) for Phase A; the same rule set carries forward unchanged when UPAE moves to CMiC.</p>
+        <span class="phase-tag">Phase A &middot; B2W-sourced &middot; employee-week grain, no job/cost-code</span>
+      </section>
+
+      <section class="kpis">
+        <div class="kpi">
+          <div class="k-label">Unions covered</div>
+          <div class="k-value">13</div>
+          <div class="k-delta flat">1 fully structured &middot; 12 in draft</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Labor type codes mapped</div>
+          <div class="k-value">86<span class="unit">/131</span></div>
+          <div class="k-delta up">45 unmatched &middot; reviewing with Payroll</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Example pairs on file</div>
+          <div class="k-value">4<span class="unit">/13 unions</span></div>
+          <div class="k-delta flat">Regular / OT 1.5 / OT 2x / Night, per union</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Open items for Payroll</div>
+          <div class="k-value">3</div>
+          <div class="k-delta up">Crosswalk, Night Diff., precedence rules</div>
+        </div>
+      </section>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Rule sets</h2>
+          <span class="panel-sub">Click a union to view its rule definition and examples</span>
+          <button class="btn primary" type="button" id="openAddRuleModal" style="margin-left:auto;">+ Add rule</button>
+        </div>
+        <div class="rule-workspace">
+          <div class="panel" style="box-shadow:none; border:none; border-right:1px solid var(--line-soft); border-radius:0;">
+            <div class="rule-list" id="ruleList"></div>
+          </div>
+          <div class="panel-body" id="ruleDetailWrap">
+            <div id="ruleDetail"></div>
+            <div class="field-block">
+              <div class="field-block-title">Example library</div>
+              <div id="ruleExamples"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="help-footnote">Local 14 (Operating Engineers) is the only rule fully structured against the Rule Definition Schema so far &mdash; it's the worked example used to validate the schema itself. The remaining 12 unions currently exist as prose CBA summaries and are being rewritten into this structured format, informed by tomorrow's meeting with Payroll (employee&rarr;union crosswalk, Night Differential examples, precedence rules).</p>
 
     </div>
 
@@ -968,6 +1099,89 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="addRuleModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addRuleModalTitle" style="max-width:640px;">
+    <div class="modal-head">
+      <div>
+        <h2 id="addRuleModalTitle">Add / edit union rule</h2>
+        <p>Fields match the Rule Definition Schema (Holiday pay intentionally excluded &mdash; not part of this tool).</p>
+      </div>
+      <button class="modal-close" type="button" id="closeAddRuleModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="field-block" style="margin-top:0;">
+        <div class="field-block-title">Identification &amp; versioning</div>
+        <div class="rule-form-grid">
+          <label>Union / Local name<input type="text" placeholder="e.g. Local 731 Laborers Union"></label>
+          <label>CBA reference<input type="text" placeholder="Article / section"></label>
+          <label>Effective date range<input type="text" placeholder="e.g. 7/1/2026 &ndash; 6/30/2029"></label>
+          <label>Last verified by / date<input type="text" placeholder="Name, date"></label>
+          <label class="full">Labor type codes covered<input type="text" placeholder="e.g. L062, L071, L088"></label>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-block-title">Work week &amp; regular time</div>
+        <div class="rule-form-grid">
+          <label>Work week start day<select><option>Monday</option><option>Sunday</option></select></label>
+          <label>Standard workday (hrs)<input type="text" placeholder="e.g. 8"></label>
+          <label>Regular threshold<input type="text" placeholder="e.g. up to 40 hrs/week"></label>
+          <label>Regular applicable days<input type="text" placeholder="e.g. Mon&ndash;Fri"></label>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-block-title">Overtime 1.5x</div>
+        <div class="rule-form-grid">
+          <label>Trigger type<select><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Saturday)</option></select></label>
+          <label>Threshold<input type="text" placeholder="e.g. over 8 hrs/day"></label>
+          <label>Applicable days<input type="text" placeholder="e.g. Mon&ndash;Fri, Saturday"></label>
+          <label>Rate multiplier<input type="text" placeholder="e.g. 1.5"></label>
+          <label>Benefit multiplier<input type="text" placeholder="e.g. 1.0"></label>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-block-title">Overtime 2x</div>
+        <div class="rule-form-grid">
+          <label>Trigger type<select><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Sunday)</option></select></label>
+          <label>Threshold<input type="text" placeholder="e.g. over 12 hrs/day, or Sunday"></label>
+          <label>Applicable days<input type="text" placeholder="e.g. Sunday"></label>
+          <label>Rate multiplier<input type="text" placeholder="e.g. 2.0"></label>
+          <label>Benefit multiplier<input type="text" placeholder="e.g. 1.0"></label>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-block-title">Night differential</div>
+        <div class="rule-form-grid">
+          <label>Window start<input type="text" placeholder="e.g. 6:00 PM"></label>
+          <label>Window end<input type="text" placeholder="e.g. 6:00 AM"></label>
+          <label>Applicability<input type="text" placeholder="e.g. any hrs worked in window"></label>
+          <label>Rate multiplier<input type="text" placeholder="e.g. 1.1"></label>
+          <label>Benefit multiplier<input type="text" placeholder="e.g. 1.0"></label>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-block-title">Precedence &amp; source</div>
+        <div class="rule-form-grid">
+          <label class="full">Precedence rule (when multiple conditions apply)<textarea placeholder="e.g. OT 2x takes precedence over Night Differential when both apply on the same hour"></textarea></label>
+          <label class="full">Original prose (optional, for AI context)<textarea placeholder="Paste the source CBA language here"></textarea></label>
+        </div>
+      </div>
+
+      <div class="form-note">This is a concept UI for tomorrow's walkthrough &mdash; saving isn't wired up yet. Rules submitted here are meant to illustrate the intake screen the Payroll team would use once the schema is finalized.</div>
+
+      <div class="modal-actions">
+        <button class="btn ghost" type="button" id="cancelAddRule">Cancel</button>
+        <button class="btn primary" type="button" id="saveAddRule">Save rule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   var exceptions = [
@@ -1195,7 +1409,7 @@
   (function initViews(){
     var navLinks = document.querySelectorAll('.rail nav a[data-view]');
     var allTriggers = document.querySelectorAll('a[data-view]');
-    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), help: document.getElementById('view-help') };
+    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), help: document.getElementById('view-help') };
     allTriggers.forEach(function(link){
       link.addEventListener('click', function(e){
         e.preventDefault();
@@ -1549,6 +1763,147 @@
     lastAi2.textContent = aiData[n-1];
     svg.appendChild(lastAi2);
   })();
+})();
+</script>
+
+<script>
+(function(){
+  // ---- Rule Library ----
+  var rules = [
+    { id:'R-001', name:'Local 14 Operating Engineers', status:'structured', statusLabel:'Structured', cba:'Local 14 CBA, Art. 12 (Hours of Work & Overtime)', verified:'Gus, Sept 22, 2026', codes:'L041, L044, L052 (3 of 11 codes matched — confirm remaining)',
+      fields:{
+        'Work week start day':'Monday', 'Standard workday (hrs)':'8',
+        'Regular threshold':'Up to 8 hrs/day, Mon–Fri', 'Regular applicable days':'Mon, Tue, Wed, Thu, Fri',
+        'OT 1.5 trigger type':'Daily (over N hrs/day)', 'OT 1.5 threshold':'Over 8 hrs/day, Mon–Fri; all hours Saturday',
+        'OT 1.5 applicable days':'Mon–Fri (over 8), Saturday (all hours)', 'OT 1.5 rate mult.':'1.5', 'OT 1.5 benefit mult.':'1.0',
+        'OT 2x trigger type':'Day-of-week', 'OT 2x threshold':'All hours worked Sunday',
+        'OT 2x applicable days':'Sunday', 'OT 2x rate mult.':'2.0', 'OT 2x benefit mult.':'1.0',
+        'Night window start':'(example — confirm)', 'Night window end':'(example — confirm)',
+        'Night applicability':'Rare — expected as "ND" line on B2W report; example pending Payroll', 'Night rate mult.':'(example — confirm)', 'Night benefit mult.':'(example — confirm)',
+        'Precedence rule':'OT 2x (Sunday) takes precedence over OT 1.5 and Night Differential when more than one condition applies to the same hour.'
+      },
+      examples:{
+        'Regular':[
+          {ok:true, text:'Mon–Fri, 8.0 hrs/day, no Sat/Sun — 40.0 RT for the week, no OT.'},
+          {ok:false, text:'Mon–Fri, 8.0 hrs/day reported, but one day shows 6.0 RT + 2.0 OT — should be 8.0 RT (OT only kicks in over 8/day).'}
+        ],
+        'Overtime 1.5x':[
+          {ok:true, text:'Saturday, 4.0 hrs worked — reported as 4.0 OT (1.5x). Correct: all Saturday hours are OT regardless of weekly total.'},
+          {ok:false, text:'Saturday, 4.0 hrs worked — reported as 4.0 RT. Incorrect: Saturday hours must be OT 1.5x even if the employee is under 40 hrs for the week.'}
+        ],
+        'Overtime 2x':[
+          {ok:true, text:'Sunday, 4.0 hrs worked — reported as 4.0 OT2 (2.0x). Correct per Art. 12.'},
+          {ok:false, text:'Sunday, 4.0 hrs worked — reported as 4.0 OT (1.5x). Incorrect: Sunday hours are always 2x, not 1.5x.'}
+        ],
+        'Night Differential':[
+          {ok:true, text:'Example pending — Payroll meeting Sept 23, 2026, to confirm how "ND" appears on the B2W report.'},
+          {ok:false, text:'Example pending — same.'}
+        ]
+      }
+    },
+    { id:'R-002', name:'Local 15 Operating Engineers', status:'ambiguous', statusLabel:'Ambiguous mapping', cba:'—', verified:'Not yet verified', codes:'Labor Type ID 15 ("15 Operator Paid As Operator 14") — ambiguous between Local 14 / Local 15, needs Payroll confirmation' },
+    { id:'R-003', name:'Local 15C Mechanics', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-004', name:'Local 15D Surveyors', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-005', name:'Local 731 Laborers Union', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-006', name:'Local 1010 Pavers & Road Builders', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-007', name:'Local 157 Carps', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-008', name:'Local 1536 Timberman', status:'ambiguous', statusLabel:'Auto-resolved — confirm', cba:'—', verified:'Not yet verified', codes:'Overlaps Local 1556 codes — auto-resolved to 1536, needs confirm' },
+    { id:'R-009', name:'Local 1456 Dockbuilders', status:'ambiguous', statusLabel:'Auto-resolved — confirm', cba:'—', verified:'Not yet verified', codes:'Overlaps Local 1556 codes — auto-resolved to 1456, needs confirm' },
+    { id:'R-010', name:'Local 1556 Marine Divers', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-011', name:'Local 46 Metallic Lathers', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-012', name:'Local 60 Metallic Lathers', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'Auto-matched, pending confirm' },
+    { id:'R-013', name:'Non Union Employees', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'45 labor types unmatched to any union fall here or need new categories — reviewing with Payroll' }
+  ];
+
+  var listEl = document.getElementById('ruleList');
+  var detailEl = document.getElementById('ruleDetail');
+  var examplesEl = document.getElementById('ruleExamples');
+  if(!listEl) return;
+
+  function renderList(selectedId){
+    listEl.innerHTML = '';
+    rules.forEach(function(r){
+      var row = document.createElement('div');
+      row.className = 'rule-row' + (r.id === selectedId ? ' selected' : '');
+      row.innerHTML =
+        '<div class="r-main"><div class="r-name">' + r.name + '</div><div class="r-meta">' + r.id + ' &middot; ' + r.codes + '</div></div>' +
+        '<span class="rule-status ' + r.status + '">' + r.statusLabel + '</span>';
+      row.addEventListener('click', function(){ selectRule(r.id); });
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderDetail(r){
+    var html = '<div class="rule-detail-head"><div><div class="rule-detail-id">' + r.id + '</div>' +
+      '<div class="rule-detail-title">' + r.name + '</div>' +
+      '<div class="rule-detail-cba">' + r.cba + ' &middot; Last verified: ' + r.verified + '</div></div>' +
+      '<span class="rule-status ' + r.status + '">' + r.statusLabel + '</span></div>';
+
+    if(!r.fields){
+      html += '<div class="form-note" style="margin-top:16px;">Not yet structured against the Rule Definition Schema. Currently exists as a prose CBA summary; being rewritten after Payroll confirms the employee&rarr;union crosswalk and related open items.</div>';
+      detailEl.innerHTML = html;
+      examplesEl.innerHTML = '<div class="form-note">No examples on file yet for this union.</div>';
+      return;
+    }
+
+    var groups = [
+      ['Work week & regular time', ['Work week start day','Standard workday (hrs)','Regular threshold','Regular applicable days']],
+      ['Overtime 1.5x', ['OT 1.5 trigger type','OT 1.5 threshold','OT 1.5 applicable days','OT 1.5 rate mult.','OT 1.5 benefit mult.']],
+      ['Overtime 2x', ['OT 2x trigger type','OT 2x threshold','OT 2x applicable days','OT 2x rate mult.','OT 2x benefit mult.']],
+      ['Night differential', ['Night window start','Night window end','Night applicability','Night rate mult.','Night benefit mult.']]
+    ];
+    groups.forEach(function(g){
+      html += '<div class="field-block"><div class="field-block-title">' + g[0] + '</div><div class="field-block-grid">';
+      g[1].forEach(function(k){
+        html += '<div class="detail-field"><div class="f-label">' + k + '</div><div class="f-value">' + (r.fields[k] || '—') + '</div></div>';
+      });
+      html += '</div></div>';
+    });
+    html += '<div class="field-block"><div class="field-block-title">Precedence rule</div><div style="font-size:13px; line-height:1.55;">' + r.fields['Precedence rule'] + '</div></div>';
+    detailEl.innerHTML = html;
+
+    var exHtml = '';
+    if(r.examples){
+      Object.keys(r.examples).forEach(function(cat){
+        exHtml += '<div class="example-category">' + cat + '</div><div class="example-grid">';
+        r.examples[cat].forEach(function(ex){
+          exHtml += '<div class="example-card ' + (ex.ok ? 'good' : 'bad') + '"><div class="ex-head">' + (ex.ok ? '✓ Correct' : '✕ Incorrect') + '</div><p>' + ex.text + '</p></div>';
+        });
+        exHtml += '</div>';
+      });
+    } else {
+      exHtml = '<div class="form-note">No examples on file yet for this union.</div>';
+    }
+    examplesEl.innerHTML = exHtml;
+  }
+
+  function selectRule(id){
+    var r = rules.filter(function(x){ return x.id === id; })[0];
+    if(!r) return;
+    renderList(id);
+    renderDetail(r);
+  }
+
+  renderList(rules[0].id);
+  renderDetail(rules[0]);
+
+  // ---- Add rule modal ----
+  var addOverlay = document.getElementById('addRuleModalOverlay');
+  var addOpenBtn = document.getElementById('openAddRuleModal');
+  var addCloseBtn = document.getElementById('closeAddRuleModal');
+  var addCancelBtn = document.getElementById('cancelAddRule');
+  var addSaveBtn = document.getElementById('saveAddRule');
+  function closeAddModal(){ addOverlay.hidden = true; }
+  if(addOpenBtn){
+    addOpenBtn.addEventListener('click', function(){ addOverlay.hidden = false; });
+    addCloseBtn.addEventListener('click', closeAddModal);
+    addCancelBtn.addEventListener('click', closeAddModal);
+    addOverlay.addEventListener('click', function(e){ if(e.target === addOverlay) closeAddModal(); });
+    addSaveBtn.addEventListener('click', function(){
+      addSaveBtn.textContent = 'Saved (concept)';
+      setTimeout(function(){ closeAddModal(); addSaveBtn.textContent = 'Save rule'; }, 700);
+    });
+  }
 })();
 </script>
 </body>
