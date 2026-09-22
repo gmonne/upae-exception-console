@@ -1113,70 +1113,108 @@
       <div class="field-block" style="margin-top:0;">
         <div class="field-block-title">Identification &amp; versioning</div>
         <div class="rule-form-grid">
-          <label>Union / Local name<input type="text" placeholder="e.g. Local 731 Laborers Union"></label>
-          <label>CBA reference<input type="text" placeholder="Article / section"></label>
-          <label>Effective date range<input type="text" placeholder="e.g. 7/1/2026 &ndash; 6/30/2029"></label>
-          <label>Last verified by / date<input type="text" placeholder="Name, date"></label>
-          <label class="full">Labor type codes covered<input type="text" placeholder="e.g. L062, L071, L088"></label>
+          <label>Union / Local name<input type="text" id="rf_name" placeholder="e.g. Local 731 Laborers Union"></label>
+          <label>CBA reference<input type="text" id="rf_cba" placeholder="Article / section"></label>
+          <label>Effective date range<input type="text" id="rf_effdate" placeholder="e.g. 7/1/2026 &ndash; 6/30/2029"></label>
+          <label>Last verified by / date<input type="text" id="rf_verified" placeholder="Name, date"></label>
+          <label class="full">Labor type codes covered<input type="text" id="rf_codes" placeholder="e.g. L062, L071, L088"></label>
         </div>
       </div>
 
       <div class="field-block">
         <div class="field-block-title">Work week &amp; regular time</div>
         <div class="rule-form-grid">
-          <label>Work week start day<select><option>Monday</option><option>Sunday</option></select></label>
-          <label>Standard workday (hrs)<input type="text" placeholder="e.g. 8"></label>
-          <label>Regular threshold<input type="text" placeholder="e.g. up to 40 hrs/week"></label>
-          <label>Regular applicable days<input type="text" placeholder="e.g. Mon&ndash;Fri"></label>
+          <label>Work week start day<select id="rf_weekstart"><option>Monday</option><option>Sunday</option></select></label>
+          <label>Standard workday (hrs)<input type="text" id="rf_workday" placeholder="e.g. 8"></label>
+          <label>Regular threshold<input type="text" id="rf_regthreshold" placeholder="e.g. up to 40 hrs/week"></label>
+          <label>Regular applicable days<input type="text" id="rf_regdays" placeholder="e.g. Mon&ndash;Fri"></label>
         </div>
       </div>
 
       <div class="field-block">
         <div class="field-block-title">Overtime 1.5x</div>
         <div class="rule-form-grid">
-          <label>Trigger type<select><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Saturday)</option></select></label>
-          <label>Threshold<input type="text" placeholder="e.g. over 8 hrs/day"></label>
-          <label>Applicable days<input type="text" placeholder="e.g. Mon&ndash;Fri, Saturday"></label>
-          <label>Rate multiplier<input type="text" placeholder="e.g. 1.5"></label>
-          <label>Benefit multiplier<input type="text" placeholder="e.g. 1.0"></label>
+          <label>Trigger type<select id="rf_ot15trigger"><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Saturday)</option></select></label>
+          <label>Threshold<input type="text" id="rf_ot15threshold" placeholder="e.g. over 8 hrs/day"></label>
+          <label>Applicable days<input type="text" id="rf_ot15days" placeholder="e.g. Mon&ndash;Fri, Saturday"></label>
+          <label>Rate multiplier<input type="text" id="rf_ot15rate" placeholder="e.g. 1.5"></label>
+          <label>Benefit multiplier<input type="text" id="rf_ot15benefit" placeholder="e.g. 1.0"></label>
         </div>
       </div>
 
       <div class="field-block">
         <div class="field-block-title">Overtime 2x</div>
         <div class="rule-form-grid">
-          <label>Trigger type<select><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Sunday)</option></select></label>
-          <label>Threshold<input type="text" placeholder="e.g. over 12 hrs/day, or Sunday"></label>
-          <label>Applicable days<input type="text" placeholder="e.g. Sunday"></label>
-          <label>Rate multiplier<input type="text" placeholder="e.g. 2.0"></label>
-          <label>Benefit multiplier<input type="text" placeholder="e.g. 1.0"></label>
+          <label>Trigger type<select id="rf_ot2trigger"><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Sunday)</option></select></label>
+          <label>Threshold<input type="text" id="rf_ot2threshold" placeholder="e.g. over 12 hrs/day, or Sunday"></label>
+          <label>Applicable days<input type="text" id="rf_ot2days" placeholder="e.g. Sunday"></label>
+          <label>Rate multiplier<input type="text" id="rf_ot2rate" placeholder="e.g. 2.0"></label>
+          <label>Benefit multiplier<input type="text" id="rf_ot2benefit" placeholder="e.g. 1.0"></label>
         </div>
       </div>
 
       <div class="field-block">
         <div class="field-block-title">Night differential</div>
         <div class="rule-form-grid">
-          <label>Window start<input type="text" placeholder="e.g. 6:00 PM"></label>
-          <label>Window end<input type="text" placeholder="e.g. 6:00 AM"></label>
-          <label>Applicability<input type="text" placeholder="e.g. any hrs worked in window"></label>
-          <label>Rate multiplier<input type="text" placeholder="e.g. 1.1"></label>
-          <label>Benefit multiplier<input type="text" placeholder="e.g. 1.0"></label>
+          <label>Window start<input type="text" id="rf_nightstart" placeholder="e.g. 6:00 PM"></label>
+          <label>Window end<input type="text" id="rf_nightend" placeholder="e.g. 6:00 AM"></label>
+          <label>Applicability<input type="text" id="rf_nightapplic" placeholder="e.g. any hrs worked in window"></label>
+          <label>Rate multiplier<input type="text" id="rf_nightrate" placeholder="e.g. 1.1"></label>
+          <label>Benefit multiplier<input type="text" id="rf_nightbenefit" placeholder="e.g. 1.0"></label>
         </div>
       </div>
 
       <div class="field-block">
         <div class="field-block-title">Precedence &amp; source</div>
         <div class="rule-form-grid">
-          <label class="full">Precedence rule (when multiple conditions apply)<textarea placeholder="e.g. OT 2x takes precedence over Night Differential when both apply on the same hour"></textarea></label>
-          <label class="full">Original prose (optional, for AI context)<textarea placeholder="Paste the source CBA language here"></textarea></label>
+          <label class="full">Precedence rule (when multiple conditions apply)<textarea id="rf_precedence" placeholder="e.g. OT 2x takes precedence over Night Differential when both apply on the same hour"></textarea></label>
+          <label class="full">Original prose (optional, for AI context)<textarea id="rf_prose" placeholder="Paste the source CBA language here"></textarea></label>
         </div>
       </div>
 
-      <div class="form-note">This is a concept UI for tomorrow's walkthrough &mdash; saving isn't wired up yet. Rules submitted here are meant to illustrate the intake screen the Payroll team would use once the schema is finalized.</div>
+      <div class="form-note" id="ruleFormNote">This is a concept UI for tomorrow's walkthrough &mdash; nothing leaves your browser. Save updates this screen's in-memory list so you can demo add/edit during the walkthrough; refreshing the page resets it.</div>
 
       <div class="modal-actions">
         <button class="btn ghost" type="button" id="cancelAddRule">Cancel</button>
         <button class="btn primary" type="button" id="saveAddRule">Save rule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addExampleModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addExampleModalTitle" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <h2 id="addExampleModalTitle">Add example</h2>
+        <p id="addExampleModalSub">Add a correct or incorrect weekly-report example to ground the AI.</p>
+      </div>
+      <button class="modal-close" type="button" id="closeAddExampleModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <span class="field-label">Category</span>
+        <select id="ex_category" class="week-select">
+          <option>Regular</option>
+          <option>Overtime 1.5x</option>
+          <option>Overtime 2x</option>
+          <option>Night Differential</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Type</span>
+        <div class="scope-options">
+          <label class="scope-opt"><input type="radio" name="ex_type" value="ok" checked> Correct example</label>
+          <label class="scope-opt"><input type="radio" name="ex_type" value="bad"> Incorrect example</label>
+        </div>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Example text</span>
+        <textarea id="ex_text" style="width:100%; min-height:80px; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="e.g. Saturday, 4.0 hrs worked — reported as 4.0 OT (1.5x). Correct: all Saturday hours are OT regardless of weekly total."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" type="button" id="cancelAddExample">Cancel</button>
+        <button class="btn primary" type="button" id="saveAddExample">Add example</button>
       </div>
     </div>
   </div>
@@ -1833,16 +1871,23 @@
     });
   }
 
+  var currentId = null;
+
   function renderDetail(r){
+    currentId = r.id;
     var html = '<div class="rule-detail-head"><div><div class="rule-detail-id">' + r.id + '</div>' +
       '<div class="rule-detail-title">' + r.name + '</div>' +
       '<div class="rule-detail-cba">' + r.cba + ' &middot; Last verified: ' + r.verified + '</div></div>' +
-      '<span class="rule-status ' + r.status + '">' + r.statusLabel + '</span></div>';
+      '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">' +
+      '<span class="rule-status ' + r.status + '">' + r.statusLabel + '</span>' +
+      '<button class="btn ghost" type="button" id="editRuleBtn" style="padding:6px 11px; font-size:12px;">Edit rule</button>' +
+      '</div></div>';
 
     if(!r.fields){
-      html += '<div class="form-note" style="margin-top:16px;">Not yet structured against the Rule Definition Schema. Currently exists as a prose CBA summary; being rewritten after Payroll confirms the employee&rarr;union crosswalk and related open items.</div>';
+      html += '<div class="form-note" style="margin-top:16px;">Not yet structured against the Rule Definition Schema. Currently exists as a prose CBA summary; being rewritten after Payroll confirms the employee&rarr;union crosswalk and related open items. Click "Edit rule" to fill it in.</div>';
       detailEl.innerHTML = html;
-      examplesEl.innerHTML = '<div class="form-note">No examples on file yet for this union.</div>';
+      renderExamples(r);
+      wireEditButton(r);
       return;
     }
 
@@ -1859,11 +1904,20 @@
       });
       html += '</div></div>';
     });
-    html += '<div class="field-block"><div class="field-block-title">Precedence rule</div><div style="font-size:13px; line-height:1.55;">' + r.fields['Precedence rule'] + '</div></div>';
+    html += '<div class="field-block"><div class="field-block-title">Precedence rule</div><div style="font-size:13px; line-height:1.55;">' + (r.fields['Precedence rule'] || '—') + '</div></div>';
     detailEl.innerHTML = html;
+    renderExamples(r);
+    wireEditButton(r);
+  }
 
-    var exHtml = '';
-    if(r.examples){
+  function wireEditButton(r){
+    var btn = document.getElementById('editRuleBtn');
+    if(btn) btn.addEventListener('click', function(){ openRuleModal(r); });
+  }
+
+  function renderExamples(r){
+    var exHtml = '<div style="display:flex; justify-content:flex-end; margin-bottom:4px;"><button class="btn ghost" type="button" id="addExampleBtn" style="padding:6px 11px; font-size:12px;">+ Add example</button></div>';
+    if(r.examples && Object.keys(r.examples).length){
       Object.keys(r.examples).forEach(function(cat){
         exHtml += '<div class="example-category">' + cat + '</div><div class="example-grid">';
         r.examples[cat].forEach(function(ex){
@@ -1872,9 +1926,11 @@
         exHtml += '</div>';
       });
     } else {
-      exHtml = '<div class="form-note">No examples on file yet for this union.</div>';
+      exHtml += '<div class="form-note">No examples on file yet for this union.</div>';
     }
     examplesEl.innerHTML = exHtml;
+    var addBtn = document.getElementById('addExampleBtn');
+    if(addBtn) addBtn.addEventListener('click', function(){ openExampleModal(r); });
   }
 
   function selectRule(id){
@@ -1887,21 +1943,172 @@
   renderList(rules[0].id);
   renderDetail(rules[0]);
 
-  // ---- Add rule modal ----
+  // ---- Add / Edit rule modal ----
   var addOverlay = document.getElementById('addRuleModalOverlay');
   var addOpenBtn = document.getElementById('openAddRuleModal');
   var addCloseBtn = document.getElementById('closeAddRuleModal');
   var addCancelBtn = document.getElementById('cancelAddRule');
   var addSaveBtn = document.getElementById('saveAddRule');
+  var addModalTitle = document.getElementById('addRuleModalTitle');
+  var addModalNote = document.getElementById('ruleFormNote');
+  var editingId = null; // null = adding a new rule; otherwise the rule id being edited
+
+  var formIds = {
+    name:'rf_name', cba:'rf_cba', effdate:'rf_effdate', verified:'rf_verified', codes:'rf_codes',
+    weekstart:'rf_weekstart', workday:'rf_workday', regthreshold:'rf_regthreshold', regdays:'rf_regdays',
+    ot15trigger:'rf_ot15trigger', ot15threshold:'rf_ot15threshold', ot15days:'rf_ot15days', ot15rate:'rf_ot15rate', ot15benefit:'rf_ot15benefit',
+    ot2trigger:'rf_ot2trigger', ot2threshold:'rf_ot2threshold', ot2days:'rf_ot2days', ot2rate:'rf_ot2rate', ot2benefit:'rf_ot2benefit',
+    nightstart:'rf_nightstart', nightend:'rf_nightend', nightapplic:'rf_nightapplic', nightrate:'rf_nightrate', nightbenefit:'rf_nightbenefit',
+    precedence:'rf_precedence', prose:'rf_prose'
+  };
+  function fv(id){ var el = document.getElementById(id); return el ? el.value : ''; }
+  function setfv(id, val){ var el = document.getElementById(id); if(el) el.value = val || ''; }
+  function clearForm(){ Object.keys(formIds).forEach(function(k){ setfv(formIds[k], ''); }); }
+
+  function fillFormFromRule(r){
+    clearForm();
+    setfv(formIds.name, r.name === 'New union' ? '' : r.name);
+    setfv(formIds.cba, r.cba === '—' ? '' : r.cba);
+    setfv(formIds.verified, r.verified === 'Not yet verified' ? '' : r.verified);
+    setfv(formIds.codes, r.codes);
+    var f = r.fields || {};
+    setfv(formIds.weekstart, f['Work week start day']);
+    setfv(formIds.workday, f['Standard workday (hrs)']);
+    setfv(formIds.regthreshold, f['Regular threshold']);
+    setfv(formIds.regdays, f['Regular applicable days']);
+    setfv(formIds.ot15trigger, f['OT 1.5 trigger type']);
+    setfv(formIds.ot15threshold, f['OT 1.5 threshold']);
+    setfv(formIds.ot15days, f['OT 1.5 applicable days']);
+    setfv(formIds.ot15rate, f['OT 1.5 rate mult.']);
+    setfv(formIds.ot15benefit, f['OT 1.5 benefit mult.']);
+    setfv(formIds.ot2trigger, f['OT 2x trigger type']);
+    setfv(formIds.ot2threshold, f['OT 2x threshold']);
+    setfv(formIds.ot2days, f['OT 2x applicable days']);
+    setfv(formIds.ot2rate, f['OT 2x rate mult.']);
+    setfv(formIds.ot2benefit, f['OT 2x benefit mult.']);
+    setfv(formIds.nightstart, f['Night window start']);
+    setfv(formIds.nightend, f['Night window end']);
+    setfv(formIds.nightapplic, f['Night applicability']);
+    setfv(formIds.nightrate, f['Night rate mult.']);
+    setfv(formIds.nightbenefit, f['Night benefit mult.']);
+    setfv(formIds.precedence, f['Precedence rule']);
+    setfv(formIds.prose, r.prose);
+  }
+
+  function openRuleModal(r){
+    editingId = r ? r.id : null;
+    if(r){
+      addModalTitle.textContent = 'Edit union rule — ' + r.name;
+      addModalNote.textContent = 'Editing ' + r.id + '. Nothing leaves your browser — this updates the in-memory list for the demo; refreshing the page resets it.';
+      fillFormFromRule(r);
+    } else {
+      addModalTitle.textContent = 'Add union rule';
+      addModalNote.textContent = 'Nothing leaves your browser — this adds to the in-memory list for the demo; refreshing the page resets it.';
+      clearForm();
+    }
+    addOverlay.hidden = false;
+  }
   function closeAddModal(){ addOverlay.hidden = true; }
+
   if(addOpenBtn){
-    addOpenBtn.addEventListener('click', function(){ addOverlay.hidden = false; });
+    addOpenBtn.addEventListener('click', function(){ openRuleModal(null); });
     addCloseBtn.addEventListener('click', closeAddModal);
     addCancelBtn.addEventListener('click', closeAddModal);
     addOverlay.addEventListener('click', function(e){ if(e.target === addOverlay) closeAddModal(); });
+
     addSaveBtn.addEventListener('click', function(){
-      addSaveBtn.textContent = 'Saved (concept)';
-      setTimeout(function(){ closeAddModal(); addSaveBtn.textContent = 'Save rule'; }, 700);
+      var name = fv(formIds.name).trim();
+      if(!name){ document.getElementById(formIds.name).focus(); return; }
+
+      var fields = {
+        'Work week start day': fv(formIds.weekstart), 'Standard workday (hrs)': fv(formIds.workday),
+        'Regular threshold': fv(formIds.regthreshold), 'Regular applicable days': fv(formIds.regdays),
+        'OT 1.5 trigger type': fv(formIds.ot15trigger), 'OT 1.5 threshold': fv(formIds.ot15threshold),
+        'OT 1.5 applicable days': fv(formIds.ot15days), 'OT 1.5 rate mult.': fv(formIds.ot15rate), 'OT 1.5 benefit mult.': fv(formIds.ot15benefit),
+        'OT 2x trigger type': fv(formIds.ot2trigger), 'OT 2x threshold': fv(formIds.ot2threshold),
+        'OT 2x applicable days': fv(formIds.ot2days), 'OT 2x rate mult.': fv(formIds.ot2rate), 'OT 2x benefit mult.': fv(formIds.ot2benefit),
+        'Night window start': fv(formIds.nightstart), 'Night window end': fv(formIds.nightend),
+        'Night applicability': fv(formIds.nightapplic), 'Night rate mult.': fv(formIds.nightrate), 'Night benefit mult.': fv(formIds.nightbenefit),
+        'Precedence rule': fv(formIds.precedence)
+      };
+      var hasStructure = fields['Regular threshold'] || fields['OT 1.5 threshold'] || fields['OT 2x threshold'];
+
+      if(editingId){
+        var idx = rules.map(function(x){return x.id;}).indexOf(editingId);
+        if(idx > -1){
+          var existing = rules[idx];
+          existing.name = name;
+          existing.cba = fv(formIds.cba) || '—';
+          existing.verified = fv(formIds.verified) || 'Not yet verified';
+          existing.codes = fv(formIds.codes) || existing.codes;
+          existing.prose = fv(formIds.prose);
+          existing.fields = hasStructure ? fields : existing.fields;
+          if(hasStructure){ existing.status = 'structured'; existing.statusLabel = 'Structured'; }
+          renderList(existing.id);
+          renderDetail(existing);
+        }
+      } else {
+        var newId = 'R-' + String(100 + rules.length).slice(1);
+        var newRule = {
+          id: newId, name: name, cba: fv(formIds.cba) || '—', verified: fv(formIds.verified) || 'Not yet verified',
+          codes: fv(formIds.codes) || 'Not yet mapped to labor type codes',
+          prose: fv(formIds.prose),
+          status: hasStructure ? 'structured' : 'draft',
+          statusLabel: hasStructure ? 'Structured' : 'Draft — prose only',
+          fields: hasStructure ? fields : null
+        };
+        rules.push(newRule);
+        renderList(newRule.id);
+        renderDetail(newRule);
+      }
+
+      addSaveBtn.textContent = 'Saved';
+      setTimeout(function(){ closeAddModal(); addSaveBtn.textContent = 'Save rule'; }, 500);
+    });
+  }
+
+  // ---- Add example modal ----
+  var exOverlay = document.getElementById('addExampleModalOverlay');
+  var exCloseBtn = document.getElementById('closeAddExampleModal');
+  var exCancelBtn = document.getElementById('cancelAddExample');
+  var exSaveBtn = document.getElementById('saveAddExample');
+  var exCategorySel = document.getElementById('ex_category');
+  var exTextArea = document.getElementById('ex_text');
+  var exSub = document.getElementById('addExampleModalSub');
+  var exTargetRuleId = null;
+
+  function openExampleModal(r){
+    exTargetRuleId = r.id;
+    exSub.textContent = 'Add a correct or incorrect weekly-report example for ' + r.name + '.';
+    exTextArea.value = '';
+    var radios = document.getElementsByName('ex_type');
+    radios.forEach && radios.forEach(function(rb){ rb.checked = (rb.value === 'ok'); });
+    if(!radios.forEach){ for(var i=0;i<radios.length;i++){ radios[i].checked = (radios[i].value === 'ok'); } }
+    exOverlay.hidden = false;
+  }
+  function closeExampleModal(){ exOverlay.hidden = true; }
+
+  if(exOverlay){
+    exCloseBtn.addEventListener('click', closeExampleModal);
+    exCancelBtn.addEventListener('click', closeExampleModal);
+    exOverlay.addEventListener('click', function(e){ if(e.target === exOverlay) closeExampleModal(); });
+
+    exSaveBtn.addEventListener('click', function(){
+      var text = exTextArea.value.trim();
+      if(!text){ exTextArea.focus(); return; }
+      var category = exCategorySel.value;
+      var typeRadio = document.querySelector('input[name="ex_type"]:checked');
+      var isOk = !typeRadio || typeRadio.value === 'ok';
+
+      var r = rules.filter(function(x){ return x.id === exTargetRuleId; })[0];
+      if(r){
+        if(!r.examples) r.examples = {};
+        if(!r.examples[category]) r.examples[category] = [];
+        r.examples[category].push({ ok: isOk, text: text });
+        if(r.id === currentId) renderDetail(r);
+      }
+      exSaveBtn.textContent = 'Added';
+      setTimeout(function(){ closeExampleModal(); exSaveBtn.textContent = 'Add example'; }, 400);
     });
   }
 })();
