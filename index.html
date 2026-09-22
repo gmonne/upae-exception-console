@@ -927,6 +927,10 @@
             <h2>Labor type codes</h2>
             <span class="panel-sub" id="laborCount">12 codes (sample)</span>
           </div>
+          <div class="filters" style="padding:0 18px 10px;">
+            <button class="chip-filter active" type="button" data-labor-filter="all">All codes</button>
+            <button class="chip-filter" type="button" data-labor-filter="unassigned">Unassigned only</button>
+          </div>
           <div id="laborList"></div>
           <div class="admin-add-row">
             <input type="text" id="newLaborCode" placeholder="Code, e.g. L088" style="max-width:90px;">
@@ -2097,30 +2101,67 @@
         renderUnionAdminList();
         populateUnionOptions();
         populateLaborUnionSelect();
+        renderLaborAdminList();
       });
     });
+  }
+
+  var laborFilter = 'all'; // 'all' | 'unassigned'
+
+  function laborUnionOptionsHtml(selected){
+    var opts = '<option value=""' + (!selected ? ' selected' : '') + '>Unassigned</option>';
+    opts += unions.map(function(u){
+      return '<option value="' + u.name + '"' + (u.name === selected ? ' selected' : '') + '>' + u.name + '</option>';
+    }).join('');
+    return opts;
   }
 
   function renderLaborAdminList(){
     var el = document.getElementById('laborList');
     var countEl = document.getElementById('laborCount');
-    var unassigned = laborTypes.filter(function(lt){ return !lt.unionName; }).length;
-    countEl.textContent = laborTypes.length + ' code' + (laborTypes.length === 1 ? '' : 's') + ' · ' + unassigned + ' unassigned';
+    var unassignedCount = laborTypes.filter(function(lt){ return !lt.unionName; }).length;
+    countEl.textContent = laborTypes.length + ' code' + (laborTypes.length === 1 ? '' : 's') + ' · ' + unassignedCount + ' unassigned';
+
     if(!laborTypes.length){ el.innerHTML = '<div class="admin-empty">No labor type codes yet — add one below.</div>'; return; }
+
+    var visible = laborTypes
+      .map(function(lt, i){ return { lt: lt, i: i }; })
+      .filter(function(x){ return laborFilter === 'unassigned' ? !x.lt.unionName : true; });
+
+    if(!visible.length){ el.innerHTML = '<div class="admin-empty">Every code has a union assigned.</div>'; return; }
+
     var html = '';
-    laborTypes.forEach(function(lt, i){
-      html += '<div class="admin-row"><div class="a-code">' + lt.code + '</div><div class="a-main"><div class="a-name">' + lt.name + '</div>' +
-        '<div class="a-meta">' + (lt.unionName || 'Unassigned — needs a union') + '</div></div>' +
+    visible.forEach(function(x){
+      var lt = x.lt, i = x.i;
+      html += '<div class="admin-row"><div class="a-code">' + lt.code + '</div><div class="a-main"><div class="a-name">' + lt.name + '</div></div>' +
+        '<select class="admin-union-select" data-labor-assign-idx="' + i + '" style="max-width:180px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; font-size:12px;">' +
+        laborUnionOptionsHtml(lt.unionName) + '</select>' +
         '<button class="a-del" type="button" data-labor-idx="' + i + '" title="Remove labor type">&times;</button></div>';
     });
     el.innerHTML = html;
+
     el.querySelectorAll('[data-labor-idx]').forEach(function(btn){
       btn.addEventListener('click', function(){
         laborTypes.splice(parseInt(btn.getAttribute('data-labor-idx'), 10), 1);
         renderLaborAdminList();
       });
     });
+    el.querySelectorAll('[data-labor-assign-idx]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var idx = parseInt(sel.getAttribute('data-labor-assign-idx'), 10);
+        laborTypes[idx].unionName = sel.value || null;
+        renderLaborAdminList();
+      });
+    });
   }
+
+  document.querySelectorAll('[data-labor-filter]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      laborFilter = btn.getAttribute('data-labor-filter');
+      document.querySelectorAll('[data-labor-filter]').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderLaborAdminList();
+    });
+  });
 
   function populateLaborUnionSelect(){
     var sel = document.getElementById('newLaborUnion');
@@ -2139,6 +2180,7 @@
       renderUnionAdminList();
       populateUnionOptions();
       populateLaborUnionSelect();
+      renderLaborAdminList();
     });
   }
 
