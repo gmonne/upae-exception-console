@@ -144,7 +144,7 @@
     display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
   }
   .modal-overlay[hidden]{display:none;}
-  #view-dashboard[hidden], #view-insights[hidden], #view-rules[hidden], #view-help[hidden]{display:none !important;}
+  #view-dashboard[hidden], #view-insights[hidden], #view-rules[hidden], #view-admin[hidden], #view-help[hidden]{display:none !important;}
   .modal{
     background:var(--bg-raised); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
     width:100%; max-width:520px; max-height:90vh; overflow-y:auto;
@@ -514,6 +514,41 @@
   .form-note{
     margin-top:2px; padding:10px 12px; border-radius:8px; background:var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;
   }
+
+  /* ---- admin view ---- */
+  #view-admin{display:flex; flex-direction:column; gap:18px;}
+  .admin-workspace{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
+  @media (max-width:900px){ .admin-workspace{grid-template-columns:1fr;} }
+  .admin-row{
+    display:flex; align-items:center; gap:10px; padding:10px 18px; border-top:1px solid var(--line-soft);
+  }
+  .admin-row:first-child{border-top:none;}
+  .admin-row:hover{background:var(--line-soft);}
+  .admin-row .a-code{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); flex:none; width:52px;}
+  .admin-row .a-main{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  .admin-row .a-name{font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .admin-row .a-meta{font-size:11.5px; color:var(--ink-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .admin-row .a-del{
+    flex:none; width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:var(--bg);
+    color:var(--crit); cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+  }
+  .admin-row .a-del:hover{background:var(--crit-soft);}
+  .admin-add-row{display:flex; gap:8px; padding:12px 18px; border-top:1px solid var(--line-soft); flex-wrap:wrap;}
+  .admin-add-row input, .admin-add-row select{
+    padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px; flex:1; min-width:110px;
+  }
+  .admin-empty{padding:20px 18px; text-align:center; font-size:12.5px; color:var(--ink-faint);}
+  .code-multiselect{
+    display:flex; flex-direction:column; gap:2px; border:1px solid var(--line); border-radius:8px; padding:4px;
+    max-height:200px; overflow-y:auto;
+  }
+  .code-row{display:flex; align-items:center; gap:10px; padding:7px 9px; border-radius:6px; font-size:13px;}
+  .code-row:hover{background:var(--line-soft);}
+  .code-row input{accent-color:var(--accent); width:15px; height:15px; flex:none;}
+  .code-row .code-id{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); flex:none; width:52px;}
+  .code-row .code-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .code-row .code-union{font-size:11px; color:var(--ink-faint); flex:none; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .code-picked-summary{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
 </style>
 </head>
 <body>
@@ -564,6 +599,10 @@
         <a href="#" data-view="rules">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
           Rule library
+        </a>
+        <a href="#" data-view="admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Admin: Unions &amp; Labor Types
         </a>
         <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Folded into Dashboard in this concept">
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 7l8 10"/></svg><span class="nav-label">Routing matrix</span></span>
@@ -860,6 +899,49 @@
 
     </div>
 
+    <div id="view-admin" hidden>
+
+      <section class="rules-intro">
+        <span class="help-eyebrow">UPAE &middot; Admin</span>
+        <h2>Manage the Unions and Labor Type codes UPAE rules are built on</h2>
+        <p>This is the reference data behind the Rule Library &mdash; the master list of Unions and the Labor Type codes each one covers. Add or remove entries here; the "Labor type codes covered" field on a rule then lets you pick from this list instead of typing codes freehand.</p>
+        <span class="phase-tag">12 sample codes shown &middot; full 131-code list to be imported from Union Rules.xlsx</span>
+      </section>
+
+      <div class="admin-workspace">
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Unions</h2>
+            <span class="panel-sub" id="unionCount">13 unions</span>
+          </div>
+          <div id="unionList"></div>
+          <div class="admin-add-row">
+            <input type="text" id="newUnionName" placeholder="New union name, e.g. Local 282 Teamsters">
+            <button class="btn primary" type="button" id="addUnionBtn">+ Add union</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Labor type codes</h2>
+            <span class="panel-sub" id="laborCount">12 codes (sample)</span>
+          </div>
+          <div id="laborList"></div>
+          <div class="admin-add-row">
+            <input type="text" id="newLaborCode" placeholder="Code, e.g. L088" style="max-width:90px;">
+            <input type="text" id="newLaborName" placeholder="Labor type name">
+            <select id="newLaborUnion"></select>
+            <button class="btn primary" type="button" id="addLaborBtn">+ Add</button>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="help-footnote">Deleting a union or labor type here only removes it from this reference list &mdash; it does not delete any rule already built against it, so a rule can end up pointing at a code that no longer exists. In a real build this would need a "can't delete &mdash; still referenced by Rule R-0XX" guard; not wired up in this concept.</p>
+
+    </div>
+
     <div id="view-help" hidden>
 
       <section class="help-intro">
@@ -1113,11 +1195,15 @@
       <div class="field-block" style="margin-top:0;">
         <div class="field-block-title">Identification &amp; versioning</div>
         <div class="rule-form-grid">
-          <label>Union / Local name<input type="text" id="rf_name" placeholder="e.g. Local 731 Laborers Union"></label>
+          <label>Union / Local name<input type="text" id="rf_name" list="rf_unionOptions" placeholder="e.g. Local 731 Laborers Union"></label>
+          <datalist id="rf_unionOptions"></datalist>
           <label>CBA reference<input type="text" id="rf_cba" placeholder="Article / section"></label>
           <label>Effective date range<input type="text" id="rf_effdate" placeholder="e.g. 7/1/2026 &ndash; 6/30/2029"></label>
           <label>Last verified by / date<input type="text" id="rf_verified" placeholder="Name, date"></label>
-          <label class="full">Labor type codes covered<input type="text" id="rf_codes" placeholder="e.g. L062, L071, L088"></label>
+          <label class="full">Labor type codes covered
+            <div class="code-multiselect" id="rf_codesList"></div>
+            <div class="code-picked-summary" id="rf_codesSummary">No codes selected &mdash; managed on the Admin screen.</div>
+          </label>
         </div>
       </div>
 
@@ -1447,7 +1533,7 @@
   (function initViews(){
     var navLinks = document.querySelectorAll('.rail nav a[data-view]');
     var allTriggers = document.querySelectorAll('a[data-view]');
-    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), help: document.getElementById('view-help') };
+    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), admin: document.getElementById('view-admin'), help: document.getElementById('view-help') };
     allTriggers.forEach(function(link){
       link.addEventListener('click', function(e){
         e.preventDefault();
@@ -1853,6 +1939,116 @@
     { id:'R-013', name:'Non Union Employees', status:'draft', statusLabel:'Draft — prose only', cba:'—', verified:'Not yet verified', codes:'45 labor types unmatched to any union fall here or need new categories — reviewing with Payroll' }
   ];
 
+  // ---- Admin: Unions & Labor Types (reference data) ----
+  var unions = rules.map(function(r){ return { id: r.id, name: r.name }; });
+
+  var laborTypes = [
+    { id:'LT-001', code:'L041', name:'Operator, Crane', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-002', code:'L044', name:'Operator, Backhoe', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-003', code:'L052', name:'Operator, Grader', unionName:'Local 14 Operating Engineers' },
+    { id:'LT-004', code:'L015', name:'Operator Paid As Operator 14', unionName:'Local 15 Operating Engineers' },
+    { id:'LT-005', code:'L062', name:'Plumbers Helper B', unionName:null },
+    { id:'LT-006', code:'L071', name:'Mechanic, Heavy Equipment', unionName:'Local 15C Mechanics' },
+    { id:'LT-007', code:'L088', name:'Surveyor, Instrument', unionName:'Local 15D Surveyors' },
+    { id:'LT-008', code:'L102', name:'Laborer, General', unionName:'Local 731 Laborers Union' },
+    { id:'LT-009', code:'L118', name:'Paver Operator', unionName:'Local 1010 Pavers & Road Builders' },
+    { id:'LT-010', code:'L133', name:'Carpenter, Journeyman', unionName:'Local 157 Carps' },
+    { id:'LT-011', code:'L149', name:'Field Assistant', unionName:null },
+    { id:'LT-012', code:'L160', name:'Estimator', unionName:null }
+  ];
+
+  function unionNameById(){ return unions.map(function(u){ return u.name; }); }
+
+  function renderUnionAdminList(){
+    var el = document.getElementById('unionList');
+    var countEl = document.getElementById('unionCount');
+    countEl.textContent = unions.length + ' union' + (unions.length === 1 ? '' : 's');
+    if(!unions.length){ el.innerHTML = '<div class="admin-empty">No unions yet — add one below.</div>'; return; }
+    var html = '';
+    unions.forEach(function(u, i){
+      var usedByRule = rules.filter(function(r){ return r.name === u.name; }).length;
+      html += '<div class="admin-row"><div class="a-main"><div class="a-name">' + u.name + '</div>' +
+        '<div class="a-meta">' + (usedByRule ? usedByRule + ' rule' + (usedByRule>1?'s':'') + ' reference this union' : 'No rule built yet') + '</div></div>' +
+        '<button class="a-del" type="button" data-union-idx="' + i + '" title="Remove union">&times;</button></div>';
+    });
+    el.innerHTML = html;
+    el.querySelectorAll('[data-union-idx]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        unions.splice(parseInt(btn.getAttribute('data-union-idx'), 10), 1);
+        renderUnionAdminList();
+        populateUnionOptions();
+        populateLaborUnionSelect();
+      });
+    });
+  }
+
+  function renderLaborAdminList(){
+    var el = document.getElementById('laborList');
+    var countEl = document.getElementById('laborCount');
+    countEl.textContent = laborTypes.length + ' code' + (laborTypes.length === 1 ? '' : 's') + ' (sample)';
+    if(!laborTypes.length){ el.innerHTML = '<div class="admin-empty">No labor type codes yet — add one below.</div>'; return; }
+    var html = '';
+    laborTypes.forEach(function(lt, i){
+      html += '<div class="admin-row"><div class="a-code">' + lt.code + '</div><div class="a-main"><div class="a-name">' + lt.name + '</div>' +
+        '<div class="a-meta">' + (lt.unionName || 'Unassigned — needs a union') + '</div></div>' +
+        '<button class="a-del" type="button" data-labor-idx="' + i + '" title="Remove labor type">&times;</button></div>';
+    });
+    el.innerHTML = html;
+    el.querySelectorAll('[data-labor-idx]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        laborTypes.splice(parseInt(btn.getAttribute('data-labor-idx'), 10), 1);
+        renderLaborAdminList();
+      });
+    });
+  }
+
+  function populateLaborUnionSelect(){
+    var sel = document.getElementById('newLaborUnion');
+    if(!sel) return;
+    sel.innerHTML = '<option value="">Unassigned</option>' + unions.map(function(u){ return '<option value="' + u.name + '">' + u.name + '</option>'; }).join('');
+  }
+
+  var addUnionBtn = document.getElementById('addUnionBtn');
+  var newUnionInput = document.getElementById('newUnionName');
+  if(addUnionBtn){
+    addUnionBtn.addEventListener('click', function(){
+      var name = newUnionInput.value.trim();
+      if(!name) { newUnionInput.focus(); return; }
+      unions.push({ id: 'U-' + Date.now(), name: name });
+      newUnionInput.value = '';
+      renderUnionAdminList();
+      populateUnionOptions();
+      populateLaborUnionSelect();
+    });
+  }
+
+  var addLaborBtn = document.getElementById('addLaborBtn');
+  if(addLaborBtn){
+    addLaborBtn.addEventListener('click', function(){
+      var code = document.getElementById('newLaborCode').value.trim();
+      var name = document.getElementById('newLaborName').value.trim();
+      var unionName = document.getElementById('newLaborUnion').value || null;
+      if(!code || !name){ document.getElementById(code ? 'newLaborName' : 'newLaborCode').focus(); return; }
+      laborTypes.push({ id:'LT-' + Date.now(), code: code, name: name, unionName: unionName });
+      document.getElementById('newLaborCode').value = '';
+      document.getElementById('newLaborName').value = '';
+      document.getElementById('newLaborUnion').value = '';
+      renderLaborAdminList();
+      renderCodesMultiselect(); // refresh in case the rule modal is behind this
+    });
+  }
+
+  renderUnionAdminList();
+  renderLaborAdminList();
+  populateLaborUnionSelect();
+
+  function populateUnionOptions(){
+    var dl = document.getElementById('rf_unionOptions');
+    if(!dl) return;
+    dl.innerHTML = unions.map(function(u){ return '<option value="' + u.name + '">'; }).join('');
+  }
+  populateUnionOptions();
+
   var listEl = document.getElementById('ruleList');
   var detailEl = document.getElementById('ruleDetail');
   var examplesEl = document.getElementById('ruleExamples');
@@ -1975,7 +2171,7 @@
   var editingId = null; // null = adding a new rule; otherwise the rule id being edited
 
   var formIds = {
-    name:'rf_name', cba:'rf_cba', effdate:'rf_effdate', verified:'rf_verified', codes:'rf_codes',
+    name:'rf_name', cba:'rf_cba', effdate:'rf_effdate', verified:'rf_verified',
     weekstart:'rf_weekstart', workday:'rf_workday', regthreshold:'rf_regthreshold', regdays:'rf_regdays',
     ot15trigger:'rf_ot15trigger', ot15threshold:'rf_ot15threshold', ot15days:'rf_ot15days', ot15rate:'rf_ot15rate', ot15benefit:'rf_ot15benefit',
     ot2trigger:'rf_ot2trigger', ot2threshold:'rf_ot2threshold', ot2days:'rf_ot2days', ot2rate:'rf_ot2rate', ot2benefit:'rf_ot2benefit',
@@ -1986,12 +2182,46 @@
   function setfv(id, val){ var el = document.getElementById(id); if(el) el.value = val || ''; }
   function clearForm(){ Object.keys(formIds).forEach(function(k){ setfv(formIds[k], ''); }); }
 
+  function renderCodesMultiselect(r){
+    var listEl = document.getElementById('rf_codesList');
+    var summaryEl = document.getElementById('rf_codesSummary');
+    if(!listEl) return;
+    if(!laborTypes.length){
+      listEl.innerHTML = '<div class="admin-empty" style="padding:10px;">No labor type codes yet — add some on the Admin screen.</div>';
+      summaryEl.textContent = '';
+      return;
+    }
+    var picked = (r && r.laborTypeIds) || [];
+    listEl.innerHTML = laborTypes.map(function(lt){
+      var checked = picked.indexOf(lt.code) > -1 ? ' checked' : '';
+      return '<label class="code-row"><input type="checkbox" value="' + lt.code + '"' + checked + '>' +
+        '<span class="code-id">' + lt.code + '</span><span class="code-name">' + lt.name + '</span>' +
+        '<span class="code-union">' + (lt.unionName || 'Unassigned') + '</span></label>';
+    }).join('');
+    listEl.querySelectorAll('input[type="checkbox"]').forEach(function(cb){
+      cb.addEventListener('change', updateCodesSummary);
+    });
+    updateCodesSummary();
+  }
+  function getSelectedCodes(){
+    var boxes = document.querySelectorAll('#rf_codesList input[type="checkbox"]:checked');
+    var out = [];
+    boxes.forEach ? boxes.forEach(function(b){ out.push(b.value); }) : (function(){ for(var i=0;i<boxes.length;i++) out.push(boxes[i].value); })();
+    return out;
+  }
+  function updateCodesSummary(){
+    var summaryEl = document.getElementById('rf_codesSummary');
+    if(!summaryEl) return;
+    var codes = getSelectedCodes();
+    summaryEl.textContent = codes.length ? (codes.length + ' code' + (codes.length>1?'s':'') + ' selected: ' + codes.join(', ')) : 'No codes selected — managed on the Admin screen.';
+  }
+
   function fillFormFromRule(r){
     clearForm();
     setfv(formIds.name, r.name === 'New union' ? '' : r.name);
     setfv(formIds.cba, r.cba === '—' ? '' : r.cba);
     setfv(formIds.verified, r.verified === 'Not yet verified' ? '' : r.verified);
-    setfv(formIds.codes, r.codes);
+    renderCodesMultiselect(r);
     var f = r.fields || {};
     setfv(formIds.weekstart, f['Work week start day']);
     setfv(formIds.workday, f['Standard workday (hrs)']);
@@ -2026,6 +2256,7 @@
       addModalTitle.textContent = 'Add union rule';
       addModalNote.textContent = 'Nothing leaves your browser — this adds to the in-memory list for the demo; refreshing the page resets it.';
       clearForm();
+      renderCodesMultiselect(null);
     }
     addOverlay.hidden = false;
   }
@@ -2053,6 +2284,10 @@
         'Precedence rule': fv(formIds.precedence)
       };
       var hasStructure = fields['Regular threshold'] || fields['OT 1.5 threshold'] || fields['OT 2x threshold'];
+      var pickedCodes = getSelectedCodes();
+      var codesSummary = pickedCodes.length
+        ? pickedCodes.join(', ') + ' (' + pickedCodes.length + ' code' + (pickedCodes.length>1?'s':'') + ')'
+        : 'Not yet mapped to labor type codes';
 
       if(editingId){
         var idx = rules.map(function(x){return x.id;}).indexOf(editingId);
@@ -2061,10 +2296,12 @@
           existing.name = name;
           existing.cba = fv(formIds.cba) || '—';
           existing.verified = fv(formIds.verified) || 'Not yet verified';
-          existing.codes = fv(formIds.codes) || existing.codes;
+          existing.codes = codesSummary;
+          existing.laborTypeIds = pickedCodes;
+          existing.status = (existing.status === 'ambiguous') ? existing.status : (hasStructure ? 'structured' : existing.status);
           existing.prose = fv(formIds.prose);
           existing.fields = hasStructure ? fields : existing.fields;
-          if(hasStructure){ existing.status = 'structured'; existing.statusLabel = 'Structured'; }
+          if(hasStructure && existing.status !== 'ambiguous'){ existing.status = 'structured'; existing.statusLabel = 'Structured'; }
           renderList(existing.id);
           renderDetail(existing);
         }
@@ -2072,13 +2309,20 @@
         var newId = 'R-' + String(100 + rules.length).slice(1);
         var newRule = {
           id: newId, name: name, cba: fv(formIds.cba) || '—', verified: fv(formIds.verified) || 'Not yet verified',
-          codes: fv(formIds.codes) || 'Not yet mapped to labor type codes',
+          codes: codesSummary,
+          laborTypeIds: pickedCodes,
           prose: fv(formIds.prose),
           status: hasStructure ? 'structured' : 'draft',
           statusLabel: hasStructure ? 'Structured' : 'Draft — prose only',
           fields: hasStructure ? fields : null
         };
         rules.push(newRule);
+        if(!unions.some(function(u){ return u.name === newRule.name; })){
+          unions.push({ id: newRule.id, name: newRule.name });
+          renderUnionAdminList();
+          populateUnionOptions();
+          populateLaborUnionSelect();
+        }
         renderList(newRule.id);
         renderDetail(newRule);
       }
