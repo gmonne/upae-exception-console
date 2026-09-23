@@ -1280,11 +1280,17 @@
           <label class="na-switch"><input type="checkbox" id="rf_night_na">Not applicable to this union</label>
         </div>
         <div class="rule-form-grid">
-          <label>Window start<input type="text" id="rf_nightstart" placeholder="e.g. 6:00 PM"></label>
-          <label>Window end<input type="text" id="rf_nightend" placeholder="e.g. 6:00 AM"></label>
-          <label>Applicability<input type="text" id="rf_nightapplic" placeholder="e.g. any hrs worked in window"></label>
-          <label>Rate multiplier<input type="text" id="rf_nightrate" placeholder="e.g. 1.1"></label>
-          <label>Benefit multiplier<input type="text" id="rf_nightbenefit" placeholder="e.g. 1.0"></label>
+          <label>Trigger type<select id="rf_nighttrigger"><option>Clock-time window</option><option>Send-home / Recall event</option><option>Not Applicable</option></select></label>
+          <label>Applicability<input type="text" id="rf_nightapplic" placeholder="e.g. Weekdays only &ndash; Saturday/Sunday always OT, never Night Diff"></label>
+          <label id="rf_nightwindow_start_row">Window start<input type="text" id="rf_nightstart" placeholder="e.g. 6:00 PM"></label>
+          <label id="rf_nightwindow_end_row">Window end<input type="text" id="rf_nightend" placeholder="e.g. 6:00 AM"></label>
+          <label class="full" id="rf_nightcondition_row">Trigger condition<textarea id="rf_nightcondition" placeholder="e.g. Crew sent home and recalled to work a second shift, any weekday. Starts immediately regardless of RT hours already worked or length of gap between shifts."></textarea></label>
+        </div>
+        <div class="rule-form-grid" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--line-soft);">
+          <label>Tier 1 threshold<input type="text" id="rf_nighttier1threshold" placeholder="e.g. First 8 hrs of second shift"></label>
+          <label>Tier 1 rate / benefit mult.<span style="display:flex; gap:8px;"><input type="text" id="rf_nighttier1rate" placeholder="rate e.g. 1.6" style="flex:1;"><input type="text" id="rf_nighttier1benefit" placeholder="benefit e.g. 2.0" style="flex:1;"></span></label>
+          <label>Tier 2 threshold<input type="text" id="rf_nighttier2threshold" placeholder="e.g. Hours beyond 8 in second shift"></label>
+          <label>Tier 2 rate / benefit mult.<span style="display:flex; gap:8px;"><input type="text" id="rf_nighttier2rate" placeholder="rate e.g. 2.0" style="flex:1;"><input type="text" id="rf_nighttier2benefit" placeholder="benefit e.g. 2.0" style="flex:1;"></span></label>
         </div>
       </div>
 
@@ -1936,13 +1942,15 @@
       fields:{
         'Work week start day':'Monday', 'Standard workday (hrs)':'8',
         'Regular threshold':'Up to 8 hrs/day, Mon–Fri', 'Regular applicable days':'Mon, Tue, Wed, Thu, Fri',
-        'OT 1.5 trigger type':'Daily (over N hrs/day)', 'OT 1.5 threshold':'Over 8 hrs/day, Mon–Fri; all hours Saturday',
-        'OT 1.5 applicable days':'Mon–Fri (over 8), Saturday (all hours)', 'OT 1.5 rate mult.':'1.5', 'OT 1.5 benefit mult.':'1.0',
-        'OT 2x trigger type':'Day-of-week', 'OT 2x threshold':'All hours worked Sunday',
-        'OT 2x applicable days':'Sunday', 'OT 2x rate mult.':'2.0', 'OT 2x benefit mult.':'1.0',
-        'Night window start':'(example — confirm)', 'Night window end':'(example — confirm)',
-        'Night applicability':'Rare — expected as "ND" line on B2W report; example pending Payroll', 'Night rate mult.':'(example — confirm)', 'Night benefit mult.':'(example — confirm)',
-        'Precedence rule':'OT 2x (Sunday) takes precedence over OT 1.5 and Night Differential when more than one condition applies to the same hour.'
+        'OT 1.5 trigger type':'Not Applicable', 'OT 1.5 threshold':'', 'OT 1.5 applicable days':'', 'OT 1.5 rate mult.':'', 'OT 1.5 benefit mult.':'',
+        'OT 2x trigger type':'Daily (over N hrs/day)', 'OT 2x threshold':'Over 8 hrs/day Mon–Fri; all hours Saturday; all hours Sunday',
+        'OT 2x applicable days':'Mon–Fri (over 8), Sat (all), Sun (all)', 'OT 2x rate mult.':'2.0', 'OT 2x benefit mult.':'CONFIRM WITH PAYROLL — do not default to 1.0',
+        'Night trigger type':'Send-home / Recall event',
+        'Night trigger condition':'Crew sent home and recalled to work a second shift, any weekday. Starts immediately regardless of RT hours already worked that day or the length of the gap between shifts.',
+        'Night applicability':'Weekdays only — Saturday/Sunday hours are always OT2x, never Night Differential',
+        'Night tier 1 threshold':'First 8 hrs of the recalled second shift', 'Night tier 1 rate mult.':'1.6', 'Night tier 1 benefit mult.':'2.0',
+        'Night tier 2 threshold':'Hours beyond 8 in the recalled second shift', 'Night tier 2 rate mult.':'2.0', 'Night tier 2 benefit mult.':'2.0',
+        'Precedence rule':'Continuous work past 8 hrs in one uninterrupted shift → OT2x. A send-home-and-recall second shift → Night Differential (Tier 1 then Tier 2) instead of OT2x, even though the wage rate converges at 2.0x at Tier 2 — the benefit multiplier still differs. Weekend hours are always OT2x regardless of any recall.'
       },
       examples:{
         'Regular':[
@@ -2319,7 +2327,8 @@
       ['Work week & regular time', ['Work week start day','Standard workday (hrs)','Regular threshold','Regular applicable days']],
       ['Overtime 1.5x', ['OT 1.5 trigger type','OT 1.5 threshold','OT 1.5 applicable days','OT 1.5 rate mult.','OT 1.5 benefit mult.']],
       ['Overtime 2x', ['OT 2x trigger type','OT 2x threshold','OT 2x applicable days','OT 2x rate mult.','OT 2x benefit mult.']],
-      ['Night differential', ['Night window start','Night window end','Night applicability','Night rate mult.','Night benefit mult.']]
+      ['Night differential', ['Night trigger type','Night trigger condition','Night window start','Night window end','Night applicability',
+        'Night tier 1 threshold','Night tier 1 rate mult.','Night tier 1 benefit mult.','Night tier 2 threshold','Night tier 2 rate mult.','Night tier 2 benefit mult.']]
     ];
     groups.forEach(function(g){
       html += '<div class="field-block"><div class="field-block-title">' + g[0] + '</div><div class="field-block-grid">';
@@ -2408,11 +2417,29 @@
     weekstart:'rf_weekstart', workday:'rf_workday', regthreshold:'rf_regthreshold', regdays:'rf_regdays',
     ot15trigger:'rf_ot15trigger', ot15threshold:'rf_ot15threshold', ot15days:'rf_ot15days', ot15rate:'rf_ot15rate', ot15benefit:'rf_ot15benefit',
     ot2trigger:'rf_ot2trigger', ot2threshold:'rf_ot2threshold', ot2days:'rf_ot2days', ot2rate:'rf_ot2rate', ot2benefit:'rf_ot2benefit',
-    nightstart:'rf_nightstart', nightend:'rf_nightend', nightapplic:'rf_nightapplic', nightrate:'rf_nightrate', nightbenefit:'rf_nightbenefit',
+    nighttrigger:'rf_nighttrigger', nightcondition:'rf_nightcondition', nightstart:'rf_nightstart', nightend:'rf_nightend', nightapplic:'rf_nightapplic',
+    nighttier1threshold:'rf_nighttier1threshold', nighttier1rate:'rf_nighttier1rate', nighttier1benefit:'rf_nighttier1benefit',
+    nighttier2threshold:'rf_nighttier2threshold', nighttier2rate:'rf_nighttier2rate', nighttier2benefit:'rf_nighttier2benefit',
     precedence:'rf_precedence', prose:'rf_prose'
   };
   function fv(id){ var el = document.getElementById(id); return el ? el.value : ''; }
   function setfv(id, val){ var el = document.getElementById(id); if(el) el.value = val || ''; }
+
+  function applyNightTriggerVisibility(){
+    var sel = document.getElementById('rf_nighttrigger');
+    var startRow = document.getElementById('rf_nightwindow_start_row');
+    var endRow = document.getElementById('rf_nightwindow_end_row');
+    var condRow = document.getElementById('rf_nightcondition_row');
+    if(!sel) return;
+    var isClock = sel.value === 'Clock-time window';
+    var isRecall = sel.value === 'Send-home / Recall event';
+    if(startRow) startRow.style.display = isClock ? '' : 'none';
+    if(endRow) endRow.style.display = isClock ? '' : 'none';
+    if(condRow) condRow.style.display = isRecall ? '' : 'none';
+  }
+  var rf_nighttriggerSel = document.getElementById('rf_nighttrigger');
+  if(rf_nighttriggerSel) rf_nighttriggerSel.addEventListener('change', applyNightTriggerVisibility);
+  applyNightTriggerVisibility();
 
   var naSwitchIds = ['rf_ot15_na', 'rf_ot2_na', 'rf_night_na'];
   function wireNAtoggle(switchId, blockId, triggerId){
@@ -2431,13 +2458,14 @@
           else if(sel.value === 'Not Applicable'){ sel.selectedIndex = 0; }
         }
       }
+      if(blockId === 'fb_night') applyNightTriggerVisibility();
     };
     cb.addEventListener('change', apply);
     cb._applyNA = apply;
   }
   wireNAtoggle('rf_ot15_na', 'fb_ot15', 'rf_ot15trigger');
   wireNAtoggle('rf_ot2_na', 'fb_ot2', 'rf_ot2trigger');
-  wireNAtoggle('rf_night_na', 'fb_night', null);
+  wireNAtoggle('rf_night_na', 'fb_night', 'rf_nighttrigger');
 
   function clearForm(){
     Object.keys(formIds).forEach(function(k){ setfv(formIds[k], ''); });
@@ -2531,18 +2559,25 @@
     setfv(formIds.ot2days, f['OT 2x applicable days']);
     setfv(formIds.ot2rate, f['OT 2x rate mult.']);
     setfv(formIds.ot2benefit, f['OT 2x benefit mult.']);
+    setfv(formIds.nighttrigger, f['Night trigger type'] || 'Clock-time window');
+    setfv(formIds.nightcondition, f['Night trigger condition']);
     setfv(formIds.nightstart, f['Night window start']);
     setfv(formIds.nightend, f['Night window end']);
     setfv(formIds.nightapplic, f['Night applicability']);
-    setfv(formIds.nightrate, f['Night rate mult.']);
-    setfv(formIds.nightbenefit, f['Night benefit mult.']);
+    setfv(formIds.nighttier1threshold, f['Night tier 1 threshold']);
+    setfv(formIds.nighttier1rate, f['Night tier 1 rate mult.']);
+    setfv(formIds.nighttier1benefit, f['Night tier 1 benefit mult.']);
+    setfv(formIds.nighttier2threshold, f['Night tier 2 threshold']);
+    setfv(formIds.nighttier2rate, f['Night tier 2 rate mult.']);
+    setfv(formIds.nighttier2benefit, f['Night tier 2 benefit mult.']);
     setfv(formIds.precedence, f['Precedence rule']);
     setfv(formIds.prose, r.prose);
+    applyNightTriggerVisibility();
 
     var naMap = {
       rf_ot15_na: f['OT 1.5 trigger type'] === 'Not Applicable',
       rf_ot2_na: f['OT 2x trigger type'] === 'Not Applicable',
-      rf_night_na: f['Night applicability'] === 'Not Applicable'
+      rf_night_na: f['Night trigger type'] === 'Not Applicable'
     };
     Object.keys(naMap).forEach(function(id){
       var cb = document.getElementById(id);
@@ -2599,11 +2634,17 @@
         'OT 2x applicable days': ot2NA ? '' : fv(formIds.ot2days),
         'OT 2x rate mult.': ot2NA ? '' : fv(formIds.ot2rate),
         'OT 2x benefit mult.': ot2NA ? '' : fv(formIds.ot2benefit),
+        'Night trigger type': nightNA ? 'Not Applicable' : fv(formIds.nighttrigger),
+        'Night trigger condition': nightNA ? '' : fv(formIds.nightcondition),
         'Night window start': nightNA ? '' : fv(formIds.nightstart),
         'Night window end': nightNA ? '' : fv(formIds.nightend),
-        'Night applicability': nightNA ? 'Not Applicable' : fv(formIds.nightapplic),
-        'Night rate mult.': nightNA ? '' : fv(formIds.nightrate),
-        'Night benefit mult.': nightNA ? '' : fv(formIds.nightbenefit),
+        'Night applicability': nightNA ? '' : fv(formIds.nightapplic),
+        'Night tier 1 threshold': nightNA ? '' : fv(formIds.nighttier1threshold),
+        'Night tier 1 rate mult.': nightNA ? '' : fv(formIds.nighttier1rate),
+        'Night tier 1 benefit mult.': nightNA ? '' : fv(formIds.nighttier1benefit),
+        'Night tier 2 threshold': nightNA ? '' : fv(formIds.nighttier2threshold),
+        'Night tier 2 rate mult.': nightNA ? '' : fv(formIds.nighttier2rate),
+        'Night tier 2 benefit mult.': nightNA ? '' : fv(formIds.nighttier2benefit),
         'Precedence rule': fv(formIds.precedence)
       };
       var hasStructure = fields['Regular threshold'] || fields['OT 1.5 threshold'] || fields['OT 2x threshold'];
@@ -2632,9 +2673,17 @@
         OT2ApplicableDays: fields['OT 2x applicable days'],
         OT2RateMult: parseFloat(fields['OT 2x rate mult.']) || null,
         OT2BenefitMult: parseFloat(fields['OT 2x benefit mult.']) || null,
+        NightTriggerType: fields['Night trigger type'] || 'Not Applicable',
+        NightTriggerCondition: fields['Night trigger condition'],
         NightWindowStart: fields['Night window start'],
         NightWindowEnd: fields['Night window end'],
         NightApplicability: fields['Night applicability'],
+        NightTier1Threshold: fields['Night tier 1 threshold'],
+        NightTier1RateMult: parseFloat(fields['Night tier 1 rate mult.']) || null,
+        NightTier1BenefitMult: parseFloat(fields['Night tier 1 benefit mult.']) || null,
+        NightTier2Threshold: fields['Night tier 2 threshold'],
+        NightTier2RateMult: parseFloat(fields['Night tier 2 rate mult.']) || null,
+        NightTier2BenefitMult: parseFloat(fields['Night tier 2 benefit mult.']) || null,
         PrecedenceRule: fields['Precedence rule']
       };
 
