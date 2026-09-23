@@ -2552,13 +2552,14 @@
 
   function openRuleModal(r){
     editingId = r ? r.id : null;
+    var liveNote = (typeof upaeCreateRule === 'function') ? 'Saving writes this rule to the shared SharePoint Rules list.' : 'Nothing leaves your browser — this updates the in-memory list for the demo; refreshing the page resets it.';
     if(r){
       addModalTitle.textContent = 'Edit union rule — ' + r.name;
-      addModalNote.textContent = 'Editing ' + r.id + '. Nothing leaves your browser — this updates the in-memory list for the demo; refreshing the page resets it.';
+      addModalNote.textContent = 'Editing ' + r.id + '. ' + liveNote;
       fillFormFromRule(r);
     } else {
       addModalTitle.textContent = 'Add union rule';
-      addModalNote.textContent = 'Nothing leaves your browser — this adds to the in-memory list for the demo; refreshing the page resets it.';
+      addModalNote.textContent = liveNote;
       clearForm();
       renderCodesMultiselect(null);
     }
@@ -2572,7 +2573,12 @@
     addCancelBtn.addEventListener('click', closeAddModal);
     addOverlay.addEventListener('click', function(e){ if(e.target === addOverlay) closeAddModal(); });
 
-    addSaveBtn.addEventListener('click', function(){
+    function laborTypeNameForCode(code){
+      var lt = laborTypes.filter(function(x){ return x.code === code; })[0];
+      return lt ? lt.name : code;
+    }
+
+    addSaveBtn.addEventListener('click', async function(){
       var name = fv(formIds.name).trim();
       if(!name){ document.getElementById(formIds.name).focus(); return; }
 
@@ -2606,10 +2612,59 @@
         ? pickedCodes.join(', ') + ' (' + pickedCodes.length + ' code' + (pickedCodes.length>1?'s':'') + ')'
         : 'Not yet mapped to labor type codes';
 
+      var canWriteLive = (typeof upaeCreateRule === 'function' && typeof upaeUpdateRule === 'function');
+      var statusLabel = hasStructure ? 'Structured' : 'Draft - Prose Only';
+      var fieldsPayload = {
+        Title: name,
+        Union: name,
+        Status: statusLabel,
+        WorkWeekStartDay: fields['Work week start day'],
+        StandardWorkdayHrs: parseFloat(fields['Standard workday (hrs)']) || null,
+        RegularThreshold: fields['Regular threshold'],
+        RegularApplicableDays: fields['Regular applicable days'],
+        OT15TriggerType: fields['OT 1.5 trigger type'] || 'Not Applicable',
+        OT15Threshold: fields['OT 1.5 threshold'],
+        OT15ApplicableDays: fields['OT 1.5 applicable days'],
+        OT15RateMult: parseFloat(fields['OT 1.5 rate mult.']) || null,
+        OT15BenefitMult: parseFloat(fields['OT 1.5 benefit mult.']) || null,
+        OT2TriggerType: fields['OT 2x trigger type'] || 'Not Applicable',
+        OT2Threshold: fields['OT 2x threshold'],
+        OT2ApplicableDays: fields['OT 2x applicable days'],
+        OT2RateMult: parseFloat(fields['OT 2x rate mult.']) || null,
+        OT2BenefitMult: parseFloat(fields['OT 2x benefit mult.']) || null,
+        NightWindowStart: fields['Night window start'],
+        NightWindowEnd: fields['Night window end'],
+        NightApplicability: fields['Night applicability'],
+        PrecedenceRule: fields['Precedence rule']
+      };
+
+      addSaveBtn.disabled = true;
+      addSaveBtn.textContent = 'Saving to SharePoint...';
+      addModalNote.textContent = 'Saving to SharePoint...';
+      var writeError = null;
+
       if(editingId){
         var idx = rules.map(function(x){return x.id;}).indexOf(editingId);
         if(idx > -1){
           var existing = rules[idx];
+          if(canWriteLive){
+            try{
+              if(existing.spItemId){
+                await upaeUpdateRule(existing.spItemId, fieldsPayload);
+              } else {
+                var createdEdit = await upaeCreateRule(Object.assign({ RuleID: existing.id }, fieldsPayload));
+                existing.spItemId = createdEdit.id;
+              }
+              for(var i=0;i<pickedCodes.length;i++){
+                if((existing.laborTypeIds || []).indexOf(pickedCodes[i]) === -1){
+                  await upaeCreateRuleLaborType(name, laborTypeNameForCode(pickedCodes[i]));
+                }
+              }
+            } catch(err){
+              console.error('UPAE: failed to save rule to SharePoint', err);
+              writeError = err;
+            }
+          }
           existing.name = name;
           existing.cba = fv(formIds.cba) || '—';
           existing.verified = fv(formIds.verified) || 'Not yet verified';
@@ -2633,6 +2688,18 @@
           statusLabel: hasStructure ? 'Structured' : 'Draft — prose only',
           fields: hasStructure ? fields : null
         };
+        if(canWriteLive){
+          try{
+            var created = await upaeCreateRule(Object.assign({ RuleID: newId }, fieldsPayload));
+            newRule.spItemId = created.id;
+            for(var j=0;j<pickedCodes.length;j++){
+              await upaeCreateRuleLaborType(name, laborTypeNameForCode(pickedCodes[j]));
+            }
+          } catch(err){
+            console.error('UPAE: failed to create rule in SharePoint', err);
+            writeError = err;
+          }
+        }
         rules.push(newRule);
         if(!unions.some(function(u){ return u.name === newRule.name; })){
           unions.push({ id: newRule.id, name: newRule.name });
@@ -2644,8 +2711,14 @@
         renderDetail(newRule);
       }
 
-      addSaveBtn.textContent = 'Saved';
-      setTimeout(function(){ closeAddModal(); addSaveBtn.textContent = 'Save rule'; }, 500);
+      addSaveBtn.disabled = false;
+      if(writeError){
+        addSaveBtn.textContent = 'Save rule';
+        addModalNote.textContent = 'Saved to this screen, but the SharePoint write failed: ' + writeError.message + '. Check your connection/sign-in and try again.';
+      } else {
+        addSaveBtn.textContent = canWriteLive ? 'Saved to SharePoint' : 'Saved';
+        setTimeout(function(){ closeAddModal(); addSaveBtn.textContent = 'Save rule'; }, 700);
+      }
     });
   }
 
