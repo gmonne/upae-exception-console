@@ -489,6 +489,16 @@
   .field-block-grid .f-label{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); font-weight:600;}
   .field-block-grid .f-value{font-size:13px; margin-top:3px; font-weight:500;}
 
+  .field-block-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
+  .field-block-head .field-block-title{margin-bottom:0;}
+  .na-switch{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft); font-weight:500; cursor:pointer; user-select:none; text-transform:none; letter-spacing:normal;}
+  .na-switch input{-webkit-appearance:none; appearance:none; width:34px; height:19px; min-width:34px; border-radius:20px; background:var(--line-soft); position:relative; cursor:pointer; transition:background .15s; margin:0;}
+  .na-switch input:checked{background:var(--accent);}
+  .na-switch input::before{content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,.25);}
+  .na-switch input:checked::before{left:17px;}
+  .field-block.is-na .rule-form-grid{opacity:.45; pointer-events:none;}
+  .field-block.is-na .field-block-title{color:var(--ink-faint);}
+
   .example-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;}
   @media (max-width:700px){ .example-grid{grid-template-columns:1fr;} }
   .example-card{
@@ -1236,10 +1246,13 @@
         </div>
       </div>
 
-      <div class="field-block">
-        <div class="field-block-title">Overtime 1.5x</div>
+      <div class="field-block" id="fb_ot15">
+        <div class="field-block-head">
+          <div class="field-block-title">Overtime 1.5x</div>
+          <label class="na-switch"><input type="checkbox" id="rf_ot15_na">Not applicable to this union</label>
+        </div>
         <div class="rule-form-grid">
-          <label>Trigger type<select id="rf_ot15trigger"><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Saturday)</option></select></label>
+          <label>Trigger type<select id="rf_ot15trigger"><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Saturday)</option><option>Not Applicable</option></select></label>
           <label>Threshold<input type="text" id="rf_ot15threshold" placeholder="e.g. over 8 hrs/day"></label>
           <label>Applicable days<input type="text" id="rf_ot15days" placeholder="e.g. Mon&ndash;Fri, Saturday"></label>
           <label>Rate multiplier<input type="text" id="rf_ot15rate" placeholder="e.g. 1.5"></label>
@@ -1247,10 +1260,13 @@
         </div>
       </div>
 
-      <div class="field-block">
-        <div class="field-block-title">Overtime 2x</div>
+      <div class="field-block" id="fb_ot2">
+        <div class="field-block-head">
+          <div class="field-block-title">Overtime 2x</div>
+          <label class="na-switch"><input type="checkbox" id="rf_ot2_na">Not applicable to this union</label>
+        </div>
         <div class="rule-form-grid">
-          <label>Trigger type<select id="rf_ot2trigger"><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Sunday)</option></select></label>
+          <label>Trigger type<select id="rf_ot2trigger"><option>Daily (over N hrs/day)</option><option>Weekly (over N hrs/week)</option><option>Day-of-week (e.g. Sunday)</option><option>Not Applicable</option></select></label>
           <label>Threshold<input type="text" id="rf_ot2threshold" placeholder="e.g. over 12 hrs/day, or Sunday"></label>
           <label>Applicable days<input type="text" id="rf_ot2days" placeholder="e.g. Sunday"></label>
           <label>Rate multiplier<input type="text" id="rf_ot2rate" placeholder="e.g. 2.0"></label>
@@ -1258,8 +1274,11 @@
         </div>
       </div>
 
-      <div class="field-block">
-        <div class="field-block-title">Night differential</div>
+      <div class="field-block" id="fb_night">
+        <div class="field-block-head">
+          <div class="field-block-title">Night differential</div>
+          <label class="na-switch"><input type="checkbox" id="rf_night_na">Not applicable to this union</label>
+        </div>
         <div class="rule-form-grid">
           <label>Window start<input type="text" id="rf_nightstart" placeholder="e.g. 6:00 PM"></label>
           <label>Window end<input type="text" id="rf_nightend" placeholder="e.g. 6:00 AM"></label>
@@ -2394,7 +2413,39 @@
   };
   function fv(id){ var el = document.getElementById(id); return el ? el.value : ''; }
   function setfv(id, val){ var el = document.getElementById(id); if(el) el.value = val || ''; }
-  function clearForm(){ Object.keys(formIds).forEach(function(k){ setfv(formIds[k], ''); }); }
+
+  var naSwitchIds = ['rf_ot15_na', 'rf_ot2_na', 'rf_night_na'];
+  function wireNAtoggle(switchId, blockId, triggerId){
+    var cb = document.getElementById(switchId);
+    var block = document.getElementById(blockId);
+    if(!cb || !block) return;
+    var apply = function(){
+      var na = cb.checked;
+      block.classList.toggle('is-na', na);
+      var inputs = block.querySelectorAll('.rule-form-grid input, .rule-form-grid select, .rule-form-grid textarea');
+      inputs.forEach(function(el){ el.disabled = na; });
+      if(triggerId){
+        var sel = document.getElementById(triggerId);
+        if(sel){
+          if(na){ sel.value = 'Not Applicable'; }
+          else if(sel.value === 'Not Applicable'){ sel.selectedIndex = 0; }
+        }
+      }
+    };
+    cb.addEventListener('change', apply);
+    cb._applyNA = apply;
+  }
+  wireNAtoggle('rf_ot15_na', 'fb_ot15', 'rf_ot15trigger');
+  wireNAtoggle('rf_ot2_na', 'fb_ot2', 'rf_ot2trigger');
+  wireNAtoggle('rf_night_na', 'fb_night', null);
+
+  function clearForm(){
+    Object.keys(formIds).forEach(function(k){ setfv(formIds[k], ''); });
+    naSwitchIds.forEach(function(id){
+      var cb = document.getElementById(id);
+      if(cb){ cb.checked = false; if(cb._applyNA) cb._applyNA(); }
+    });
+  }
 
   function applyCodesUnionFilter(){
     var filterSel = document.getElementById('rf_codesUnionFilter');
@@ -2487,6 +2538,16 @@
     setfv(formIds.nightbenefit, f['Night benefit mult.']);
     setfv(formIds.precedence, f['Precedence rule']);
     setfv(formIds.prose, r.prose);
+
+    var naMap = {
+      rf_ot15_na: f['OT 1.5 trigger type'] === 'Not Applicable',
+      rf_ot2_na: f['OT 2x trigger type'] === 'Not Applicable',
+      rf_night_na: f['Night applicability'] === 'Not Applicable'
+    };
+    Object.keys(naMap).forEach(function(id){
+      var cb = document.getElementById(id);
+      if(cb){ cb.checked = naMap[id]; if(cb._applyNA) cb._applyNA(); }
+    });
   }
 
   function openRuleModal(r){
@@ -2515,15 +2576,28 @@
       var name = fv(formIds.name).trim();
       if(!name){ document.getElementById(formIds.name).focus(); return; }
 
+      var ot15NA = !!(document.getElementById('rf_ot15_na') && document.getElementById('rf_ot15_na').checked);
+      var ot2NA = !!(document.getElementById('rf_ot2_na') && document.getElementById('rf_ot2_na').checked);
+      var nightNA = !!(document.getElementById('rf_night_na') && document.getElementById('rf_night_na').checked);
+
       var fields = {
         'Work week start day': fv(formIds.weekstart), 'Standard workday (hrs)': fv(formIds.workday),
         'Regular threshold': fv(formIds.regthreshold), 'Regular applicable days': fv(formIds.regdays),
-        'OT 1.5 trigger type': fv(formIds.ot15trigger), 'OT 1.5 threshold': fv(formIds.ot15threshold),
-        'OT 1.5 applicable days': fv(formIds.ot15days), 'OT 1.5 rate mult.': fv(formIds.ot15rate), 'OT 1.5 benefit mult.': fv(formIds.ot15benefit),
-        'OT 2x trigger type': fv(formIds.ot2trigger), 'OT 2x threshold': fv(formIds.ot2threshold),
-        'OT 2x applicable days': fv(formIds.ot2days), 'OT 2x rate mult.': fv(formIds.ot2rate), 'OT 2x benefit mult.': fv(formIds.ot2benefit),
-        'Night window start': fv(formIds.nightstart), 'Night window end': fv(formIds.nightend),
-        'Night applicability': fv(formIds.nightapplic), 'Night rate mult.': fv(formIds.nightrate), 'Night benefit mult.': fv(formIds.nightbenefit),
+        'OT 1.5 trigger type': ot15NA ? 'Not Applicable' : fv(formIds.ot15trigger),
+        'OT 1.5 threshold': ot15NA ? '' : fv(formIds.ot15threshold),
+        'OT 1.5 applicable days': ot15NA ? '' : fv(formIds.ot15days),
+        'OT 1.5 rate mult.': ot15NA ? '' : fv(formIds.ot15rate),
+        'OT 1.5 benefit mult.': ot15NA ? '' : fv(formIds.ot15benefit),
+        'OT 2x trigger type': ot2NA ? 'Not Applicable' : fv(formIds.ot2trigger),
+        'OT 2x threshold': ot2NA ? '' : fv(formIds.ot2threshold),
+        'OT 2x applicable days': ot2NA ? '' : fv(formIds.ot2days),
+        'OT 2x rate mult.': ot2NA ? '' : fv(formIds.ot2rate),
+        'OT 2x benefit mult.': ot2NA ? '' : fv(formIds.ot2benefit),
+        'Night window start': nightNA ? '' : fv(formIds.nightstart),
+        'Night window end': nightNA ? '' : fv(formIds.nightend),
+        'Night applicability': nightNA ? 'Not Applicable' : fv(formIds.nightapplic),
+        'Night rate mult.': nightNA ? '' : fv(formIds.nightrate),
+        'Night benefit mult.': nightNA ? '' : fv(formIds.nightbenefit),
         'Precedence rule': fv(formIds.precedence)
       };
       var hasStructure = fields['Regular threshold'] || fields['OT 1.5 threshold'] || fields['OT 2x threshold'];
