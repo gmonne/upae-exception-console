@@ -4,6 +4,10 @@
 <meta charset="UTF-8" />
 <title>UPAE Exception Console</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="favicon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -781,6 +785,27 @@
         <h2>What UPAE catches, and what it's worth</h2>
         <p>Illustrative pattern-detection view across the last 90 days &middot; pilot scope (IUOE Local 542, 4 active jobs). Figures are synthetic, sized to a plausible pilot volume &mdash; not live payroll data.</p>
       </section>
+
+      <div class="panel" id="coverageInsights">
+        <div class="panel-head">
+          <h2>Rule library &amp; reference data coverage</h2>
+          <span class="panel-sub">Live counts from the Unions, Labor Types, and Rules screens &mdash; reflects the sample data now, and updates automatically once you sign in and load live SharePoint data</span>
+        </div>
+        <div class="panel-body">
+          <div class="kpis" id="coverageKpis" style="margin-bottom:18px;"></div>
+          <section class="lower">
+            <div>
+              <span class="panel-sub" style="display:block; margin-bottom:8px;">Rules by status</span>
+              <div class="ibar-list" id="ruleStatusBarList"></div>
+            </div>
+            <div>
+              <span class="panel-sub" style="display:block; margin-bottom:8px;">Labor types by union (top 8)</span>
+              <div class="ibar-list" id="laborUnionBarList"></div>
+            </div>
+          </section>
+          <p class="insight-note" id="coverageFootnote" style="margin-top:14px;"></p>
+        </div>
+      </div>
 
       <section class="kpis">
         <div class="kpi">
@@ -2124,7 +2149,78 @@
 
   function unionNameById(){ return unions.map(function(u){ return u.name; }); }
 
+  // ---- Insights: live coverage stats across Unions / Labor Types / Rules ----
+  function renderCoverageInsights(){
+    var kpisEl = document.getElementById('coverageKpis');
+    var statusBarEl = document.getElementById('ruleStatusBarList');
+    var unionBarEl = document.getElementById('laborUnionBarList');
+    var footEl = document.getElementById('coverageFootnote');
+    if(!kpisEl) return; // Insights view not present on this build
+
+    var totalUnions = unions.length;
+    var totalLabor = laborTypes.length;
+    var mappedLabor = laborTypes.filter(function(lt){ return !!lt.unionName; }).length;
+    var unassignedLabor = totalLabor - mappedLabor;
+    var mappedPct = totalLabor ? Math.round((mappedLabor / totalLabor) * 100) : 0;
+    var totalRules = rules.length;
+    var structuredRules = rules.filter(function(r){ return r.status === 'structured'; }).length;
+    var structuredPct = totalRules ? Math.round((structuredRules / totalRules) * 100) : 0;
+
+    kpisEl.innerHTML =
+      '<div class="kpi"><div class="k-label">Unions</div><div class="k-value">' + totalUnions + '</div>' +
+        '<div class="k-delta down">reference list, Admin screen</div></div>' +
+      '<div class="kpi"><div class="k-label">Labor type codes</div><div class="k-value">' + totalLabor + '</div>' +
+        '<div class="k-delta down">' + unassignedLabor + ' unassigned to a union</div></div>' +
+      '<div class="kpi"><div class="k-label">Labor types mapped</div><div class="k-value">' + mappedPct + '<span class="unit">%</span></div>' +
+        '<div class="k-delta down">' + mappedLabor + ' of ' + totalLabor + ' codes</div></div>' +
+      '<div class="kpi"><div class="k-label">Rules structured</div><div class="k-value">' + structuredPct + '<span class="unit">%</span></div>' +
+        '<div class="k-delta down">' + structuredRules + ' of ' + totalRules + ' rules</div></div>';
+
+    var statusCounts = { structured: 0, ambiguous: 0, draft: 0 };
+    rules.forEach(function(r){ statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
+    var statusRows = [
+      { label: 'Structured', value: statusCounts.structured || 0 },
+      { label: 'Ambiguous / needs confirmation', value: statusCounts.ambiguous || 0 },
+      { label: 'Draft — prose only', value: statusCounts.draft || 0 }
+    ];
+    var statusMax = Math.max(1, statusCounts.structured || 0, statusCounts.ambiguous || 0, statusCounts.draft || 0);
+    if(statusBarEl){
+      statusBarEl.innerHTML = statusRows.map(function(row){
+        var pct = Math.round((row.value / statusMax) * 100);
+        return '<div class="ibar-row"><span class="ibar-label">' + row.label + '</span>' +
+          '<span class="ibar-track"><span style="width:' + pct + '%"></span></span>' +
+          '<span class="ibar-value">' + row.value + '</span></div>';
+      }).join('');
+    }
+
+    if(unionBarEl){
+      var byUnion = {};
+      laborTypes.forEach(function(lt){
+        var key = lt.unionName || 'Unassigned';
+        byUnion[key] = (byUnion[key] || 0) + 1;
+      });
+      var unionRows = Object.keys(byUnion).map(function(k){ return { label: k, value: byUnion[k] }; })
+        .sort(function(a, b){ return b.value - a.value; })
+        .slice(0, 8);
+      var unionMax = Math.max.apply(null, unionRows.map(function(r){ return r.value; }).concat([1]));
+      unionBarEl.innerHTML = unionRows.map(function(row){
+        var pct = Math.round((row.value / unionMax) * 100);
+        return '<div class="ibar-row"><span class="ibar-label">' + row.label + '</span>' +
+          '<span class="ibar-track"><span style="width:' + pct + '%"></span></span>' +
+          '<span class="ibar-value">' + row.value + '</span></div>';
+      }).join('');
+    }
+
+    if(footEl){
+      footEl.textContent = totalUnions + ' union' + (totalUnions === 1 ? '' : 's') + ', ' +
+        totalLabor + ' labor type code' + (totalLabor === 1 ? '' : 's') + ', and ' +
+        totalRules + ' rule' + (totalRules === 1 ? '' : 's') + ' in the reference library right now' +
+        (unassignedLabor ? ' — ' + unassignedLabor + ' labor type code' + (unassignedLabor === 1 ? ' is' : 's are') + ' still unassigned to a union.' : '.');
+    }
+  }
+
   function renderUnionAdminList(){
+    renderCoverageInsights();
     var el = document.getElementById('unionList');
     var countEl = document.getElementById('unionCount');
     countEl.textContent = unions.length + ' union' + (unions.length === 1 ? '' : 's');
@@ -2159,6 +2255,7 @@
   }
 
   function renderLaborAdminList(){
+    renderCoverageInsights();
     var el = document.getElementById('laborList');
     var countEl = document.getElementById('laborCount');
     var unassignedCount = laborTypes.filter(function(lt){ return !lt.unionName; }).length;
@@ -2283,6 +2380,7 @@
   if(!listEl) return;
 
   function renderList(selectedId){
+    renderCoverageInsights();
     listEl.innerHTML = '';
     rules.forEach(function(r){
       var row = document.createElement('div');
