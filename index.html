@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="sharepoint-integration.js"></script>
 <style>
   :root{
     --bg: #f3f1ec;
@@ -557,6 +559,13 @@
 </style>
 </head>
 <body>
+
+<div id="upaeSignInGate" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;font-family:'Public Sans',sans-serif;">
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;color:var(--ink);">UPAE Rule Library</div>
+  <div id="upaeSignInStatus" style="color:var(--ink-soft);font-size:14px;max-width:420px;text-align:center;">Sign in with your Microsoft 365 account to load live rules, unions, and labor types from SharePoint.</div>
+  <button id="upaeSignInBtn" class="btn primary">Sign in</button>
+</div>
+
 <div class="shell">
 
   <div class="topbar">
@@ -2210,6 +2219,30 @@
   renderLaborAdminList();
   populateLaborUnionSelect();
 
+  // Expose so upaeLoadAllData() (sharepoint-integration.js) can re-render the
+  // Admin screen once live Unions/LaborTypes data has been fetched.
+  window.upaeRenderAdminScreen = function(){
+    renderUnionAdminList();
+    renderLaborAdminList();
+    populateLaborUnionSelect();
+  };
+
+  // rules/unions/laborTypes above are local to this IIFE, not on window — so
+  // sharepoint-integration.js can't reassign them directly. This bridge lets
+  // it swap in live SharePoint data by mutating the SAME array objects the
+  // render functions already close over (splice + push, not reassignment),
+  // then re-renders both screens.
+  window.upaeApplyLiveData = function(liveUnions, liveLaborTypes, liveRules){
+    unions.splice(0, unions.length);
+    Array.prototype.push.apply(unions, liveUnions);
+    laborTypes.splice(0, laborTypes.length);
+    Array.prototype.push.apply(laborTypes, liveLaborTypes);
+    rules.splice(0, rules.length);
+    Array.prototype.push.apply(rules, liveRules);
+    if (window.upaeRenderAdminScreen) window.upaeRenderAdminScreen();
+    if (window.upaeRenderRuleLibrary) window.upaeRenderRuleLibrary();
+  };
+
   function populateUnionOptions(){
     var dl = document.getElementById('rf_unionOptions');
     if(!dl) return;
@@ -2325,8 +2358,21 @@
     renderDetail(r);
   }
 
-  renderList(rules[0].id);
-  renderDetail(rules[0]);
+  if (rules.length) {
+    renderList(rules[0].id);
+    renderDetail(rules[0]);
+  } else {
+    renderList();
+    detailEl.innerHTML = '<div class="admin-empty">Sign in to load rules from SharePoint.</div>';
+  }
+
+  // Expose so upaeLoadAllData() (see sharepoint-integration.js wiring below)
+  // can re-render this view once live data has been fetched.
+  window.upaeRenderRuleLibrary = function(){
+    renderList(rules.length ? rules[0].id : undefined);
+    if (rules.length) renderDetail(rules[0]);
+    populateUnionOptions();
+  };
 
   // ---- Add / Edit rule modal ----
   var addOverlay = document.getElementById('addRuleModalOverlay');
