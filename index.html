@@ -2483,13 +2483,26 @@
     });
   }
 
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
   function renderExamples(r){
     var exHtml = '<div style="display:flex; justify-content:flex-end; margin-bottom:4px;"><button class="btn ghost" type="button" id="addExampleBtn" style="padding:6px 11px; font-size:12px;">+ Add example</button></div>';
     if(r.examples && Object.keys(r.examples).length){
       Object.keys(r.examples).forEach(function(cat){
-        exHtml += '<div class="example-category">' + cat + '</div><div class="example-grid">';
-        r.examples[cat].forEach(function(ex){
-          exHtml += '<div class="example-card ' + (ex.ok ? 'good' : 'bad') + '"><div class="ex-head">' + (ex.ok ? '✓ Correct' : '✕ Incorrect') + '</div><p>' + ex.text + '</p></div>';
+        exHtml += '<div class="example-category">' + escapeHtml(cat) + '</div><div class="example-grid">';
+        r.examples[cat].forEach(function(ex, idx){
+          exHtml += '<div class="example-card ' + (ex.ok ? 'good' : 'bad') + '">' +
+            '<div class="ex-head" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">' +
+              '<span>' + (ex.ok ? '✓ Correct' : '✕ Incorrect') + '</span>' +
+              '<span style="display:flex; gap:4px;">' +
+                '<button type="button" class="btn ghost ex-edit-btn" data-cat="' + escapeHtml(cat) + '" data-idx="' + idx + '" style="padding:2px 8px; font-size:11px;" title="Edit this example">Edit</button>' +
+                '<button type="button" class="btn ghost ex-delete-btn" data-cat="' + escapeHtml(cat) + '" data-idx="' + idx + '" style="padding:2px 8px; font-size:11px;" title="Delete this example">Delete</button>' +
+              '</span>' +
+            '</div><p>' + escapeHtml(ex.text) + '</p></div>';
         });
         exHtml += '</div>';
       });
@@ -2499,6 +2512,37 @@
     examplesEl.innerHTML = exHtml;
     var addBtn = document.getElementById('addExampleBtn');
     if(addBtn) addBtn.addEventListener('click', function(){ openExampleModal(r); });
+    examplesEl.querySelectorAll('.ex-edit-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var cat = btn.getAttribute('data-cat');
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        openExampleModal(r, { category: cat, index: idx });
+      });
+    });
+    examplesEl.querySelectorAll('.ex-delete-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var cat = btn.getAttribute('data-cat');
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        deleteExample(r, cat, idx);
+      });
+    });
+  }
+
+  async function deleteExample(r, category, index){
+    var ex = (r.examples && r.examples[category]) ? r.examples[category][index] : null;
+    if(!ex) return;
+    if(!window.confirm('Delete this ' + (ex.ok ? 'correct' : 'incorrect') + ' example? This cannot be undone.')) return;
+    if(ex.spItemId && typeof upaeDeleteRuleExample === 'function'){
+      try{ await upaeDeleteRuleExample(ex.spItemId); }
+      catch(err){
+        console.error('UPAE: failed to delete example from SharePoint', err);
+        alert('Could not delete this example from SharePoint: ' + err.message + '. It has not been removed.');
+        return;
+      }
+    }
+    r.examples[category].splice(index, 1);
+    if(!r.examples[category].length) delete r.examples[category];
+    if(r.id === currentId) renderDetail(r);
   }
 
   function selectRule(id){
@@ -2908,7 +2952,13 @@
                 var cat = exCats[ci];
                 var exList = duplicateSourceExamples[cat];
                 for(var ei=0;ei<exList.length;ei++){
-                  await upaeCreateRuleExample(name, cat, exList[ei].ok, exList[ei].text);
+                  // Each copy needs its OWN new SharePoint item id — newRule.examples
+                  // still holds spItemIds copied from the source rule's examples at
+                  // this point, which would point Edit/Delete at the wrong row.
+                  var createdEx = await upaeCreateRuleExample(name, cat, exList[ei].ok, exList[ei].text);
+                  if(newRule.examples[cat] && newRule.examples[cat][ei]){
+                    newRule.examples[cat][ei].spItemId = createdEx && createdEx.id;
+                  }
                 }
               }
             }
@@ -2949,17 +2999,31 @@
   var exTextArea = document.getElementById('ex_text');
   var exSub = document.getElementById('addExampleModalSub');
   var exTargetRuleId = null;
+  var exEditRef = null; // {category, index} when editing an existing example; null when adding
 
-  function openExampleModal(r){
+  function openExampleModal(r, editRef){
     exTargetRuleId = r.id;
-    exSub.textContent = 'Add a correct or incorrect weekly-report example for ' + r.name + '.';
-    exTextArea.value = '';
-    var radios = document.getElementsByName('ex_type');
-    radios.forEach && radios.forEach(function(rb){ rb.checked = (rb.value === 'ok'); });
-    if(!radios.forEach){ for(var i=0;i<radios.length;i++){ radios[i].checked = (radios[i].value === 'ok'); } }
+    exEditRef = editRef || null;
+    var editing = exEditRef && r.examples && r.examples[exEditRef.category] && r.examples[exEditRef.category][exEditRef.index];
+    if(editing){
+      exSub.textContent = 'Editing an example for ' + r.name + '.';
+      exCategorySel.value = exEditRef.category;
+      exTextArea.value = editing.text;
+      var radios1 = document.getElementsByName('ex_type');
+      var wantOk = editing.ok;
+      (radios1.forEach ? radios1 : Array.prototype.slice.call(radios1)).forEach(function(rb){ rb.checked = (rb.value === 'ok') === wantOk; });
+      exSaveBtn.textContent = 'Save changes';
+    } else {
+      exSub.textContent = 'Add a correct or incorrect weekly-report example for ' + r.name + '.';
+      exTextArea.value = '';
+      var radios = document.getElementsByName('ex_type');
+      radios.forEach && radios.forEach(function(rb){ rb.checked = (rb.value === 'ok'); });
+      if(!radios.forEach){ for(var i=0;i<radios.length;i++){ radios[i].checked = (radios[i].value === 'ok'); } }
+      exSaveBtn.textContent = 'Add example';
+    }
     exOverlay.hidden = false;
   }
-  function closeExampleModal(){ exOverlay.hidden = true; }
+  function closeExampleModal(){ exOverlay.hidden = true; exEditRef = null; }
 
   if(exOverlay){
     exCloseBtn.addEventListener('click', closeExampleModal);
@@ -2976,30 +3040,56 @@
       var r = rules.filter(function(x){ return x.id === exTargetRuleId; })[0];
       if(!r){ closeExampleModal(); return; }
 
+      var isEdit = !!(exEditRef && r.examples && r.examples[exEditRef.category] && r.examples[exEditRef.category][exEditRef.index]);
+      var existingEx = isEdit ? r.examples[exEditRef.category][exEditRef.index] : null;
+      var defaultBtnLabel = isEdit ? 'Save changes' : 'Add example';
+
       exSaveBtn.disabled = true;
       exSaveBtn.textContent = 'Saving...';
       var writeError = null;
-      if(typeof upaeCreateRuleExample === 'function'){
-        try{
-          await upaeCreateRuleExample(r.name, category, isOk, text);
-        } catch(err){
-          console.error('UPAE: failed to save example to SharePoint', err);
-          writeError = err;
+
+      if(isEdit){
+        if(existingEx.spItemId && typeof upaeUpdateRuleExample === 'function'){
+          try{
+            await upaeUpdateRuleExample(existingEx.spItemId, category, isOk, text);
+          } catch(err){
+            console.error('UPAE: failed to update example in SharePoint', err);
+            writeError = err;
+          }
+        }
+        if(!writeError){
+          // Remove from its old slot (category may have changed) and re-add.
+          r.examples[exEditRef.category].splice(exEditRef.index, 1);
+          if(!r.examples[exEditRef.category].length) delete r.examples[exEditRef.category];
+          if(!r.examples[category]) r.examples[category] = [];
+          r.examples[category].push({ ok: isOk, text: text, spItemId: existingEx.spItemId });
+        }
+      } else {
+        if(typeof upaeCreateRuleExample === 'function'){
+          try{
+            var created = await upaeCreateRuleExample(r.name, category, isOk, text);
+            var newSpId = created && created.id;
+          } catch(err){
+            console.error('UPAE: failed to save example to SharePoint', err);
+            writeError = err;
+          }
+        }
+        if(!writeError){
+          if(!r.examples) r.examples = {};
+          if(!r.examples[category]) r.examples[category] = [];
+          r.examples[category].push({ ok: isOk, text: text, spItemId: newSpId });
         }
       }
 
-      if(!r.examples) r.examples = {};
-      if(!r.examples[category]) r.examples[category] = [];
-      r.examples[category].push({ ok: isOk, text: text });
       if(r.id === currentId) renderDetail(r);
 
       exSaveBtn.disabled = false;
       if(writeError){
         exSub.textContent = 'Saved to this screen, but the SharePoint write failed: ' + writeError.message + '. Check your connection/sign-in and try again.';
-        exSaveBtn.textContent = 'Add example';
+        exSaveBtn.textContent = defaultBtnLabel;
       } else {
-        exSaveBtn.textContent = (typeof upaeCreateRuleExample === 'function') ? 'Saved to SharePoint' : 'Added';
-        setTimeout(function(){ closeExampleModal(); exSaveBtn.textContent = 'Add example'; }, 600);
+        exSaveBtn.textContent = (typeof upaeCreateRuleExample === 'function') ? 'Saved to SharePoint' : (isEdit ? 'Updated' : 'Added');
+        setTimeout(function(){ closeExampleModal(); exSaveBtn.textContent = defaultBtnLabel; }, 600);
       }
     });
   }

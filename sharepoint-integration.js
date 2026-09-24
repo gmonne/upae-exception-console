@@ -261,7 +261,7 @@ async function upaeFetchRuleExamples(ruleTitle) {
   rows.forEach((item) => {
     const cat = item.fields.Category;
     if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push({ ok: !!item.fields.IsCorrect, text: item.fields.ExampleText });
+    grouped[cat].push({ ok: !!item.fields.IsCorrect, text: item.fields.ExampleText, spItemId: item.id });
   });
   return grouped;
 }
@@ -360,6 +360,28 @@ async function upaeCreateRuleExample(ruleTitle, category, isCorrect, exampleText
         ExampleText: exampleText,
       },
     }),
+  });
+}
+
+async function upaeUpdateRuleExample(spItemId, category, isCorrect, exampleText) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(
+    `/sites/${siteId}/lists/${UPAE_CONFIG.lists.ruleExamples}/items/${spItemId}/fields`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        Category: category,
+        IsCorrect: isCorrect,
+        ExampleText: exampleText,
+      }),
+    }
+  );
+}
+
+async function upaeDeleteRuleExample(spItemId) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.ruleExamples}/items/${spItemId}`, {
+    method: "DELETE",
   });
 }
 
