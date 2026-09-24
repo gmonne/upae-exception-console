@@ -149,17 +149,23 @@ async function upaeFetchUnions() {
   }));
 }
 
-async function upaeFetchLaborTypes() {
+async function upaeFetchLaborTypes(liveUnions) {
+  // Union is a Lookup column — confirmed (same bug as Rule/LaborType elsewhere)
+  // that Graph does NOT return it as a plain string on fields.Union; it comes
+  // back as fields.UnionLookupId (a number). Map that id back to the union's
+  // name using the already-fetched Unions list instead of trusting fields.Union.
   const url = await upaeListItemsUrl(
     "laborTypes",
-    "?expand=fields(select=Title,LaborCode,Union,SourceID)&$top=500"
+    "?expand=fields&$top=500"
   );
   const data = await upaeGraphFetch(url);
+  const unionIdToName = {};
+  (liveUnions || []).forEach((u) => { unionIdToName[String(u.id)] = u.name; });
   return data.value.map((item) => ({
     id: item.id,
     code: item.fields.LaborCode,
     name: item.fields.Title,
-    unionName: item.fields.Union || null, // Union is a Lookup column — Graph returns its text via the lookup's default display field when expanded like this; verify shape after first real call and adjust if Graph instead returns {LookupId, LookupValue}
+    unionName: unionIdToName[String(item.fields.UnionLookupId)] || null,
     sourceId: item.fields.SourceID || "",
   }));
 }
@@ -217,24 +223,37 @@ async function upaeFetchRules() {
   });
 }
 
-async function upaeFetchRuleLaborTypes(ruleTitle) {
-  // Filter server-side on the Rule lookup's Title where possible; SharePoint/Graph
-  // lookup filtering can be inconsistent, so fall back to client-side filtering
-  // by fetching all rows if the $filter below errors on your tenant's list config.
+async function upaeFetchRuleLaborTypes(ruleTitle, liveLaborTypes) {
+  // Rule/LaborType here are SharePoint Lookup columns. Graph never returns a
+  // Lookup as a flat string on its own internal name — it comes back as
+  // "<Field>LookupId" (a number) with "<Field>" itself either absent or a
+  // nested {LookupId, LookupValue} object, never a plain string. So we can't
+  // filter/read by comparing item.fields.Rule === ruleTitle (always false).
+  // Instead resolve the rule's numeric id and match on RuleLookupId, then map
+  // the LaborType's numeric SharePoint id back to its short code (r.laborTypeIds
+  // is expected to hold codes like "OP-1", matching laborTypes[].code).
+  const ruleId = await upaeGetListItemId("rules", ruleTitle);
+  if (!ruleId) return [];
   const url = await upaeListItemsUrl(
     "ruleLaborTypes",
     `?expand=fields&$top=500`
   );
   const data = await upaeGraphFetch(url);
+  const laborTypeIdToCode = {};
+  (liveLaborTypes || []).forEach((lt) => { laborTypeIdToCode[String(lt.id)] = lt.code; });
   return data.value
-    .filter((item) => item.fields.Rule === ruleTitle)
-    .map((item) => item.fields.LaborType);
+    .filter((item) => String(item.fields.RuleLookupId) === String(ruleId))
+    .map((item) => laborTypeIdToCode[String(item.fields.LaborTypeLookupId)])
+    .filter((code) => code != null);
 }
 
 async function upaeFetchRuleExamples(ruleTitle) {
+  // Same Lookup-read issue as above: match on RuleLookupId, not fields.Rule.
+  const ruleId = await upaeGetListItemId("rules", ruleTitle);
+  if (!ruleId) return {};
   const url = await upaeListItemsUrl("ruleExamples", `?expand=fields&$top=500`);
   const data = await upaeGraphFetch(url);
-  const rows = data.value.filter((item) => item.fields.Rule === ruleTitle);
+  const rows = data.value.filter((item) => String(item.fields.RuleLookupId) === String(ruleId));
   const grouped = {};
   rows.forEach((item) => {
     const cat = item.fields.Category;
@@ -356,14 +375,14 @@ async function upaeLoadAllData() {
   const liveUnions = await upaeFetchUnions();
 
   setStatus('Loading labor types...');
-  const liveLaborTypes = await upaeFetchLaborTypes();
+  const liveLaborTypes = await upaeFetchLaborTypes(liveUnions);
 
   setStatus('Loading rules...');
   const liveRules = await upaeFetchRules();
 
   setStatus('Loading rule details (labor codes + examples)...');
   for (const r of liveRules) {
-    r.laborTypeIds = await upaeFetchRuleLaborTypes(r.name);
+    r.laborTypeIds = await upaeFetchRuleLaborTypes(r.name, liveLaborTypes);
     r.examples = await upaeFetchRuleExamples(r.name);
   }
 
