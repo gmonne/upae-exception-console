@@ -1983,16 +1983,20 @@
           {ok:false, text:'Mon–Fri, 8.0 hrs/day reported, but one day shows 6.0 RT + 2.0 OT — should be 8.0 RT (OT only kicks in over 8/day).'}
         ],
         'Overtime 1.5x':[
-          {ok:true, text:'Saturday, 4.0 hrs worked — reported as 4.0 OT (1.5x). Correct: all Saturday hours are OT regardless of weekly total.'},
-          {ok:false, text:'Saturday, 4.0 hrs worked — reported as 4.0 RT. Incorrect: Saturday hours must be OT 1.5x even if the employee is under 40 hrs for the week.'}
+          {ok:true, text:'No hours coded at 1.5x anywhere on the week — correct. Local 14 has no 1.5x tier at all; every overtime hour is 2.0x.'},
+          {ok:false, text:'Saturday, 4.0 hrs worked — reported as 4.0 OT (1.5x). Incorrect: Local 14 has no 1.5x tier — this must be 4.0 OT2 (2.0x), same as any other overtime hour for this union.'}
         ],
         'Overtime 2x':[
-          {ok:true, text:'Sunday, 4.0 hrs worked — reported as 4.0 OT2 (2.0x). Correct per Art. 12.'},
-          {ok:false, text:'Sunday, 4.0 hrs worked — reported as 4.0 OT (1.5x). Incorrect: Sunday hours are always 2x, not 1.5x.'}
+          {ok:true, text:'Tuesday, 10.0 hrs worked — reported as 8.0 RT + 2.0 OT2 (2.0x). Correct: hours beyond 8/day Mon–Fri go straight to 2.0x, there is no 1.5x step in between.'},
+          {ok:false, text:'Tuesday, 10.0 hrs worked — reported as 8.0 RT + 2.0 OT (1.5x). Incorrect: Local 14 has no 1.5x tier; the 2 extra hours must be OT2 (2.0x).'},
+          {ok:true, text:'Saturday, 4.0 hrs worked — reported as 4.0 OT2 (2.0x). Correct: all Saturday and Sunday hours are OT2, regardless of hours already worked that week and regardless of any recall event.'},
+          {ok:false, text:'Sunday, 4.0 hrs worked following a Friday recall — reported as 4.0 Night Differential Tier 1. Incorrect: weekend hours are always OT2 (2.0x), never Night Differential, even in a week where a recall happened.'}
         ],
         'Night Differential':[
-          {ok:true, text:'Example pending — Payroll meeting Sept 23, 2026, to confirm how "ND" appears on the B2W report.'},
-          {ok:false, text:'Example pending — same.'}
+          {ok:true, text:'Crew works 8.0 RT Wednesday, is sent home, then recalled for a 6.0-hr second shift the same night — reported as 8.0 RT + 6.0 Night Differential Tier 1 (1.6x wages / 2.0x benefits). Correct: the recall triggers Night Differential immediately, regardless of RT hours already worked or the length of the gap between shifts.'},
+          {ok:false, text:'Same recall scenario reported as 8.0 RT + 6.0 OT2 (2.0x). Incorrect: a send-home-and-recall second shift on a weekday is Night Differential, not standard overtime — even though Tier 2\'s wage rate happens to also be 2.0x, the classification and benefit multiplier still differ from OT2.'},
+          {ok:true, text:'Crew is recalled for a 10.0-hr second shift — reported as 8.0 Night Differential Tier 1 (1.6x/2.0x) + 2.0 Night Differential Tier 2 (2.0x/2.0x). Correct: only the first 8 hours of the recalled shift are Tier 1; hours beyond 8 move to Tier 2.'},
+          {ok:false, text:'Same 10.0-hr recalled shift reported entirely as 10.0 Night Differential Tier 1 (1.6x). Incorrect: hours beyond the first 8 in the recalled shift must be split out as Tier 2, not left at the Tier 1 rate.'}
         ]
       }
     },
@@ -2402,7 +2406,10 @@
       '<div class="rule-detail-cba">' + r.cba + ' &middot; Last verified: ' + r.verified + '</div></div>' +
       '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">' +
       '<span class="rule-status ' + r.status + '">' + r.statusLabel + '</span>' +
+      '<div style="display:flex; gap:6px;">' +
+      '<button class="btn ghost" type="button" id="duplicateRuleBtn" style="padding:6px 11px; font-size:12px;" title="Copy this rule\'s fields into a new rule for a different union">Duplicate</button>' +
       '<button class="btn ghost" type="button" id="editRuleBtn" style="padding:6px 11px; font-size:12px;">Edit rule</button>' +
+      '</div>' +
       '</div></div>';
 
     html += '<div class="field-block"><div class="field-block-title">Labor type mapping</div>' +
@@ -2417,6 +2424,7 @@
       detailEl.innerHTML = html;
       renderExamples(r);
       wireEditButton(r);
+      wireDuplicateButton(r);
       wireResolveButton(r);
       return;
     }
@@ -2439,12 +2447,18 @@
     detailEl.innerHTML = html;
     renderExamples(r);
     wireEditButton(r);
+    wireDuplicateButton(r);
     wireResolveButton(r);
   }
 
   function wireEditButton(r){
     var btn = document.getElementById('editRuleBtn');
     if(btn) btn.addEventListener('click', function(){ openRuleModal(r); });
+  }
+
+  function wireDuplicateButton(r){
+    var btn = document.getElementById('duplicateRuleBtn');
+    if(btn) btn.addEventListener('click', function(){ openDuplicateModal(r); });
   }
 
   function wireResolveButton(r){
@@ -2698,6 +2712,21 @@
     }
     addOverlay.hidden = false;
   }
+
+  function openDuplicateModal(sourceRule){
+    editingId = null; // duplicating always creates a new rule, never overwrites the source
+    var liveNote = (typeof upaeCreateRule === 'function') ? 'Saving writes this rule to the shared SharePoint Rules list.' : 'Nothing leaves your browser — this updates the in-memory list for the demo; refreshing the page resets it.';
+    addModalTitle.textContent = 'Add union rule — duplicated from ' + sourceRule.name;
+    addModalNote.textContent = 'All fields copied from ' + sourceRule.name + ' except the union name and labor type codes — set those two, double-check the numbers still apply, then save. Examples are not copied. ' + liveNote;
+    fillFormFromRule(sourceRule);
+    setfv(formIds.name, '');
+    setfv(formIds.cba, '');
+    setfv(formIds.verified, '');
+    renderCodesMultiselect(null); // codes are union-specific — start with none picked
+    addOverlay.hidden = false;
+    var nameEl = document.getElementById(formIds.name);
+    if(nameEl) nameEl.focus();
+  }
   function closeAddModal(){ addOverlay.hidden = true; }
 
   if(addOpenBtn){
@@ -2895,7 +2924,7 @@
     exCancelBtn.addEventListener('click', closeExampleModal);
     exOverlay.addEventListener('click', function(e){ if(e.target === exOverlay) closeExampleModal(); });
 
-    exSaveBtn.addEventListener('click', function(){
+    exSaveBtn.addEventListener('click', async function(){
       var text = exTextArea.value.trim();
       if(!text){ exTextArea.focus(); return; }
       var category = exCategorySel.value;
@@ -2903,14 +2932,33 @@
       var isOk = !typeRadio || typeRadio.value === 'ok';
 
       var r = rules.filter(function(x){ return x.id === exTargetRuleId; })[0];
-      if(r){
-        if(!r.examples) r.examples = {};
-        if(!r.examples[category]) r.examples[category] = [];
-        r.examples[category].push({ ok: isOk, text: text });
-        if(r.id === currentId) renderDetail(r);
+      if(!r){ closeExampleModal(); return; }
+
+      exSaveBtn.disabled = true;
+      exSaveBtn.textContent = 'Saving...';
+      var writeError = null;
+      if(typeof upaeCreateRuleExample === 'function'){
+        try{
+          await upaeCreateRuleExample(r.name, category, isOk, text);
+        } catch(err){
+          console.error('UPAE: failed to save example to SharePoint', err);
+          writeError = err;
+        }
       }
-      exSaveBtn.textContent = 'Added';
-      setTimeout(function(){ closeExampleModal(); exSaveBtn.textContent = 'Add example'; }, 400);
+
+      if(!r.examples) r.examples = {};
+      if(!r.examples[category]) r.examples[category] = [];
+      r.examples[category].push({ ok: isOk, text: text });
+      if(r.id === currentId) renderDetail(r);
+
+      exSaveBtn.disabled = false;
+      if(writeError){
+        exSub.textContent = 'Saved to this screen, but the SharePoint write failed: ' + writeError.message + '. Check your connection/sign-in and try again.';
+        exSaveBtn.textContent = 'Add example';
+      } else {
+        exSaveBtn.textContent = (typeof upaeCreateRuleExample === 'function') ? 'Saved to SharePoint' : 'Added';
+        setTimeout(function(){ closeExampleModal(); exSaveBtn.textContent = 'Add example'; }, 600);
+      }
     });
   }
 })();
