@@ -283,6 +283,14 @@ async function upaeDeleteUnion(spItemId) {
   });
 }
 
+async function upaeUpdateUnion(spItemId, name, unionCode, cbaReference) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.unions}/items/${spItemId}/fields`, {
+    method: "PATCH",
+    body: JSON.stringify({ Title: name, UnionCode: unionCode, CBAReference: cbaReference }),
+  });
+}
+
 async function upaeCreateLaborType(name, code, unionName = null, sourceId = "") {
   const fields = { Title: name, LaborCode: code, SourceID: sourceId };
   if (unionName) {

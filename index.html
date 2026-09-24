@@ -1354,6 +1354,36 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="editUnionModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editUnionModalTitle" style="max-width:440px;">
+    <div class="modal-head">
+      <div>
+        <h2 id="editUnionModalTitle">Edit union</h2>
+        <p id="editUnionModalSub">Update this union's name and reference details.</p>
+      </div>
+      <button class="modal-close" type="button" id="closeEditUnionModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <span class="field-label">Union name</span>
+        <input type="text" id="eu_name" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="e.g. Local 14 Operating Engineers">
+      </div>
+      <div class="field-group">
+        <span class="field-label">Union code</span>
+        <input type="text" id="eu_code" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="e.g. IUOE-14">
+      </div>
+      <div class="field-group">
+        <span class="field-label">CBA reference</span>
+        <input type="text" id="eu_cba" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="e.g. CBA 2024-2027">
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" type="button" id="cancelEditUnion">Cancel</button>
+        <button class="btn primary" type="button" id="saveEditUnion">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   var exceptions = [
@@ -2240,14 +2270,35 @@
     var html = '';
     unions.forEach(function(u, i){
       var usedByRule = rules.filter(function(r){ return r.name === u.name; }).length;
-      html += '<div class="admin-row"><div class="a-main"><div class="a-name">' + u.name + '</div>' +
+      html += '<div class="admin-row"><div class="a-main"><div class="a-name">' + escapeHtml(u.name) + '</div>' +
         '<div class="a-meta">' + (usedByRule ? usedByRule + ' rule' + (usedByRule>1?'s':'') + ' reference this union' : 'No rule built yet') + '</div></div>' +
+        '<button class="btn ghost" type="button" data-union-edit-idx="' + i + '" style="padding:4px 10px; font-size:12px;" title="Edit union">Edit</button>' +
         '<button class="a-del" type="button" data-union-idx="' + i + '" title="Remove union">&times;</button></div>';
     });
     el.innerHTML = html;
-    el.querySelectorAll('[data-union-idx]').forEach(function(btn){
+    el.querySelectorAll('[data-union-edit-idx]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        unions.splice(parseInt(btn.getAttribute('data-union-idx'), 10), 1);
+        openEditUnionModal(parseInt(btn.getAttribute('data-union-edit-idx'), 10));
+      });
+    });
+    el.querySelectorAll('[data-union-idx]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var idx = parseInt(btn.getAttribute('data-union-idx'), 10);
+        var u = unions[idx];
+        if(!u) return;
+        // Real SharePoint list item ids are plain numbers; unions created locally
+        // (e.g. auto-added when saving a rule for a brand-new union) get a
+        // placeholder id like "U-<timestamp>" or a rule id like "R-101" and were
+        // never written to the Unions list — nothing to delete there for those.
+        if(/^\d+$/.test(String(u.id)) && typeof upaeDeleteUnion === 'function'){
+          try{ await upaeDeleteUnion(u.id); }
+          catch(err){
+            console.error('UPAE: failed to delete union from SharePoint', err);
+            alert('Could not delete this union from SharePoint: ' + err.message + '. It has not been removed.');
+            return;
+          }
+        }
+        unions.splice(idx, 1);
         renderUnionAdminList();
         populateUnionOptions();
         populateLaborUnionSelect();
@@ -2324,15 +2375,120 @@
   var addUnionBtn = document.getElementById('addUnionBtn');
   var newUnionInput = document.getElementById('newUnionName');
   if(addUnionBtn){
-    addUnionBtn.addEventListener('click', function(){
+    addUnionBtn.addEventListener('click', async function(){
       var name = newUnionInput.value.trim();
       if(!name) { newUnionInput.focus(); return; }
-      unions.push({ id: 'U-' + Date.now(), name: name });
+      var newUnion = { id: 'U-' + Date.now(), name: name, unionCode: '', cbaReference: '' };
+      if(typeof upaeCreateUnion === 'function'){
+        addUnionBtn.disabled = true;
+        addUnionBtn.textContent = 'Saving...';
+        try{
+          var created = await upaeCreateUnion(name, '', '');
+          newUnion.id = created.id;
+        } catch(err){
+          console.error('UPAE: failed to create union in SharePoint', err);
+          alert('Added to this screen, but the SharePoint write failed: ' + err.message + '. Edit/Delete on this union won\'t reach SharePoint until it syncs.');
+        }
+        addUnionBtn.disabled = false;
+        addUnionBtn.textContent = '+ Add union';
+      }
+      unions.push(newUnion);
       newUnionInput.value = '';
       renderUnionAdminList();
       populateUnionOptions();
       populateLaborUnionSelect();
       renderLaborAdminList();
+    });
+  }
+
+  // ---- Edit union modal ----
+  var euOverlay = document.getElementById('editUnionModalOverlay');
+  var euCloseBtn = document.getElementById('closeEditUnionModal');
+  var euCancelBtn = document.getElementById('cancelEditUnion');
+  var euSaveBtn = document.getElementById('saveEditUnion');
+  var euNameInput = document.getElementById('eu_name');
+  var euCodeInput = document.getElementById('eu_code');
+  var euCbaInput = document.getElementById('eu_cba');
+  var euEditIdx = null;
+
+  function openEditUnionModal(idx){
+    var u = unions[idx];
+    if(!u) return;
+    euEditIdx = idx;
+    euNameInput.value = u.name || '';
+    euCodeInput.value = u.unionCode || '';
+    euCbaInput.value = u.cbaReference || '';
+    euOverlay.hidden = false;
+    euNameInput.focus();
+  }
+  function closeEditUnionModal(){ euOverlay.hidden = true; euEditIdx = null; }
+
+  if(euOverlay){
+    euCloseBtn.addEventListener('click', closeEditUnionModal);
+    euCancelBtn.addEventListener('click', closeEditUnionModal);
+    // No click-outside-to-close — same reasoning as the other modals.
+
+    euSaveBtn.addEventListener('click', async function(){
+      if(euEditIdx == null) return;
+      var u = unions[euEditIdx];
+      if(!u) { closeEditUnionModal(); return; }
+      var newName = euNameInput.value.trim();
+      if(!newName){ euNameInput.focus(); return; }
+      var newCode = euCodeInput.value.trim();
+      var newCba = euCbaInput.value.trim();
+      var oldName = u.name;
+
+      euSaveBtn.disabled = true;
+      euSaveBtn.textContent = 'Saving...';
+      var writeError = null;
+      var isLiveLinked = /^\d+$/.test(String(u.id));
+      if(isLiveLinked && typeof upaeUpdateUnion === 'function'){
+        try{ await upaeUpdateUnion(u.id, newName, newCode, newCba); }
+        catch(err){
+          console.error('UPAE: failed to update union in SharePoint', err);
+          writeError = err;
+        }
+      }
+
+      if(!writeError){
+        u.name = newName;
+        u.unionCode = newCode;
+        u.cbaReference = newCba;
+
+        // A rule's Title doubles as its union's name in this app (one rule per
+        // union) — keep that rule in sync so it doesn't silently detach from
+        // the union it belongs to.
+        if(newName !== oldName){
+          var matchingRule = rules.filter(function(r){ return r.name === oldName; })[0];
+          if(matchingRule){
+            matchingRule.name = newName;
+            if(matchingRule.spItemId && typeof upaeUpdateRule === 'function'){
+              try{ await upaeUpdateRule(matchingRule.spItemId, { Title: newName }); }
+              catch(err){ console.error('UPAE: failed to rename matching rule in SharePoint', err); }
+            }
+          }
+          laborTypes.forEach(function(lt){ if(lt.unionName === oldName) lt.unionName = newName; });
+        }
+
+        renderUnionAdminList();
+        populateUnionOptions();
+        populateLaborUnionSelect();
+        renderLaborAdminList();
+        renderList(currentId);
+        if(currentId){
+          var currentRule = rules.filter(function(r){ return r.id === currentId; })[0];
+          if(currentRule) renderDetail(currentRule);
+        }
+      }
+
+      euSaveBtn.disabled = false;
+      if(writeError){
+        alert('Could not save this union to SharePoint: ' + writeError.message + '. Nothing was changed.');
+        euSaveBtn.textContent = 'Save changes';
+      } else {
+        euSaveBtn.textContent = isLiveLinked ? 'Saved to SharePoint' : 'Saved';
+        setTimeout(function(){ closeEditUnionModal(); euSaveBtn.textContent = 'Save changes'; }, 600);
+      }
     });
   }
 
