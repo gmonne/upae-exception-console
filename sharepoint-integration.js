@@ -128,7 +128,7 @@ async function upaeListItemsUrl(listKey, extra = "") {
    Client-side match (not $filter) to sidestep OData quoting/indexing quirks
    on small lists like these. */
 async function upaeGetListItemId(listKey, title) {
-  const url = await upaeListItemsUrl(listKey, "?$select=id&$expand=fields(select=Title)&$top=1000");
+  const url = await upaeListItemsUrl(listKey, "?$expand=fields(select=Title)&$top=1000");
   const data = await upaeGraphFetch(url);
   const match = data.value.find((item) => item.fields.Title === title);
   return match ? parseInt(match.id, 10) : null;
