@@ -118,6 +118,22 @@ async function upaeListItemsUrl(listKey, extra = "") {
   return `/sites/${siteId}/lists/${listName}/items${extra}`;
 }
 
+/* Resolves a list item's SharePoint numeric id by its Title. Needed anywhere
+   we write a Lookup column: Microsoft Graph will NOT accept a plain string
+   value for a Lookup field's own internal name (e.g. { Rule: "Local 14..." })
+   — it silently drops it instead of erroring, leaving the lookup blank. The
+   only way to set a Lookup column via Graph is <InternalName>LookupId: <id>,
+   where <id> is the target item's SharePoint id, not its display text. This
+   resolves that id by fetching the target list and matching on Title.
+   Client-side match (not $filter) to sidestep OData quoting/indexing quirks
+   on small lists like these. */
+async function upaeGetListItemId(listKey, title) {
+  const url = await upaeListItemsUrl(listKey, "?$select=id&$expand=fields(select=Title)&$top=1000");
+  const data = await upaeGraphFetch(url);
+  const match = data.value.find((item) => item.fields.Title === title);
+  return match ? parseInt(match.id, 10) : null;
+}
+
 /* ------------------------------ READS ------------------------------
    Each returns a plain-JS-array shaped to match the mock-up's existing
    in-memory data structures, so render functions need minimal changes. */
@@ -246,20 +262,21 @@ async function upaeDeleteUnion(spItemId) {
 }
 
 async function upaeCreateLaborType(name, code, unionName = null, sourceId = "") {
+  const fields = { Title: name, LaborCode: code, SourceID: sourceId };
+  if (unionName) {
+    const unionId = await upaeGetListItemId("unions", unionName);
+    if (unionId) fields.UnionLookupId = unionId;
+  }
   const url = await upaeListItemsUrl("laborTypes");
-  return upaeGraphFetch(url, {
-    method: "POST",
-    body: JSON.stringify({
-      fields: { Title: name, LaborCode: code, Union: unionName, SourceID: sourceId },
-    }),
-  });
+  return upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields }) });
 }
 
 async function upaeUpdateLaborTypeUnion(spItemId, unionName) {
   const siteId = await upaeGetSiteId();
+  const unionId = unionName ? await upaeGetListItemId("unions", unionName) : null;
   await upaeGraphFetch(
     `/sites/${siteId}/lists/${UPAE_CONFIG.lists.laborTypes}/items/${spItemId}/fields`,
-    { method: "PATCH", body: JSON.stringify({ Union: unionName }) }
+    { method: "PATCH", body: JSON.stringify({ UnionLookupId: unionId }) }
   );
 }
 
@@ -286,21 +303,36 @@ async function upaeUpdateRule(spItemId, fieldsPayload) {
 }
 
 async function upaeCreateRuleLaborType(ruleTitle, laborTypeTitle) {
+  const [ruleId, laborTypeId] = await Promise.all([
+    upaeGetListItemId("rules", ruleTitle),
+    upaeGetListItemId("laborTypes", laborTypeTitle),
+  ]);
+  if (!ruleId || !laborTypeId) {
+    throw new Error(
+      `Could not find a matching Rules/LaborTypes item for "${ruleTitle}" / "${laborTypeTitle}" — check the Title spelling matches exactly.`
+    );
+  }
   const url = await upaeListItemsUrl("ruleLaborTypes");
   return upaeGraphFetch(url, {
     method: "POST",
-    body: JSON.stringify({ fields: { Title: `${ruleTitle} - ${laborTypeTitle}`, Rule: ruleTitle, LaborType: laborTypeTitle } }),
+    body: JSON.stringify({
+      fields: { Title: `${ruleTitle} - ${laborTypeTitle}`, RuleLookupId: ruleId, LaborTypeLookupId: laborTypeId },
+    }),
   });
 }
 
 async function upaeCreateRuleExample(ruleTitle, category, isCorrect, exampleText) {
+  const ruleId = await upaeGetListItemId("rules", ruleTitle);
+  if (!ruleId) {
+    throw new Error(`Could not find a Rules item titled "${ruleTitle}" — the example was not saved.`);
+  }
   const url = await upaeListItemsUrl("ruleExamples");
   return upaeGraphFetch(url, {
     method: "POST",
     body: JSON.stringify({
       fields: {
         Title: `${ruleTitle} - ${category} - ${isCorrect ? "Correct" : "Incorrect"}`,
-        Rule: ruleTitle,
+        RuleLookupId: ruleId,
         Category: category,
         IsCorrect: isCorrect,
         ExampleText: exampleText,

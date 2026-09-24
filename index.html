@@ -2782,9 +2782,18 @@
 
       var canWriteLive = (typeof upaeCreateRule === 'function' && typeof upaeUpdateRule === 'function');
       var statusLabel = hasStructure ? 'Structured' : 'Draft - Prose Only';
+      // Union is a SharePoint Lookup column — Graph only accepts it as
+      // UnionLookupId (the target Unions item's numeric id), never as plain
+      // text on the "Union" key itself (that gets silently dropped). Resolve
+      // it by Title if we can write live; if the union doesn't exist yet in
+      // the Unions list, the rule still saves, just without that link.
+      var unionLookupId = null;
+      if(canWriteLive){
+        try{ unionLookupId = await upaeGetListItemId('unions', name); }
+        catch(err){ console.error('UPAE: could not resolve union lookup id for', name, err); }
+      }
       var fieldsPayload = {
         Title: name,
-        Union: name,
         Status: statusLabel,
         WorkWeekStartDay: fields['Work week start day'],
         StandardWorkdayHrs: parseFloat(fields['Standard workday (hrs)']) || null,
@@ -2813,6 +2822,7 @@
         NightTier2BenefitMult: parseFloat(fields['Night tier 2 benefit mult.']) || null,
         PrecedenceRule: fields['Precedence rule']
       };
+      if(unionLookupId) fieldsPayload.UnionLookupId = unionLookupId;
 
       addSaveBtn.disabled = true;
       addSaveBtn.textContent = 'Saving to SharePoint...';
