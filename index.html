@@ -901,28 +901,7 @@
         <span class="phase-tag">Phase A &middot; B2W-sourced &middot; employee-week grain, no job/cost-code</span>
       </section>
 
-      <section class="kpis">
-        <div class="kpi">
-          <div class="k-label">Unions covered</div>
-          <div class="k-value">13</div>
-          <div class="k-delta flat">1 fully structured &middot; 12 in draft</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label">Labor type codes mapped</div>
-          <div class="k-value">69<span class="unit">/131</span></div>
-          <div class="k-delta up">62 unmatched &middot; reviewing with Payroll</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label">Example pairs on file</div>
-          <div class="k-value">4<span class="unit">/13 unions</span></div>
-          <div class="k-delta flat">Regular / OT 1.5 / OT 2x / Night, per union</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label">Open items for Payroll</div>
-          <div class="k-value">3</div>
-          <div class="k-delta up">Crosswalk, Night Diff., precedence rules</div>
-        </div>
-      </section>
+      <section class="kpis" id="ruleLibraryKpis"></section>
 
       <div class="panel">
         <div class="panel-head">
@@ -2154,6 +2133,34 @@
   function unionNameById(){ return unions.map(function(u){ return u.name; }); }
 
   // ---- Insights: live coverage stats across Unions / Labor Types / Rules ----
+  function renderRuleLibraryKpis(){
+    var el = document.getElementById('ruleLibraryKpis');
+    if(!el) return;
+
+    var totalUnions = unions.length;
+    var structuredRules = rules.filter(function(r){ return r.status === 'structured'; }).length;
+    var draftOrAmbiguousRules = rules.length - structuredRules;
+
+    var totalLabor = laborTypes.length;
+    var mappedLabor = laborTypes.filter(function(lt){ return !!lt.unionName; }).length;
+    var unmappedLabor = totalLabor - mappedLabor;
+
+    var unionsWithExamples = rules.filter(function(r){
+      var ex = r.examples || {};
+      return Object.keys(ex).some(function(cat){ return (ex[cat] || []).length > 0; });
+    }).length;
+
+    el.innerHTML =
+      '<div class="kpi"><div class="k-label">Unions covered</div><div class="k-value">' + totalUnions + '</div>' +
+        '<div class="k-delta flat">' + structuredRules + ' fully structured &middot; ' + draftOrAmbiguousRules + ' in draft</div></div>' +
+      '<div class="kpi"><div class="k-label">Labor type codes mapped</div><div class="k-value">' + mappedLabor + '<span class="unit">/' + totalLabor + '</span></div>' +
+        '<div class="k-delta up">' + unmappedLabor + ' unmatched &middot; reviewing with Payroll</div></div>' +
+      '<div class="kpi"><div class="k-label">Example pairs on file</div><div class="k-value">' + unionsWithExamples + '<span class="unit">/' + totalUnions + ' unions</span></div>' +
+        '<div class="k-delta flat">Regular / OT 1.5 / OT 2x / Night, per union</div></div>' +
+      '<div class="kpi"><div class="k-label">Open items for Payroll</div><div class="k-value">' + draftOrAmbiguousRules + '</div>' +
+        '<div class="k-delta up">rules still draft or needing confirmation</div></div>';
+  }
+
   function renderCoverageInsights(){
     var kpisEl = document.getElementById('coverageKpis');
     var statusBarEl = document.getElementById('ruleStatusBarList');
@@ -2225,6 +2232,7 @@
 
   function renderUnionAdminList(){
     renderCoverageInsights();
+    renderRuleLibraryKpis();
     var el = document.getElementById('unionList');
     var countEl = document.getElementById('unionCount');
     countEl.textContent = unions.length + ' union' + (unions.length === 1 ? '' : 's');
@@ -2260,6 +2268,7 @@
 
   function renderLaborAdminList(){
     renderCoverageInsights();
+    renderRuleLibraryKpis();
     var el = document.getElementById('laborList');
     var countEl = document.getElementById('laborCount');
     var unassignedCount = laborTypes.filter(function(lt){ return !lt.unionName; }).length;
@@ -2385,6 +2394,7 @@
 
   function renderList(selectedId){
     renderCoverageInsights();
+    renderRuleLibraryKpis();
     listEl.innerHTML = '';
     rules.forEach(function(r){
       var row = document.createElement('div');
