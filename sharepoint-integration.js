@@ -128,7 +128,10 @@ async function upaeListItemsUrl(listKey, extra = "") {
    Client-side match (not $filter) to sidestep OData quoting/indexing quirks
    on small lists like these. */
 async function upaeGetListItemId(listKey, title) {
-  const url = await upaeListItemsUrl(listKey, "?$expand=fields(select=Title)&$top=1000");
+  // Nested $expand=fields(select=Title) is rejected by this tenant's Graph
+  // endpoint for SharePoint list items ("Term '(select=Title)' is not valid"),
+  // so expand the full fields object instead of trying to select just Title.
+  const url = await upaeListItemsUrl(listKey, "?$expand=fields&$top=1000");
   const data = await upaeGraphFetch(url);
   const match = data.value.find((item) => item.fields.Title === title);
   return match ? parseInt(match.id, 10) : null;
