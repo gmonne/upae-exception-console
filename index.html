@@ -2523,6 +2523,7 @@
   var addModalTitle = document.getElementById('addRuleModalTitle');
   var addModalNote = document.getElementById('ruleFormNote');
   var editingId = null; // null = adding a new rule; otherwise the rule id being edited
+  var duplicateSourceExamples = null; // set by openDuplicateModal; examples to copy onto the new rule on save
 
   var formIds = {
     name:'rf_name', cba:'rf_cba', effdate:'rf_effdate', verified:'rf_verified',
@@ -2699,6 +2700,7 @@
 
   function openRuleModal(r){
     editingId = r ? r.id : null;
+    duplicateSourceExamples = null;
     var liveNote = (typeof upaeCreateRule === 'function') ? 'Saving writes this rule to the shared SharePoint Rules list.' : 'Nothing leaves your browser — this updates the in-memory list for the demo; refreshing the page resets it.';
     if(r){
       addModalTitle.textContent = 'Edit union rule — ' + r.name;
@@ -2715,9 +2717,15 @@
 
   function openDuplicateModal(sourceRule){
     editingId = null; // duplicating always creates a new rule, never overwrites the source
+    // Deep-copy the source rule's examples so they can be re-saved under the new
+    // rule's name/id on Save — copied here rather than referenced, since the
+    // Add Example modal mutates r.examples in place for whichever rule is open.
+    duplicateSourceExamples = JSON.parse(JSON.stringify(sourceRule.examples || {}));
+    var exCount = Object.keys(duplicateSourceExamples).reduce(function(n, cat){ return n + duplicateSourceExamples[cat].length; }, 0);
     var liveNote = (typeof upaeCreateRule === 'function') ? 'Saving writes this rule to the shared SharePoint Rules list.' : 'Nothing leaves your browser — this updates the in-memory list for the demo; refreshing the page resets it.';
     addModalTitle.textContent = 'Add union rule — duplicated from ' + sourceRule.name;
-    addModalNote.textContent = 'All fields copied from ' + sourceRule.name + ' except the union name and labor type codes — set those two, double-check the numbers still apply, then save. Examples are not copied. ' + liveNote;
+    addModalNote.textContent = 'All fields copied from ' + sourceRule.name + ' except the union name and labor type codes — set those two, double-check the numbers still apply, then save.' +
+      (exCount ? ' ' + exCount + ' worked example' + (exCount > 1 ? 's' : '') + ' will be copied too — review them for the new union before saving.' : '') + ' ' + liveNote;
     fillFormFromRule(sourceRule);
     setfv(formIds.name, '');
     setfv(formIds.cba, '');
@@ -2727,7 +2735,7 @@
     var nameEl = document.getElementById(formIds.name);
     if(nameEl) nameEl.focus();
   }
-  function closeAddModal(){ addOverlay.hidden = true; }
+  function closeAddModal(){ addOverlay.hidden = true; duplicateSourceExamples = null; }
 
   if(addOpenBtn){
     addOpenBtn.addEventListener('click', function(){ openRuleModal(null); });
@@ -2872,7 +2880,8 @@
           prose: fv(formIds.prose),
           status: hasStructure ? 'structured' : 'draft',
           statusLabel: hasStructure ? 'Structured' : 'Draft — prose only',
-          fields: hasStructure ? fields : null
+          fields: hasStructure ? fields : null,
+          examples: duplicateSourceExamples ? JSON.parse(JSON.stringify(duplicateSourceExamples)) : {}
         };
         if(canWriteLive){
           try{
@@ -2881,11 +2890,22 @@
             for(var j=0;j<pickedCodes.length;j++){
               await upaeCreateRuleLaborType(name, laborTypeNameForCode(pickedCodes[j]));
             }
+            if(duplicateSourceExamples){
+              var exCats = Object.keys(duplicateSourceExamples);
+              for(var ci=0;ci<exCats.length;ci++){
+                var cat = exCats[ci];
+                var exList = duplicateSourceExamples[cat];
+                for(var ei=0;ei<exList.length;ei++){
+                  await upaeCreateRuleExample(name, cat, exList[ei].ok, exList[ei].text);
+                }
+              }
+            }
           } catch(err){
             console.error('UPAE: failed to create rule in SharePoint', err);
             writeError = err;
           }
         }
+        duplicateSourceExamples = null;
         rules.push(newRule);
         if(!unions.some(function(u){ return u.name === newRule.name; })){
           unions.push({ id: newRule.id, name: newRule.name });
