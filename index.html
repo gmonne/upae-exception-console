@@ -2741,7 +2741,9 @@
     addOpenBtn.addEventListener('click', function(){ openRuleModal(null); });
     addCloseBtn.addEventListener('click', closeAddModal);
     addCancelBtn.addEventListener('click', closeAddModal);
-    addOverlay.addEventListener('click', function(e){ if(e.target === addOverlay) closeAddModal(); });
+    // Deliberately no click-outside-to-close on this overlay — an accidental
+    // click while filling out a rule used to silently discard everything
+    // that had been entered. Closing now only happens via Save or Cancel/X.
 
     function laborTypeNameForCode(code){
       var lt = laborTypes.filter(function(x){ return x.code === code; })[0];
@@ -2952,7 +2954,7 @@
   if(exOverlay){
     exCloseBtn.addEventListener('click', closeExampleModal);
     exCancelBtn.addEventListener('click', closeExampleModal);
-    exOverlay.addEventListener('click', function(e){ if(e.target === exOverlay) closeExampleModal(); });
+    // Same reasoning as the rule modal above — no click-outside-to-close.
 
     exSaveBtn.addEventListener('click', async function(){
       var text = exTextArea.value.trim();
