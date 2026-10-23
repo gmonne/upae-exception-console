@@ -40,6 +40,8 @@ const UPAE_CONFIG = {
     ruleExamples: "RuleExamples",
     employees: "Employees",
     weeklyHours: "WeeklyHours",
+    weeklyFindings: "WeeklyFindings",
+    projectManagers: "ProjectManagers",
   },
 };
 
@@ -625,6 +627,115 @@ async function upaeLoadAllData() {
     window.upaeApplyEmployees(liveEmployees, employeesError);
   }
   setStatus('Loaded.');
+}
+
+// ---- Weekly findings (what the rule check flagged, plus review status) ----
+function upaeFindingFromItem(item) {
+  const f = item.fields || {};
+  return {
+    spItemId: item.id,
+    key: f.FindingKey || "",
+    weekStart: f.WeekStart || "",
+    weekNo: f.WeekNo != null ? Number(f.WeekNo) : null,
+    id: f.EmployeeID || "",
+    name: f.EmployeeName || "",
+    union: f.UnionName || "",
+    iso: f.WorkDate || "",
+    kind: f.Kind || "",
+    ruleId: f.RuleID || "",
+    ruleName: f.RuleName || "",
+    broken: f.RuleBroken || "",
+    reported: f.Reported || "",
+    expected: f.Expected || "",
+    status: f.Status || "Open",
+    sentTo: f.SentTo || "",
+    sentDate: f.SentDate || "",
+    note: f.Note || "",
+  };
+}
+function upaeFindingToFields(r) {
+  return {
+    Title: r.id + " " + (r.iso || "") + " " + r.kind,
+    FindingKey: r.key,
+    WeekStart: r.weekStart,
+    WeekNo: r.weekNo,
+    EmployeeID: r.id,
+    EmployeeName: r.name || "",
+    UnionName: r.union || "",
+    WorkDate: r.iso || "",
+    Kind: r.kind,
+    RuleID: r.ruleId || "",
+    RuleName: r.ruleName || "",
+    RuleBroken: r.broken || "",
+    Reported: r.reported || "",
+    Expected: r.expected || "",
+    Status: r.status || "Open",
+    SentTo: r.sentTo || "",
+    SentDate: r.sentDate || "",
+    Note: r.note || "",
+  };
+}
+async function upaeFetchFindings() {
+  let url = await upaeListItemsUrl("weeklyFindings", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 400) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => out.push(upaeFindingFromItem(item)));
+    const next = data["@odata.nextLink"];
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
+}
+async function upaeBatchFindings(ops, onProgress) {
+  return upaeBatchList("weeklyFindings", ops, (op) => upaeFindingToFields(op.row), onProgress);
+}
+
+// ---- Project managers (name + email) ----
+async function upaeFetchProjectManagers() {
+  const url = await upaeListItemsUrl("projectManagers", "?expand=fields&$top=500");
+  const data = await upaeGraphFetch(url);
+  return (data.value || []).map((item) => ({ spItemId: item.id, name: (item.fields || {}).Title || "", email: (item.fields || {}).Email || "" }));
+}
+async function upaeCreateProjectManager(pm) {
+  const url = await upaeListItemsUrl("projectManagers");
+  return upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields: { Title: pm.name, Email: pm.email } }) });
+}
+async function upaeUpdateProjectManager(spItemId, pm) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.projectManagers}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ Title: pm.name, Email: pm.email }) });
+}
+async function upaeDeleteProjectManager(spItemId) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.projectManagers}/items/${spItemId}`, { method: "DELETE" });
+}
+
+// ---- Send an email as the signed-in user (needs the Mail.Send delegated permission) ----
+async function upaeGetMailToken() {
+  const account = msalInstance.getActiveAccount() || msalInstance.getAllAccounts()[0];
+  if (!account) { await upaeSignIn(); return upaeGetMailToken(); }
+  const scopes = ["Mail.Send"];
+  try {
+    return (await msalInstance.acquireTokenSilent({ scopes, account })).accessToken;
+  } catch (err) {
+    return (await msalInstance.acquireTokenPopup({ scopes })).accessToken;
+  }
+}
+async function upaeSendMail(toList, ccList, subject, htmlBody) {
+  const token = await upaeGetMailToken();
+  const rec = (a) => ({ emailAddress: { address: a } });
+  const res = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: { subject, body: { contentType: "HTML", content: htmlBody }, toRecipients: toList.map(rec), ccRecipients: (ccList || []).map(rec) },
+      saveToSentItems: true,
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error("Email was not sent: " + res.status + " " + t.slice(0, 300));
+  }
 }
 
 /* Wires the #upaeSignInBtn button (added in upae-mockup.html's <body>) to the

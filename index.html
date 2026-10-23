@@ -587,6 +587,37 @@
   .hrs-row .e-name{font-weight:600;} .hrs-row .e-sub{display:block; font-weight:400; font-size:11.5px; color:var(--ink-faint);}
   .hrs-row .h-msg{color:var(--ink-soft); font-size:12.5px;}
   @media (max-width:900px){ #hoursKpis{grid-template-columns:repeat(2,1fr);} .hrs-row{grid-template-columns:70px minmax(0,1fr);} .hrs-row.head{display:none;} }
+
+  .hrs-bar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:6px 18px 8px;}
+  .hrs-bar .hrs-all{font-size:12.5px; font-weight:600; color:var(--ink-soft); display:flex; gap:6px; align-items:center;}
+  .hrs-row{grid-template-columns:26px 74px minmax(0,1.2fr) 66px minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,2.6fr) !important;}
+  .hrs-row .h-msg b{font-size:12.5px; color:var(--ink);}
+  .h-stat{font-size:11.5px; font-weight:700; color:var(--warn); margin-top:3px;}
+  .h-stat.sent{color:var(--accent);} .h-stat.done{color:var(--good);}
+  .pm-row{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:6px 0; border-top:1px solid var(--line-soft); font-size:13px;}
+  .pm-row:first-child{border-top:none;}
+  .pm-edit{display:flex; gap:8px; flex:1;} .pm-edit input{flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px; min-width:0;}
+  .dash-wrap{padding:0 18px 18px;}
+  .dash-stats{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+  .dstat{background:var(--bg); border:1px solid var(--line-soft); border-radius:10px; padding:10px 16px; min-width:130px;}
+  .dstat b{display:block; font-family:"Barlow Condensed",sans-serif; font-size:26px; line-height:1.1;} .dstat span{font-size:11.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em; font-weight:600;}
+  .dash-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;}
+  .dash-card{background:var(--bg-raised); border:1px solid var(--line-soft); border-radius:10px; padding:12px 14px;}
+  .dash-card.wide{grid-column:1 / -1;}
+  .dash-card h3{margin:0 0 10px; font-size:13px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em;}
+  .bar-row{display:grid; grid-template-columns:minmax(90px,1.2fr) minmax(0,2fr) auto; gap:8px; align-items:center; padding:3px 0; font-size:12.5px;}
+  .b-lab{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;} .b-track{background:var(--line-soft); border-radius:4px; height:12px; overflow:hidden;}
+  .b-fill{height:100%; background:var(--accent); border-radius:4px;} .b-fill.crit{background:var(--crit);} .b-fill.warn{background:var(--warn);} .b-fill.good{background:var(--good);}
+  .b-val{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-soft); white-space:nowrap;}
+  .vstack{display:flex; gap:8px; align-items:flex-end; height:150px;}
+  .vcol{flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; min-width:0;}
+  .vbar{width:70%; display:flex; flex-direction:column; border-radius:4px 4px 0 0; overflow:hidden; min-height:2px;}
+  .vbar i{display:block;} .vlab{font-size:10.5px; color:var(--ink-faint); text-align:center; margin-top:4px; line-height:1.2;}
+  .s-rt{background:var(--accent);} .s-ot{background:var(--warn);} .s-dt{background:var(--crit);}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-top:10px;} .legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px;}
+  .progress{display:flex; height:16px; border-radius:6px; overflow:hidden; background:var(--line-soft);} .progress i{display:block;}
+  .p-open{background:var(--warn);} .p-sent{background:var(--accent);} .p-done{background:var(--good);}
+  @media (max-width:900px){ .dash-grid{grid-template-columns:1fr;} .hrs-row{grid-template-columns:26px minmax(0,1fr) !important;} }
   #view-employees{display:flex; flex-direction:column; gap:18px;}
   .emp-import{display:flex; align-items:center; gap:12px; padding:14px 18px; flex-wrap:wrap;}
   .emp-banner{padding:12px 16px; border-radius:8px; font-size:13px; line-height:1.5; background:var(--warn-soft); color:var(--warn); border:1px solid #e6d3a8;}
@@ -1042,7 +1073,7 @@
       <section class="rules-intro">
         <span class="help-eyebrow">UPAE &middot; Weekly Hours</span>
         <h2>Check a week of hours against the union rules</h2>
-        <p>Load the B2W <b>Employee Hours Weekly Summary</b>. Each employee&rsquo;s union comes from the Employees screen (their default labor type), and the union&rsquo;s rule from the Rule Library decides how each day&rsquo;s total should be split into regular time, overtime (1.5x) and double time (2x). Days where the report&rsquo;s split is different are listed for review. Rules are applied to daily totals only &mdash; clock times are not needed.</p>
+        <p>Load the B2W <b>Employee Hours Weekly Summary</b>, or open a week you saved earlier. Each employee&rsquo;s union comes from the Employees screen (their default labor type), and the union&rsquo;s rule from the Rule Library decides how each day&rsquo;s total should be split into regular time, overtime (1.5x) and double time (2x). Every difference shows the rule that was broken. Select records and email them to the project manager to review.</p>
         <span class="phase-tag">Only rules marked Structured are applied &middot; regular employees have no union rule</span>
       </section>
 
@@ -1051,38 +1082,72 @@
       <div class="panel">
         <div class="panel-head">
           <h2>Load a week</h2>
-          <span class="panel-sub">.xlsx as exported from B2W</span>
+          <span class="panel-sub">New file from B2W, or a week saved in SharePoint</span>
         </div>
         <div class="emp-import">
           <label class="btn primary" for="hrsFileInput" style="cursor:pointer;">Choose file&hellip;</label>
           <input type="file" id="hrsFileInput" accept=".xlsx,.xlsm,.csv" hidden>
           <span class="panel-sub" id="hrsFileName">No file chosen</span>
         </div>
+        <div id="hoursSaved"></div>
         <div id="hoursWork"></div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
+          <h2>Dashboard</h2>
+          <span class="panel-sub">What this week&rsquo;s data shows</span>
+        </div>
+        <div id="hoursDash" class="dash-wrap"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
           <h2>Findings</h2>
-          <span class="panel-sub">Reported hours vs. what the rule says</span>
+          <span class="panel-sub">Reported hours vs. what the rule says &middot; tick records to email or resolve</span>
         </div>
         <div id="hoursFindings"></div>
       </div>
 
       <details class="emp-setup">
-        <summary>One-time setup: the SharePoint WeeklyHours list</summary>
+        <summary>Project managers (<span id="hrsPmCount">0</span>) &mdash; who the review emails go to</summary>
         <div class="emp-setup-body">
-          <p>Create a list named <b>WeeklyHours</b> on the CAC Contract Management site. One row is kept for each employee for each day they worked, so a week can be loaded again later without duplicates. Use these columns, with no spaces in the names:</p>
+          <div id="hrsPmList"></div>
+          <p style="margin-top:12px;"><b>Add project managers.</b> One per line as <i>Name, email</i> (a tab between them also works, so you can paste two columns straight from Excel).</p>
+          <textarea id="hrsPmPaste" rows="5" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="Jane Smith, jsmith@cacindinc.com"></textarea>
+          <div class="emp-actions" style="padding-left:0;"><button class="btn primary" type="button" id="hrsPmAdd">Add to list</button></div>
+          <div class="emp-status" id="hrsPmStatus" style="padding-left:0;"></div>
+        </div>
+      </details>
+
+      <details class="emp-setup">
+        <summary>One-time setup: the three SharePoint lists this screen uses</summary>
+        <div class="emp-setup-body">
+          <p>Create these on the CAC Contract Management site. Type the column names exactly, with no spaces.</p>
+          <p><b>WeeklyHours</b> &mdash; one row per employee per day worked</p>
           <table>
             <tr><th>Column</th><th>Type</th></tr>
             <tr><td>Title</td><td>Single line of text (already there)</td></tr>
-            <tr><td>EmployeeID</td><td>Single line of text</td></tr>
-            <tr><td>EmployeeName</td><td>Single line of text</td></tr>
-            <tr><td>WorkDate</td><td>Single line of text (e.g. 2026-10-19)</td></tr>
-            <tr><td>WeekStart</td><td>Single line of text (e.g. 2026-10-18)</td></tr>
-            <tr><td>WeekNo</td><td>Number (no decimals)</td></tr>
-            <tr><td>RT, OT, DT</td><td>Number (2 decimals) &mdash; three columns</td></tr>
+            <tr><td>EmployeeID, EmployeeName</td><td>Single line of text</td></tr>
+            <tr><td>WorkDate, WeekStart</td><td>Single line of text (e.g. 2026-10-19)</td></tr>
+            <tr><td>WeekNo</td><td>Number (0 decimals)</td></tr>
+            <tr><td>RT, OT, DT</td><td>Number (2 decimals)</td></tr>
           </table>
+          <p><b>WeeklyFindings</b> &mdash; each flagged record, the rule broken, and its review status</p>
+          <table>
+            <tr><th>Column</th><th>Type</th></tr>
+            <tr><td>Title</td><td>Single line of text (already there)</td></tr>
+            <tr><td>FindingKey, WeekStart, EmployeeID, EmployeeName, UnionName, WorkDate, Kind, RuleID, RuleName, Reported, Expected, Status, SentTo, SentDate</td><td>Single line of text (14 columns)</td></tr>
+            <tr><td>RuleBroken, Note</td><td>Multiple lines of text (plain text)</td></tr>
+            <tr><td>WeekNo</td><td>Number (0 decimals)</td></tr>
+          </table>
+          <p><b>ProjectManagers</b></p>
+          <table>
+            <tr><th>Column</th><th>Type</th></tr>
+            <tr><td>Title</td><td>Single line of text (the PM&rsquo;s name)</td></tr>
+            <tr><td>Email</td><td>Single line of text</td></tr>
+          </table>
+          <p>Sending email needs the <b>Mail.Send</b> delegated permission on the app registration (an administrator may need to grant consent).</p>
         </div>
       </details>
     </div>
@@ -1558,6 +1623,45 @@
       <div class="modal-actions">
         <button class="btn ghost" type="button" id="cancelEditUnion">Cancel</button>
         <button class="btn primary" type="button" id="saveEditUnion">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="hrsMailOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hrsMailTitle" style="max-width:760px;">
+    <div class="modal-head">
+      <div>
+        <h2 id="hrsMailTitle">Email the project manager</h2>
+        <p id="hrsMailCount"></p>
+      </div>
+      <button class="modal-close" type="button" id="hrsMailClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <span class="field-label">To</span>
+        <select id="hrsMailPm" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Cc (optional, separate with commas)</span>
+        <input type="text" id="hrsMailCc" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;">
+      </div>
+      <div class="field-group">
+        <span class="field-label">Subject</span>
+        <input type="text" id="hrsMailSubject" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;">
+      </div>
+      <div class="field-group">
+        <span class="field-label">Message</span>
+        <textarea id="hrsMailNote" rows="6" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></textarea>
+      </div>
+      <div class="field-group">
+        <span class="field-label">The records table that will follow the message</span>
+        <div id="hrsMailPreview" style="max-height:200px; overflow:auto; border:1px solid var(--line-soft); border-radius:8px; padding:8px; background:#fff;"></div>
+      </div>
+      <div class="emp-status" id="hrsMailStatus" style="padding:0 0 10px;"></div>
+      <div class="emp-actions" style="padding:0; justify-content:flex-end;">
+        <button class="btn ghost" type="button" id="hrsMailCancel">Cancel</button>
+        <button class="btn primary" type="button" id="hrsMailSend">Send email</button>
       </div>
     </div>
   </div>
@@ -3483,26 +3587,57 @@
   }
 
   // ---------------- the check ----------------
+  var hrsFindSaved = null, hrsFindError = null;   // WeeklyFindings rows already in SharePoint
+  var hrsPMs = [], hrsPMError = null;             // Project managers (name + email)
+  var hrsSel = {};                                // selected finding keys
+  var hrsStatusFilter = 'all';
+  var hrsLoadedOnce = false;
+  var hrsPmEdit = null;
+  var STATUS_OPEN = 'Open', STATUS_SENT = 'Sent to PM', STATUS_DONE = 'Resolved';
+
+  function parTxt(x){ x = empClean(x); return x ? ' (' + x + ')' : ''; }
+  // Which rule was broken, in words, for one employee-day.
+  function hrsBroken(comp, rep, exp, iso){
+    var F = comp.rule.fields || {}, out = [], dow = DOW_LABEL[hrsFromIso(iso).getDay()];
+    var t15 = parTxt(F['OT 1.5 threshold'] || F['OT 1.5 applicable days']);
+    var t2 = parTxt(F['OT 2x threshold'] || F['OT 2x applicable days']);
+    if(rep.ot > exp.ot + HRS_TOL){
+      out.push(comp.t15.na ? 'This union has no 1.5x overtime tier, but ' + rep.ot + ' hrs were reported as OT (1.5x). Overtime for ' + comp.rule.name + ' is paid at 2x' + t2 + '.'
+                           : 'More 1.5x overtime was reported than the OT 1.5x tier allows on ' + dow + t15 + '.');
+    }
+    if(rep.ot < exp.ot - HRS_TOL) out.push('Hours that belong in the OT 1.5x tier on ' + dow + t15 + ' were reported at a different rate.');
+    if(rep.dt < exp.dt - HRS_TOL) out.push('Hours that belong in the OT 2x tier on ' + dow + t2 + ' were reported at a lower rate.');
+    if(rep.dt > exp.dt + HRS_TOL) out.push('Double time (2x) was reported on ' + dow + ', but the OT 2x tier does not reach that many hours there' + parTxt(F['OT 2x applicable days']) + '.');
+    if(rep.rt > exp.rt + HRS_TOL) out.push('More regular (straight) time was reported than the rule allows' + parTxt(F['Regular threshold']) + '.');
+    if(rep.rt < exp.rt - HRS_TOL) out.push('Fewer straight-time hours were reported than the rule gives' + parTxt(F['Regular threshold']) + '.');
+    return out;
+  }
   function hrsRunCheck(){
     var wk = hrsWeek; if(!wk) return null;
     var empByKey = {}; employees.forEach(function(e){ empByKey[empKey(e.id)] = e; });
     var compCache = {};
-    var out = { items: [], emp: { checked: 0, regular: 0, notListed: [], noLabor: [], noUnion: [], noRule: {}, hours: 0 }, rowsChecked: 0, matched: 0 };
+    var out = { items: [], emp: { checked: 0, regular: 0, notListed: [], noLabor: [], noUnion: [], noRule: {}, hours: 0 }, rowsChecked: 0, matched: 0, byUnion: {} };
+    function add(base, extra){
+      var it = Object.assign({}, base, extra);
+      it.key = wk.start + '|' + empKey(it.id) + '|' + (it.iso || '-') + '|' + it.kind;
+      it.status = STATUS_OPEN; it.sentTo = ''; it.sentDate = ''; it.note = '';
+      out.items.push(it);
+    }
     wk.records.forEach(function(rec){
       var total = 0; Object.keys(rec.days).forEach(function(i){ var h = rec.days[i]; total += h.rt + h.ot + h.dt; });
       out.emp.hours += total;
       var e = empByKey[empKey(rec.id)];
-      var base = { id: rec.id, name: rec.name };
+      var base = { id: rec.id, name: rec.name, union: '', ruleId: 'Data check', ruleName: 'Data check', cba: '' };
       Object.keys(rec.days).forEach(function(iso){
         var h = rec.days[iso], t = hrsRound(h.rt + h.ot + h.dt);
-        if(t > HRS_EXCESSIVE) out.items.push(Object.assign({ kind: 'excessive', sev: 'warn', iso: iso, union: '', msg: t + ' hours logged in one day (over ' + HRS_EXCESSIVE + ') — please confirm.', rep: h }, base));
-        if(h.rt < 0 || h.ot < 0 || h.dt < 0) out.items.push(Object.assign({ kind: 'negative', sev: 'crit', iso: iso, union: '', msg: 'Negative hours in the file.', rep: h }, base));
+        if(t > HRS_EXCESSIVE) add(base, { kind: 'excessive', sev: 'warn', iso: iso, rep: h, msg: t + ' hours logged in one day (over ' + HRS_EXCESSIVE + ').', broken: ['Data check: a single day above ' + HRS_EXCESSIVE + ' hours is flagged for confirmation (not a union rule).'] });
+        if(h.rt < 0 || h.ot < 0 || h.dt < 0) add(base, { kind: 'negative', sev: 'crit', iso: iso, rep: h, msg: 'Negative hours in the file.', broken: ['Data check: hours cannot be negative.'] });
       });
       if(!total) return;
-      if(!e){ out.emp.notListed.push(rec); out.items.push(Object.assign({ kind: 'notlisted', sev: 'warn', iso: '', union: '', msg: 'Employee ID is not in the Employees list, so no union or rule could be applied.' }, base)); return; }
+      if(!e){ out.emp.notListed.push(rec); add(base, { kind: 'notlisted', sev: 'warn', iso: '', msg: 'Employee ID is not in the Employees list, so no union or rule could be applied.', broken: ['Data check: every employee in the hours report must exist on the Employees list.'] }); return; }
       var info = employeeUnionInfo(e);
       if(info.kind === 'regular'){ out.emp.regular++; return; }
-      if(info.kind === 'nolabor'){ out.emp.noLabor.push(rec); out.items.push(Object.assign({ kind: 'nolabor', sev: 'warn', iso: '', union: '', msg: 'No default labor type on the Employees list, so no union rule could be applied.' }, base)); return; }
+      if(info.kind === 'nolabor'){ out.emp.noLabor.push(rec); add(base, { kind: 'nolabor', sev: 'warn', iso: '', msg: 'No default labor type on the Employees list, so no union rule could be applied.', broken: ['Data check: employees need a default labor type (or the Employee type) so their union can be found.'] }); return; }
       if(info.kind !== 'union'){ out.emp.noUnion.push(rec); return; }
       var lt = laborTypes.filter(function(x){ return String(x.code).toUpperCase() === String(e.laborCode).toUpperCase(); })[0];
       var unionName = lt ? lt.unionName : '';
@@ -3513,29 +3648,39 @@
         return;
       }
       out.emp.checked++;
+      var bu = out.byUnion[unionName] = out.byUnion[unionName] || { days: 0, bad: 0, emps: {} };
       var exp = hrsExpectedWeek(comp, rec.days, wk.days);
       Object.keys(exp).forEach(function(iso){
         var rep = rec.days[iso], x = exp[iso];
-        out.rowsChecked++;
+        out.rowsChecked++; bu.days++;
         var dRt = hrsRound(rep.rt - x.rt), dOt = hrsRound(rep.ot - x.ot), dDt = hrsRound(rep.dt - x.dt);
         if(Math.abs(dRt) > HRS_TOL || Math.abs(dOt) > HRS_TOL || Math.abs(dDt) > HRS_TOL){
-          var parts = [];
-          if(Math.abs(dRt) > HRS_TOL) parts.push('RT ' + rep.rt + ' vs ' + x.rt);
-          if(Math.abs(dOt) > HRS_TOL) parts.push('OT ' + rep.ot + ' vs ' + x.ot);
-          if(Math.abs(dDt) > HRS_TOL) parts.push('DT ' + rep.dt + ' vs ' + x.dt);
-          out.items.push(Object.assign({ kind: 'mismatch', sev: 'crit', iso: iso, union: unionName, rep: rep, exp: x, rule: comp.rule.name,
-            msg: 'Reported ' + hrsFmt(rep) + '; the ' + comp.rule.name + ' rule gives ' + hrsFmt(x) + ' (' + parts.join(', ') + ').' }, base));
+          bu.bad++; bu.emps[empKey(rec.id)] = true;
+          add(base, { kind: 'mismatch', sev: 'crit', iso: iso, union: unionName, rep: rep, exp: x, ruleId: comp.rule.id, ruleName: comp.rule.name, cba: comp.rule.cba || '',
+            broken: hrsBroken(comp, rep, x, iso),
+            msg: 'Reported ' + hrsFmt(rep) + '; the rule gives ' + hrsFmt(x) + '.' });
         } else out.matched++;
       });
     });
     out.hours = hrsRound(out.emp.hours);
     out.ranAt = new Date();
+    hrsMergeSaved(out);
     return out;
   }
   function hrsFmt(h){
     var p = [];
     if(h.rt) p.push(hrsRound(h.rt) + ' RT'); if(h.ot) p.push(hrsRound(h.ot) + ' OT'); if(h.dt) p.push(hrsRound(h.dt) + ' DT');
     return p.join(' + ') || '0';
+  }
+  // carry review status over from what was saved earlier for the same finding
+  function hrsMergeSaved(f){
+    var by = {}; (hrsFindSaved || []).forEach(function(r){ by[r.key] = r; });
+    var seen = {};
+    f.items.forEach(function(i){
+      var sv = by[i.key]; seen[i.key] = true;
+      if(sv){ i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId; }
+    });
+    f.stale = (hrsFindSaved || []).filter(function(r){ return hrsWeek && r.weekStart === hrsWeek.start && !seen[r.key]; }).length;
   }
 
   // ---------------- saved rows (SharePoint) ----------------
@@ -3562,9 +3707,71 @@
       else if(Math.abs(c.rt - r.rt) > HRS_TOL || Math.abs(c.ot - r.ot) > HRS_TOL || Math.abs(c.dt - r.dt) > HRS_TOL || String(c.weekNo) !== String(r.weekNo)) changed.push({ cur: c, next: r });
       else same++;
     });
-    // rows saved earlier for the same week that are no longer in the file
     var gone = (hrsSaved || []).filter(function(r){ return r.weekStart === wk.start && !seen[r.key]; });
     return { fresh: fresh, changed: changed, same: same, gone: gone, total: rows.length };
+  }
+  function hrsFindingRow(i){
+    return { key: i.key, weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, id: i.id, name: i.name, union: i.union, iso: i.iso || '', kind: i.kind,
+             ruleId: i.ruleId, ruleName: i.ruleName, broken: (i.broken || []).join(' | '), reported: i.rep ? hrsFmt(i.rep) : '', expected: i.exp ? hrsFmt(i.exp) : '',
+             status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note };
+  }
+  // create or update the WeeklyFindings rows for these items
+  async function hrsPersistFindings(items, onProgress){
+    if(!items.length) return { ok: 0, bad: [] };
+    if(hrsFindError) return { ok: 0, bad: [{ error: 'WeeklyFindings list could not be read: ' + hrsFindError }] };
+    if(typeof upaeBatchFindings !== 'function') return { ok: 0, bad: [{ error: 'SharePoint is not connected in this view.' }] };
+    var ops = items.map(function(i){ var r = hrsFindingRow(i); return i.spItemId ? { kind: 'update', row: r, spItemId: i.spItemId } : { kind: 'create', row: r }; });
+    var res = await upaeBatchFindings(ops, onProgress), ok = 0, bad = [];
+    res.forEach(function(r, k){
+      if(r && r.ok){
+        ok++;
+        var it = items[k];
+        if(!it.spItemId){ it.spItemId = r.spItemId; hrsFindSaved = hrsFindSaved || []; hrsFindSaved.push(Object.assign({}, ops[k].row, { spItemId: r.spItemId })); }
+        else { var cur = (hrsFindSaved || []).filter(function(x){ return x.spItemId === it.spItemId; })[0]; if(cur) Object.assign(cur, ops[k].row); }
+      } else bad.push({ error: r && r.error });
+    });
+    return { ok: ok, bad: bad };
+  }
+
+  // ---------------- saved weeks ----------------
+  function hrsSavedWeeks(){
+    var by = {};
+    (hrsSaved || []).forEach(function(r){
+      var w = by[r.weekStart] = by[r.weekStart] || { start: r.weekStart, weekNo: r.weekNo, emps: {}, hours: 0, rows: 0 };
+      w.emps[empKey(r.employeeId)] = true; w.hours += r.rt + r.ot + r.dt; w.rows++;
+    });
+    return Object.keys(by).sort().reverse().map(function(k){ by[k].n = Object.keys(by[k].emps).length; return by[k]; });
+  }
+  function hrsAddDays(iso, n){ var d = hrsFromIso(iso); d.setDate(d.getDate() + n); return hrsIso(d); }
+  function hrsOpenSaved(start){
+    var rows = (hrsSaved || []).filter(function(r){ return r.weekStart === start; });
+    if(!rows.length) return;
+    var by = {}, order = [];
+    rows.forEach(function(r){
+      var k = empKey(r.employeeId);
+      if(!by[k]){ by[k] = { id: r.employeeId, name: r.employeeName, days: {} }; order.push(k); }
+      by[k].days[r.workDate] = { rt: r.rt, ot: r.ot, dt: r.dt };
+    });
+    var days = []; for(var i = 0; i < 7; i++) days.push(hrsAddDays(start, i));
+    hrsWeek = { fileName: 'Saved in SharePoint', start: start, end: days[6], weekNo: rows[0].weekNo, days: days,
+                records: order.sort().map(function(k){ return by[k]; }), dupIds: [], hadRange: false, fromSaved: true };
+    hrsSel = {}; hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsShown = 150;
+    document.getElementById('hrsFileName').textContent = 'Week ' + hrsWeek.weekNo + ' (saved)';
+    hrsFindings = hrsRunCheck();
+    renderHoursPanel();
+  }
+  async function hrsRefreshSaved(){
+    var st = document.getElementById('hrsSavedStatus'); if(st) st.textContent = 'Reading saved weeks from SharePoint…';
+    hrsSaved = null; hrsSavedError = null; hrsFindSaved = null; hrsFindError = null; hrsPMError = null;
+    if(typeof upaeFetchWeeklyHours !== 'function'){ hrsSavedError = hrsFindError = hrsPMError = 'not connected to SharePoint'; }
+    else {
+      try{ hrsSaved = await upaeFetchWeeklyHours(); } catch(err){ console.warn('UPAE: WeeklyHours', err); hrsSavedError = err.message || String(err); }
+      try{ hrsFindSaved = await upaeFetchFindings(); } catch(err){ console.warn('UPAE: WeeklyFindings', err); hrsFindError = err.message || String(err); }
+      try{ hrsPMs = await upaeFetchProjectManagers(); } catch(err){ console.warn('UPAE: ProjectManagers', err); hrsPMError = err.message || String(err); }
+    }
+    hrsLoadedOnce = true;
+    if(hrsFindings && hrsWeek) hrsMergeSaved(hrsFindings);
+    renderHoursSaved(); renderHoursPanel(); renderPMs();
   }
 
   // ---------------- screen ----------------
@@ -3572,39 +3779,56 @@
     mismatch: 'Hours differ from rule', notlisted: 'Not in Employees list', nolabor: 'No default labor type',
     excessive: 'Very long day', negative: 'Negative hours'
   };
+  function fmtMD(iso){ var d = hrsFromIso(iso); return (d.getMonth() + 1) + '/' + d.getDate(); }
   function renderHoursKpis(){
     var el = document.getElementById('hoursKpis'); if(!el) return;
     var wk = hrsWeek, f = hrsFindings;
     function kpi(label, val, sub, cls){ return '<div class="kpi"><div class="k-label">' + label + '</div><div class="k-value">' + val + '</div><div class="k-delta ' + (cls || 'flat') + '">' + sub + '</div></div>'; }
     if(!wk){
-      el.innerHTML = kpi('Week', '—', 'no file loaded yet') + kpi('Employees in file', '—', '') + kpi('Total hours', '—', '') + kpi('Findings', '—', 'run the check after loading');
+      el.innerHTML = kpi('Week', '—', 'no week loaded yet') + kpi('Employees in file', '—', '') + kpi('Total hours', '—', '') + kpi('Findings', '—', 'run the check after loading');
       return;
     }
     var hrs = 0; wk.records.forEach(function(r){ Object.keys(r.days).forEach(function(i){ var h = r.days[i]; hrs += h.rt + h.ot + h.dt; }); });
     var worked = wk.records.filter(function(r){ return Object.keys(r.days).length; }).length;
-    var nCrit = f ? f.items.filter(function(i){ return i.sev === 'crit'; }).length : null;
+    var nCrit = f ? f.items.filter(function(i){ return i.kind === 'mismatch'; }).length : null;
     el.innerHTML =
-      kpi('Week ' + (wk.weekNo || '?'), hrsPretty(wk.start).replace(/^\w+ /, '') + '–' + hrsPretty(wk.end).replace(/^\w+ /, ''), 'week number can be changed below') +
-      kpi('Employees with hours', worked, 'of ' + wk.records.length + ' listed in the file') +
+      kpi('Week ' + (wk.weekNo || '?'), fmtMD(wk.start) + '–' + fmtMD(wk.end), 'week number can be changed below') +
+      kpi('Employees with hours', worked, 'of ' + wk.records.length + ' in the report') +
       kpi('Total hours', hrsRound(hrs).toLocaleString(), 'RT + OT + DT') +
       (f ? kpi('Rule differences', nCrit, (f.rowsChecked ? f.rowsChecked + ' employee-days checked' : 'no days could be checked'), nCrit ? 'up' : 'flat')
          : kpi('Rule differences', '—', 'check not run yet'));
   }
-  function hrsSavedLine(){
-    if(hrsSavedError) return '<div class="emp-status err">Saved hours could not be read from SharePoint (' + escapeHtml(hrsSavedError) + '). Saving is switched off so nothing is duplicated; the rule check still works.</div>';
-    return '';
+
+  function renderHoursSaved(){
+    var el = document.getElementById('hoursSaved'); if(!el) return;
+    if(hrsSavedError){
+      el.innerHTML = '<div class="emp-status err">Saved weeks could not be read from SharePoint (' + escapeHtml(hrsSavedError) + '). Check that the WeeklyHours list exists. Loading a file and the rule check still work.</div>';
+      return;
+    }
+    if(!hrsLoadedOnce || hrsSaved == null){ el.innerHTML = '<div class="emp-status" id="hrsSavedStatus">Saved weeks load when you open this screen after signing in.</div>'; return; }
+    var weeks = hrsSavedWeeks();
+    var html = '<div class="hrs-week"><label>Saved weeks <select id="hrsSavedSel">' +
+      (weeks.length ? weeks.map(function(w){ return '<option value="' + w.start + '"' + (hrsWeek && hrsWeek.start === w.start ? ' selected' : '') + '>Week ' + (w.weekNo || '?') + ' · ' + fmtMD(w.start) + '–' + fmtMD(hrsAddDays(w.start, 6)) + ' · ' + w.n + ' employees</option>'; }).join('') : '<option value="">(none saved yet)</option>') +
+      '</select></label><button class="btn" type="button" id="hrsOpenSavedBtn"' + (weeks.length ? '' : ' disabled') + '>Open saved week</button>' +
+      '<button class="btn ghost" type="button" id="hrsRefreshBtn">Refresh</button></div>';
+    if(hrsFindError) html += '<div class="emp-status err">WeeklyFindings could not be read (' + escapeHtml(hrsFindError) + '). Findings can be checked and emailed, but review status will not be remembered until that list exists.</div>';
+    el.innerHTML = html;
+    var ob = document.getElementById('hrsOpenSavedBtn');
+    if(ob) ob.addEventListener('click', function(){ var v = document.getElementById('hrsSavedSel').value; if(v) hrsOpenSaved(v); });
+    document.getElementById('hrsRefreshBtn').addEventListener('click', hrsRefreshSaved);
   }
+
   function renderHoursPanel(){
     var el = document.getElementById('hoursWork'); if(!el) return;
     var wk = hrsWeek;
-    if(!wk){ el.innerHTML = ''; renderHoursKpis(); renderHoursFindings(); return; }
+    if(!wk){ el.innerHTML = ''; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); return; }
     var plan = hrsSaved ? hrsPlanSave() : null;
     var html = '<div class="hrs-week">' +
       '<label>Week no. <input type="number" id="hrsWeekNo" min="1" max="53" value="' + (wk.weekNo || '') + '"></label>' +
-      '<label>Start <input type="date" id="hrsStart" value="' + wk.start + '"></label>' +
-      '<label>End <input type="date" id="hrsEnd" value="' + wk.end + '"></label>' +
-      '<span class="panel-sub">' + (wk.hadRange ? 'Dates read from the report header.' : 'Dates taken from the day columns.') + ' Week no. is the ISO week &mdash; change it if Payroll numbers weeks differently.</span></div>';
-    html += '<div class="emp-sum"><span class="emp-pill"><b>' + wk.records.length + '</b>employees in file</span>' +
+      '<label>Start <input type="date" id="hrsStart" value="' + wk.start + '"' + (wk.fromSaved ? ' disabled' : '') + '></label>' +
+      '<label>End <input type="date" id="hrsEnd" value="' + wk.end + '"' + (wk.fromSaved ? ' disabled' : '') + '></label>' +
+      '<span class="panel-sub">' + (wk.fromSaved ? 'Opened from SharePoint.' : (wk.hadRange ? 'Dates read from the report header.' : 'Dates taken from the day columns.')) + ' Week no. is the ISO week &mdash; change it if Payroll numbers weeks differently.</span></div>';
+    html += '<div class="emp-sum"><span class="emp-pill"><b>' + wk.records.length + '</b>employees</span>' +
       (wk.dupIds.length ? '<span class="emp-pill chg"><b>' + wk.dupIds.length + '</b>repeated IDs skipped</span>' : '') +
       (plan ? '<span class="emp-pill new"><b>' + plan.fresh.length + '</b>new day rows</span><span class="emp-pill chg"><b>' + plan.changed.length + '</b>changed</span><span class="emp-pill"><b>' + plan.same + '</b>already saved</span>' : '') +
       '</div>';
@@ -3616,29 +3840,39 @@
       html += '</div></details>';
     }
     if(plan && plan.gone.length) html += '<div class="emp-status">' + plan.gone.length + ' day row(s) saved earlier for this week are not in this file. They are left alone.</div>';
-    var blocked = hrsSavedError ? 'blocked' : '';
     var nSave = plan ? plan.fresh.length + plan.changed.length : 0;
+    var canSave = !!hrsSaved && !hrsSavedError && !hrsBusy;
     html += '<div class="emp-actions">' +
       '<button class="btn primary" type="button" id="hrsCheckBtn">Run rule check</button>' +
-      '<button class="btn" type="button" id="hrsSaveBtn"' + ((!plan || !nSave || blocked || hrsBusy) ? ' disabled' : '') + '>' + (plan ? (nSave ? 'Save ' + nSave + ' day row' + (nSave === 1 ? '' : 's') + ' to SharePoint' : 'Nothing new to save') : 'Save to SharePoint') + '</button>' +
-      '<button class="btn ghost" type="button" id="hrsDiscardBtn">Discard</button></div>' + hrsSavedLine() + '<div class="emp-status" id="hrsStatus"></div>';
+      '<button class="btn" type="button" id="hrsSaveBtn"' + (canSave ? '' : ' disabled') + '>Save week ' + (wk.weekNo || '') + ' to SharePoint</button>' +
+      '<button class="btn ghost" type="button" id="hrsDiscardBtn">Close week</button></div>' +
+      '<div class="emp-status" id="hrsStatus">' + (plan && !nSave && hrsSaved ? 'Hours for this week are already saved.' : '') + '</div>';
     el.innerHTML = html;
-    document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsShown = 150; renderHoursKpis(); renderHoursFindings(); });
+    document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsShown = 150; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); });
     document.getElementById('hrsSaveBtn').addEventListener('click', hrsSave);
-    document.getElementById('hrsDiscardBtn').addEventListener('click', function(){ hrsWeek = null; hrsFindings = null; hrsSaved = null; document.getElementById('hrsFileName').textContent = 'No file chosen'; renderHoursPanel(); });
-    document.getElementById('hrsWeekNo').addEventListener('change', function(){ wk.weekNo = parseInt(this.value, 10) || null; renderHoursKpis(); renderHoursPanelKeepFocus(); });
-    document.getElementById('hrsStart').addEventListener('change', function(){ if(this.value){ wk.start = this.value; renderHoursKpis(); renderHoursPanelKeepFocus(); } });
-    document.getElementById('hrsEnd').addEventListener('change', function(){ if(this.value){ wk.end = this.value; renderHoursKpis(); } });
+    document.getElementById('hrsDiscardBtn').addEventListener('click', function(){ hrsWeek = null; hrsFindings = null; hrsSel = {}; document.getElementById('hrsFileName').textContent = 'No file chosen'; renderHoursPanel(); renderHoursSaved(); });
+    document.getElementById('hrsWeekNo').addEventListener('change', function(){ wk.weekNo = parseInt(this.value, 10) || null; renderHoursKpis(); });
+    document.getElementById('hrsStart').addEventListener('change', function(){ if(this.value){ wk.start = this.value; hrsFindings = null; renderHoursPanel(); } });
+    document.getElementById('hrsEnd').addEventListener('change', function(){ if(this.value) wk.end = this.value; });
     renderHoursKpis();
     renderHoursFindings();
+    renderHoursDash();
   }
-  function renderHoursPanelKeepFocus(){ renderHoursPanel(); }
+
+  function itemLine(i){ return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') : i.status; }
+  function visibleFindings(){
+    var f = hrsFindings; if(!f) return [];
+    return f.items.filter(function(i){ return (hrsFilter === 'all' || i.kind === hrsFilter) && (hrsStatusFilter === 'all' || i.status === hrsStatusFilter); })
+      .sort(function(a, b){ return (a.sev === b.sev ? 0 : a.sev === 'crit' ? -1 : 1) || a.id.localeCompare(b.id) || (a.iso || '').localeCompare(b.iso || ''); });
+  }
+  function selectedItems(){ return hrsFindings ? hrsFindings.items.filter(function(i){ return hrsSel[i.key]; }) : []; }
 
   function renderHoursFindings(){
     var el = document.getElementById('hoursFindings'); if(!el) return;
     var f = hrsFindings;
-    if(!f){ el.innerHTML = hrsWeek ? '<div class="emp-status">Press <b>Run rule check</b> to compare each union employee&rsquo;s daily hours with their union&rsquo;s rule.</div>' : ''; return; }
+    if(!f){ el.innerHTML = hrsWeek ? '<div class="emp-status">Press <b>Run rule check</b> to compare each union employee&rsquo;s daily hours with their union&rsquo;s rule.</div>' : '<div class="emp-status">Load a week above to see findings.</div>'; return; }
     var counts = {}; f.items.forEach(function(i){ counts[i.kind] = (counts[i.kind] || 0) + 1; });
+    var sc = {}; f.items.forEach(function(i){ sc[i.status] = (sc[i.status] || 0) + 1; });
     var e = f.emp;
     var html = '<div class="emp-sum">' +
       '<span class="emp-pill new"><b>' + e.checked + '</b>employees checked against a rule</span>' +
@@ -3651,19 +3885,33 @@
       html += '<details class="emp-details"><summary>Unions that could not be checked (' + nr.length + ') &mdash; ' + nr.reduce(function(s, k){ return s + e.noRule[k].n; }, 0) + ' employees</summary><div class="emp-detail-body">' +
         nr.sort().map(function(k){ return '<div><b>' + escapeHtml(k || '(no union)') + '</b> &middot; ' + e.noRule[k].n + ' employee(s) &mdash; ' + escapeHtml(e.noRule[k].why) + '</div>'; }).join('') + '</div></details>';
     }
-    html += '<div class="filters" style="padding:4px 18px 10px;"><button class="chip-filter' + (hrsFilter === 'all' ? ' active' : '') + '" type="button" data-hrs-filter="all">All (' + f.items.length + ')</button>' +
+    if(f.stale) html += '<div class="emp-status">' + f.stale + ' finding(s) saved for this week are no longer flagged under today&rsquo;s rules.</div>';
+    html += '<div class="filters" style="padding:4px 18px 6px;"><button class="chip-filter' + (hrsFilter === 'all' ? ' active' : '') + '" type="button" data-hrs-filter="all">All (' + f.items.length + ')</button>' +
       Object.keys(HRS_KINDS).filter(function(k){ return counts[k]; }).map(function(k){
         return '<button class="chip-filter' + (hrsFilter === k ? ' active' : '') + '" type="button" data-hrs-filter="' + k + '">' + HRS_KINDS[k] + ' (' + counts[k] + ')</button>';
-      }).join('') +
-      '<button class="btn ghost" type="button" id="hrsCsvBtn" style="margin-left:auto;">Download findings (CSV)</button></div>';
-    var list = f.items.filter(function(i){ return hrsFilter === 'all' || i.kind === hrsFilter; })
-      .sort(function(a, b){ return (a.sev === b.sev ? 0 : a.sev === 'crit' ? -1 : 1) || a.id.localeCompare(b.id) || (a.iso || '').localeCompare(b.iso || ''); });
+      }).join('') + '</div>' +
+      '<div class="filters" style="padding:0 18px 10px;">' +
+      ['all', STATUS_OPEN, STATUS_SENT, STATUS_DONE].map(function(s){
+        return '<button class="chip-filter' + (hrsStatusFilter === s ? ' active' : '') + '" type="button" data-hrs-status="' + s + '">' + (s === 'all' ? 'Any status' : s + ' (' + (sc[s] || 0) + ')') + '</button>';
+      }).join('') + '</div>';
+    var list = visibleFindings();
+    var sel = selectedItems();
+    html += '<div class="hrs-bar"><label class="hrs-all"><input type="checkbox" id="hrsSelAll"> Select all shown (' + list.length + ')</label>' +
+      '<span class="panel-sub">' + sel.length + ' selected</span>' +
+      '<button class="btn primary" type="button" id="hrsMailBtn"' + (sel.length ? '' : ' disabled') + '>Email PM&hellip;</button>' +
+      '<button class="btn" type="button" id="hrsDoneBtn"' + (sel.length ? '' : ' disabled') + '>Mark resolved</button>' +
+      '<button class="btn ghost" type="button" id="hrsReopenBtn"' + (sel.length ? '' : ' disabled') + '>Reopen</button>' +
+      '<button class="btn ghost" type="button" id="hrsCsvBtn" style="margin-left:auto;">Download CSV</button></div>' +
+      '<div class="emp-status" id="hrsActionStatus"></div>';
     if(!list.length) html += '<div class="emp-status">' + (f.items.length ? 'Nothing in this filter.' : 'No findings. Every checked day matches its rule.') + '</div>';
     else {
-      html += '<div class="hrs-row head"><div>ID</div><div>Employee</div><div>Day</div><div>Reported</div><div>Rule says</div><div>Finding</div></div>';
+      html += '<div class="hrs-row head"><div></div><div>ID</div><div>Employee</div><div>Day</div><div>Reported</div><div>Rule says</div><div>Rule broken</div></div>';
       list.slice(0, hrsShown).forEach(function(i){
-        html += '<div class="hrs-row ' + i.sev + '"><div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
-          '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div><div class="h-msg">' + escapeHtml(i.msg) + '</div></div>';
+        html += '<div class="hrs-row ' + i.sev + '"><div><input type="checkbox" data-hrs-sel="' + escapeHtml(i.key) + '"' + (hrsSel[i.key] ? ' checked' : '') + '></div>' +
+          '<div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
+          '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div>' +
+          '<div class="h-msg"><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleId + ' · ' + i.ruleName) + '</b>' + (i.cba ? ' <span class="e-sub" style="display:inline;">' + escapeHtml(i.cba) + '</span>' : '') +
+          '<div>' + escapeHtml(i.broken.join(' ')) + '</div><div class="h-stat ' + (i.status === STATUS_DONE ? 'done' : i.status === STATUS_SENT ? 'sent' : '') + '">' + escapeHtml(itemLine(i)) + '</div></div></div>';
       });
       if(list.length > hrsShown) html += '<div class="emp-actions"><button class="btn" type="button" id="hrsMoreBtn">Show ' + Math.min(150, list.length - hrsShown) + ' more (' + (list.length - hrsShown) + ' left)</button></div>';
     }
@@ -3671,15 +3919,42 @@
     Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-filter]'), function(b){
       b.addEventListener('click', function(){ hrsFilter = b.getAttribute('data-hrs-filter'); hrsShown = 150; renderHoursFindings(); });
     });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-status]'), function(b){
+      b.addEventListener('click', function(){ hrsStatusFilter = b.getAttribute('data-hrs-status'); hrsShown = 150; renderHoursFindings(); });
+    });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-sel]'), function(c){
+      c.addEventListener('change', function(){ var k = c.getAttribute('data-hrs-sel'); if(c.checked) hrsSel[k] = true; else delete hrsSel[k]; refreshSelBar(); });
+    });
+    var all = document.getElementById('hrsSelAll');
+    all.checked = list.length > 0 && list.every(function(i){ return hrsSel[i.key]; });
+    all.addEventListener('change', function(){ list.forEach(function(i){ if(all.checked) hrsSel[i.key] = true; else delete hrsSel[i.key]; }); renderHoursFindings(); });
     var more = document.getElementById('hrsMoreBtn'); if(more) more.addEventListener('click', function(){ hrsShown += 150; renderHoursFindings(); });
     document.getElementById('hrsCsvBtn').addEventListener('click', hrsDownloadCsv);
+    document.getElementById('hrsMailBtn').addEventListener('click', openMailModal);
+    document.getElementById('hrsDoneBtn').addEventListener('click', function(){ hrsSetStatus(STATUS_DONE); });
+    document.getElementById('hrsReopenBtn').addEventListener('click', function(){ hrsSetStatus(STATUS_OPEN); });
+  }
+  function refreshSelBar(){
+    var n = selectedItems().length;
+    ['hrsMailBtn', 'hrsDoneBtn', 'hrsReopenBtn'].forEach(function(id){ var b = document.getElementById(id); if(b) b.disabled = !n; });
+    var sp = document.querySelector('.hrs-bar .panel-sub'); if(sp) sp.textContent = n + ' selected';
+  }
+  async function hrsSetStatus(status){
+    var items = selectedItems(); if(!items.length) return;
+    items.forEach(function(i){ i.status = status; if(status === STATUS_OPEN){ i.sentTo = ''; i.sentDate = ''; } });
+    hrsSel = {};
+    renderHoursFindings(); renderHoursDash();
+    var r = await hrsPersistFindings(items);
+    var st = document.getElementById('hrsActionStatus');
+    if(st) st.textContent = r.bad.length ? 'Updated on screen, but not saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : 'Marked ' + items.length + ' finding(s) as ' + status + '.';
+    if(st && r.bad.length) st.className = 'emp-status err';
   }
   function hrsDownloadCsv(){
     var f = hrsFindings; if(!f) return;
     function q(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-    var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Detail'].join(',')];
+    var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Rule', 'Rule broken', 'Status', 'Sent to', 'Sent date'].join(',')];
     f.items.forEach(function(i){
-      lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.msg].map(q).join(','));
+      lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.ruleName, i.broken.join(' '), i.status, i.sentTo, i.sentDate].map(q).join(','));
     });
     var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -3687,44 +3962,230 @@
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
+  // ---------------- dashboard ----------------
+  function hbars(rows, cls){
+    var max = Math.max.apply(null, rows.map(function(r){ return r.v; }).concat([1]));
+    return rows.map(function(r){
+      return '<div class="bar-row"><div class="b-lab" title="' + escapeHtml(r.l) + '">' + escapeHtml(r.l) + '</div><div class="b-track"><div class="b-fill ' + (r.cls || cls || '') + '" style="width:' + Math.max(2, Math.round(r.v / max * 100)) + '%"></div></div><div class="b-val">' + r.v + (r.sfx || '') + '</div></div>';
+    }).join('');
+  }
+  function renderHoursDash(){
+    var el = document.getElementById('hoursDash'); if(!el) return;
+    var wk = hrsWeek, f = hrsFindings;
+    if(!wk){
+      var weeks0 = hrsSavedWeeks();
+      el.innerHTML = weeks0.length ? '<div class="emp-status">Open a saved week or load a file to see this week&rsquo;s dashboard.</div>' + dashTrend() : '<div class="emp-status">The dashboard fills in once a week is loaded.</div>';
+      return;
+    }
+    // hours mix by day
+    var perDay = wk.days.map(function(iso){ var s = { iso: iso, rt: 0, ot: 0, dt: 0 }; wk.records.forEach(function(r){ var h = r.days[iso]; if(h){ s.rt += h.rt; s.ot += h.ot; s.dt += h.dt; } }); return s; });
+    var maxDay = Math.max.apply(null, perDay.map(function(d){ return d.rt + d.ot + d.dt; }).concat([1]));
+    var tRt = 0, tOt = 0, tDt = 0; perDay.forEach(function(d){ tRt += d.rt; tOt += d.ot; tDt += d.dt; });
+    var tot = tRt + tOt + tDt || 1;
+    var html = '<div class="dash-stats">' +
+      '<div class="dstat"><b>' + hrsRound(tRt).toLocaleString() + '</b><span>RT hrs · ' + Math.round(tRt / tot * 100) + '%</span></div>' +
+      '<div class="dstat"><b>' + hrsRound(tOt).toLocaleString() + '</b><span>OT (1.5x) hrs · ' + Math.round(tOt / tot * 100) + '%</span></div>' +
+      '<div class="dstat"><b>' + hrsRound(tDt).toLocaleString() + '</b><span>DT (2x) hrs · ' + Math.round(tDt / tot * 100) + '%</span></div></div>';
+    html += '<div class="dash-grid">';
+    html += '<div class="dash-card"><h3>Hours by day</h3><div class="vstack">' + perDay.map(function(d){
+      var t = d.rt + d.ot + d.dt;
+      return '<div class="vcol" title="' + hrsPretty(d.iso) + ': ' + hrsRound(t) + ' hrs"><div class="vbar" style="height:' + Math.round(t / maxDay * 100) + '%">' +
+        '<i class="s-dt" style="flex:' + d.dt + '"></i><i class="s-ot" style="flex:' + d.ot + '"></i><i class="s-rt" style="flex:' + d.rt + '"></i></div><div class="vlab">' + hrsPretty(d.iso).replace(' ', '<br>') + '</div></div>';
+    }).join('') + '</div><div class="legend"><span><i class="s-rt"></i>RT</span><span><i class="s-ot"></i>OT 1.5x</span><span><i class="s-dt"></i>DT 2x</span></div></div>';
+    if(f){
+      var kinds = Object.keys(HRS_KINDS).map(function(k){ return { l: HRS_KINDS[k], v: f.items.filter(function(i){ return i.kind === k; }).length, cls: k === 'mismatch' ? 'crit' : 'warn' }; }).filter(function(r){ return r.v; });
+      html += '<div class="dash-card"><h3>Findings by type</h3>' + (kinds.length ? hbars(kinds) : '<div class="emp-status">No findings.</div>') + '</div>';
+      var unions = Object.keys(f.byUnion).map(function(u){ var b = f.byUnion[u]; return { l: u, v: b.bad, sfx: ' of ' + b.days + ' days', cls: b.bad ? 'crit' : 'good' }; }).sort(function(a, b){ return b.v - a.v; }).slice(0, 8);
+      html += '<div class="dash-card"><h3>Rule differences by union</h3>' + (unions.length ? hbars(unions) : '<div class="emp-status">No union rules could be applied to this week.</div>') + '</div>';
+      var ec = {}; f.items.filter(function(i){ return i.kind === 'mismatch'; }).forEach(function(i){ var o = ec[i.id] = ec[i.id] || { l: i.name + ' (' + i.id + ')', v: 0 }; o.v++; });
+      var emps = Object.keys(ec).map(function(k){ return ec[k]; }).sort(function(a, b){ return b.v - a.v; }).slice(0, 8);
+      html += '<div class="dash-card"><h3>Employees with the most differences</h3>' + (emps.length ? hbars(emps, 'crit') : '<div class="emp-status">None.</div>') + '</div>';
+      var rc = {}; f.items.filter(function(i){ return i.kind === 'mismatch'; }).forEach(function(i){ var m = i.broken[0] || 'Other'; var key = m.replace(/\d+(\.\d+)? hrs/, 'N hrs').replace(/\(.*?\)/g, '').replace(/\bon (Sun|Mon|Tue|Wed|Thu|Fri|Sat)\b/, '').replace(/\s+/g, ' ').trim(); rc[key] = (rc[key] || 0) + 1; });
+      var reasons = Object.keys(rc).map(function(k){ return { l: k.length > 70 ? k.slice(0, 68) + '…' : k, v: rc[k] }; }).sort(function(a, b){ return b.v - a.v; }).slice(0, 6);
+      html += '<div class="dash-card wide"><h3>Most common ways the rules were broken</h3>' + (reasons.length ? hbars(reasons, 'warn') : '<div class="emp-status">None.</div>') + '</div>';
+      var open = f.items.filter(function(i){ return i.status === STATUS_OPEN; }).length, sent = f.items.filter(function(i){ return i.status === STATUS_SENT; }).length, done = f.items.filter(function(i){ return i.status === STATUS_DONE; }).length;
+      var tt = open + sent + done || 1;
+      html += '<div class="dash-card"><h3>Review progress</h3><div class="progress"><i class="p-open" style="width:' + open / tt * 100 + '%"></i><i class="p-sent" style="width:' + sent / tt * 100 + '%"></i><i class="p-done" style="width:' + done / tt * 100 + '%"></i></div>' +
+        '<div class="legend"><span><i class="p-open"></i>Open ' + open + '</span><span><i class="p-sent"></i>Sent to PM ' + sent + '</span><span><i class="p-done"></i>Resolved ' + done + '</span></div></div>';
+    } else html += '<div class="dash-card"><h3>Rule results</h3><div class="emp-status">Run the rule check to fill in the rest of the dashboard.</div></div>';
+    html += '</div>' + dashTrend();
+    el.innerHTML = html;
+  }
+  function dashTrend(){
+    var weeks = hrsSavedWeeks().slice(0, 8).reverse();
+    if(!weeks.length) return '';
+    var fcount = {}; (hrsFindSaved || []).filter(function(r){ return r.kind === 'mismatch'; }).forEach(function(r){ fcount[r.weekStart] = (fcount[r.weekStart] || 0) + 1; });
+    var hoursRows = weeks.map(function(w){ return { l: 'Wk ' + (w.weekNo || '?') + ' · ' + fmtMD(w.start), v: Math.round(w.hours) }; });
+    var diffRows = weeks.map(function(w){ return { l: 'Wk ' + (w.weekNo || '?') + ' · ' + fmtMD(w.start), v: fcount[w.start] || 0, cls: 'crit' }; });
+    return '<div class="dash-grid" style="margin-top:12px;"><div class="dash-card"><h3>Total hours, saved weeks</h3>' + hbars(hoursRows) + '</div>' +
+      '<div class="dash-card"><h3>Rule differences, saved weeks</h3>' + hbars(diffRows, 'crit') + '<div class="emp-status" style="padding:6px 0 0;">Counts the findings saved for each week.</div></div></div>';
+  }
+
+  // ---------------- save week ----------------
   async function hrsSave(){
     if(hrsBusy || !hrsWeek || !hrsSaved || hrsSavedError) return;
     if(typeof upaeBatchWeeklyHours !== 'function'){ alert('SharePoint is not connected in this view.'); return; }
+    if(!hrsFindings) hrsFindings = hrsRunCheck();
     var plan = hrsPlanSave(), ops = [];
     plan.fresh.forEach(function(r){ ops.push({ kind: 'create', row: r }); });
     plan.changed.forEach(function(c){ ops.push({ kind: 'update', row: c.next, spItemId: c.cur.spItemId }); });
-    if(!ops.length) return;
     hrsBusy = true; document.getElementById('hrsSaveBtn').disabled = true;
     var st = document.getElementById('hrsStatus');
     try{
-      var res = await upaeBatchWeeklyHours(ops, function(done, total){ st.textContent = 'Saving ' + done + ' of ' + total + '…'; });
       var ok = 0, bad = [];
-      res.forEach(function(r, i){
-        if(r && r.ok){
-          ok++;
-          var row = ops[i].row;
-          if(ops[i].kind === 'create') hrsSaved.push(Object.assign({}, row, { spItemId: r.spItemId }));
-          else { var cur = hrsSaved.filter(function(x){ return x.spItemId === ops[i].spItemId; })[0]; if(cur) Object.assign(cur, row); }
-        } else bad.push({ op: ops[i], error: r && r.error });
-      });
+      if(ops.length){
+        var res = await upaeBatchWeeklyHours(ops, function(done, total){ st.textContent = 'Saving hours ' + done + ' of ' + total + '…'; });
+        res.forEach(function(r, i){
+          if(r && r.ok){
+            ok++;
+            var row = ops[i].row;
+            if(ops[i].kind === 'create') hrsSaved.push(Object.assign({}, row, { spItemId: r.spItemId }));
+            else { var cur = hrsSaved.filter(function(x){ return x.spItemId === ops[i].spItemId; })[0]; if(cur) Object.assign(cur, row); }
+          } else bad.push({ error: r && r.error });
+        });
+      }
+      var fr = { ok: 0, bad: [] };
+      if(!bad.length && hrsFindings && hrsFindings.items.length && !hrsFindError){
+        // only findings that are new or whose saved copy differs need writing
+        var by = {}; (hrsFindSaved || []).forEach(function(r){ by[r.key] = r; });
+        var todo = hrsFindings.items.filter(function(i){ var s = by[i.key]; return !s || JSON.stringify(hrsFindingRow(i)) !== JSON.stringify(Object.assign({}, hrsFindingRow(i), { reported: s.reported, expected: s.expected, broken: s.broken, status: s.status, sentTo: s.sentTo, sentDate: s.sentDate, ruleName: s.ruleName, ruleId: s.ruleId, union: s.union, weekNo: s.weekNo })); });
+        fr = await hrsPersistFindings(todo, function(d, t){ st.textContent = 'Saving findings ' + d + ' of ' + t + '…'; });
+      }
       hrsBusy = false;
-      renderHoursPanel();
+      renderHoursPanel(); renderHoursSaved();
       var st2 = document.getElementById('hrsStatus');
-      if(bad.length){ st2.className = 'emp-status err'; st2.textContent = ok + ' saved, ' + bad.length + ' failed (' + (bad[0].error || 'unknown error') + '). Press Save again to retry only the missing rows.'; }
-      else st2.textContent = 'Saved ' + ok + ' day row' + (ok === 1 ? '' : 's') + ' for week ' + hrsWeek.weekNo + '.';
+      if(bad.length || fr.bad.length){
+        st2.className = 'emp-status err';
+        st2.textContent = (bad.length ? bad.length + ' hour rows failed (' + (bad[0].error || 'unknown') + '). ' : '') + (fr.bad.length ? fr.bad.length + ' findings not saved (' + (fr.bad[0].error || 'unknown') + '). ' : '') + 'Press Save again to retry only what is missing.';
+      } else st2.textContent = 'Saved week ' + hrsWeek.weekNo + ': ' + ok + ' hour row(s) and ' + fr.ok + ' finding(s)' + (hrsFindError ? ' (findings not saved: WeeklyFindings list missing)' : '') + '.';
     } catch(err){
-      hrsBusy = false; console.error('UPAE: saving weekly hours failed', err);
+      hrsBusy = false; console.error('UPAE: saving the week failed', err);
       renderHoursPanel();
       var st3 = document.getElementById('hrsStatus'); st3.className = 'emp-status err'; st3.textContent = 'Saving failed: ' + (err.message || err);
     }
   }
 
-  async function hrsLoadSaved(){
-    hrsSaved = null; hrsSavedError = null;
-    if(typeof upaeFetchWeeklyHours !== 'function'){ hrsSavedError = 'not connected to SharePoint'; return; }
-    try{ hrsSaved = await upaeFetchWeeklyHours(); }
-    catch(err){ console.warn('UPAE: could not read WeeklyHours', err); hrsSavedError = err.message || String(err); }
+  // ---------------- email the PM ----------------
+  var mailOverlay = document.getElementById('hrsMailOverlay');
+  function pmOptions(){
+    return '<option value="">— choose a project manager —</option>' + hrsPMs.slice().sort(function(a, b){ return a.name.localeCompare(b.name); })
+      .map(function(p){ return '<option value="' + escapeHtml(p.email) + '" data-name="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + ' &lt;' + escapeHtml(p.email) + '&gt;</option>'; }).join('');
   }
+  function mailTable(items){
+    var th = 'style="text-align:left;padding:5px 8px;border:1px solid #ccc;background:#f0f0f0;font-size:12px;"', td = 'style="padding:5px 8px;border:1px solid #ccc;font-size:12px;vertical-align:top;"';
+    return '<table style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif;"><tr><th ' + th + '>Employee</th><th ' + th + '>Day</th><th ' + th + '>Reported</th><th ' + th + '>Rule says</th><th ' + th + '>Rule broken</th></tr>' +
+      items.map(function(i){
+        return '<tr><td ' + td + '>' + escapeHtml(i.name) + ' (' + escapeHtml(i.id) + ')' + (i.union ? '<br><span style="color:#666">' + escapeHtml(i.union) + '</span>' : '') + '</td><td ' + td + '>' + (i.iso ? hrsPretty(i.iso) : '—') + '</td><td ' + td + '>' + (i.rep ? hrsFmt(i.rep) : '—') +
+          '</td><td ' + td + '>' + (i.exp ? hrsFmt(i.exp) : '—') + '</td><td ' + td + '><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleName) + '</b><br>' + escapeHtml(i.broken.join(' ')) + '</td></tr>';
+      }).join('') + '</table>';
+  }
+  function mailSubject(items){ return 'Payroll review needed – Week ' + (hrsWeek.weekNo || '') + ' (' + fmtMD(hrsWeek.start) + '–' + fmtMD(hrsWeek.end) + '): ' + items.length + ' record' + (items.length === 1 ? '' : 's'); }
+  function mailIntro(pmName){
+    return 'Hi ' + (pmName ? pmName.split(/[ ,]+/)[0] : '') + ',\n\nThe weekly payroll check flagged the records below for week ' + (hrsWeek.weekNo || '') + '. Job numbers are not on this report, so please look at the ones for employees on your jobs and let me know what needs to be corrected in B2W.\n\nThank you.';
+  }
+  function openMailModal(){
+    var items = selectedItems(); if(!items.length) return;
+    document.getElementById('hrsMailPm').innerHTML = pmOptions();
+    document.getElementById('hrsMailCc').value = '';
+    document.getElementById('hrsMailSubject').value = mailSubject(items);
+    document.getElementById('hrsMailNote').value = mailIntro('');
+    document.getElementById('hrsMailCount').textContent = items.length + ' record' + (items.length === 1 ? '' : 's') + ' will be listed in the email.';
+    document.getElementById('hrsMailPreview').innerHTML = mailTable(items.slice(0, 15)) + (items.length > 15 ? '<div class="emp-status">&hellip; and ' + (items.length - 15) + ' more rows in the email.</div>' : '');
+    var s = document.getElementById('hrsMailStatus'); s.textContent = hrsPMs.length ? '' : (hrsPMError ? 'The ProjectManagers list could not be read (' + hrsPMError + ').' : 'No project managers yet — add them under "Project managers" first.'); s.className = 'emp-status' + (hrsPMs.length ? '' : ' err');
+    document.getElementById('hrsMailSend').disabled = false;
+    mailOverlay.hidden = false;
+  }
+  function closeMailModal(){ mailOverlay.hidden = true; }
+  async function sendMail(){
+    var items = selectedItems(), pmSel = document.getElementById('hrsMailPm'), to = pmSel.value;
+    var st = document.getElementById('hrsMailStatus');
+    if(!to){ st.className = 'emp-status err'; st.textContent = 'Choose a project manager.'; return; }
+    var cc = document.getElementById('hrsMailCc').value.split(/[;,\s]+/).filter(function(x){ return /@/.test(x); });
+    var pmName = pmSel.options[pmSel.selectedIndex].getAttribute('data-name') || to;
+    var note = document.getElementById('hrsMailNote').value.split('\n').map(function(l){ return l.trim() ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">' + escapeHtml(l) + '</p>' : ''; }).join('');
+    var body = note + mailTable(items) + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
+    document.getElementById('hrsMailSend').disabled = true; st.className = 'emp-status'; st.textContent = 'Sending…';
+    try{
+      if(typeof upaeSendMail !== 'function') throw new Error('Sending is not available in this view.');
+      await upaeSendMail([to], cc, document.getElementById('hrsMailSubject').value, body);
+    } catch(err){
+      console.error('UPAE: send mail failed', err);
+      st.className = 'emp-status err'; st.textContent = (err.message || String(err)) + ' If this is a permission message, an administrator needs to add the Mail.Send permission to the app registration.';
+      document.getElementById('hrsMailSend').disabled = false; return;
+    }
+    var today = hrsIso(new Date());
+    items.forEach(function(i){ i.status = STATUS_SENT; i.sentTo = pmName + ' <' + to + '>'; i.sentDate = today; });
+    hrsSel = {};
+    closeMailModal();
+    renderHoursFindings(); renderHoursDash();
+    var r = await hrsPersistFindings(items);
+    var st2 = document.getElementById('hrsActionStatus');
+    if(st2){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = 'Email sent to ' + pmName + ' for ' + items.length + ' record(s).' + (r.bad.length ? ' Status could not be saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : ' Status saved.'); }
+  }
+  document.getElementById('hrsMailSend').addEventListener('click', sendMail);
+  document.getElementById('hrsMailCancel').addEventListener('click', closeMailModal);
+  document.getElementById('hrsMailClose').addEventListener('click', closeMailModal);
+  document.getElementById('hrsMailPm').addEventListener('change', function(){
+    var o = this.options[this.selectedIndex];
+    document.getElementById('hrsMailNote').value = mailIntro(o && o.getAttribute('data-name') || '');
+  });
+
+  // ---------------- project managers ----------------
+  function renderPMs(){
+    var el = document.getElementById('hrsPmList'); if(!el) return;
+    document.getElementById('hrsPmCount').textContent = hrsPMs.length;
+    var html = hrsPMError ? '<div class="emp-status err">The ProjectManagers list could not be read (' + escapeHtml(hrsPMError) + ').</div>' : '';
+    html += hrsPMs.slice().sort(function(a, b){ return a.name.localeCompare(b.name); }).map(function(p){
+      if(hrsPmEdit === p.spItemId)
+        return '<div class="pm-row"><span class="pm-edit"><input type="text" id="pmEditName" value="' + escapeHtml(p.name) + '" aria-label="Name"><input type="text" id="pmEditEmail" value="' + escapeHtml(p.email) + '" aria-label="Email"></span>' +
+          '<span><button class="btn primary" type="button" data-pm-save="' + escapeHtml(p.spItemId) + '">Save</button> <button class="btn ghost" type="button" data-pm-cancel="1">Cancel</button></span></div>';
+      return '<div class="pm-row"><span><b>' + escapeHtml(p.name) + '</b> &middot; ' + escapeHtml(p.email) + '</span><span><button class="btn ghost" type="button" data-pm-edit="' + escapeHtml(p.spItemId) + '">Edit</button> <button class="btn ghost" type="button" data-pm-del="' + escapeHtml(p.spItemId) + '">Remove</button></span></div>';
+    }).join('') || '<div class="emp-status">No project managers yet.</div>';
+    el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll('[data-pm-edit]'), function(b){ b.addEventListener('click', function(){ hrsPmEdit = b.getAttribute('data-pm-edit'); renderPMs(); }); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-pm-cancel]'), function(b){ b.addEventListener('click', function(){ hrsPmEdit = null; renderPMs(); }); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-pm-save]'), function(b){
+      b.addEventListener('click', async function(){
+        var id = b.getAttribute('data-pm-save'), pm = hrsPMs.filter(function(p){ return p.spItemId === id; })[0];
+        var nm = empClean(document.getElementById('pmEditName').value), em = empClean(document.getElementById('pmEditEmail').value);
+        if(!pm || !nm || !/^[^\s@]+@[^\s@]+$/.test(em)){ alert('Enter a name and a valid email address.'); return; }
+        try{ await upaeUpdateProjectManager(id, { name: nm, email: em }); pm.name = nm; pm.email = em; hrsPmEdit = null; renderPMs(); }
+        catch(err){ alert('Could not save: ' + (err.message || err)); }
+      });
+    });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-pm-del]'), function(b){
+      b.addEventListener('click', async function(){
+        var id = b.getAttribute('data-pm-del'), pm = hrsPMs.filter(function(p){ return p.spItemId === id; })[0];
+        if(!pm || !confirm('Remove ' + pm.name + ' from the project manager list?')) return;
+        try{ await upaeDeleteProjectManager(id); hrsPMs = hrsPMs.filter(function(p){ return p.spItemId !== id; }); renderPMs(); }
+        catch(err){ alert('Could not remove: ' + (err.message || err)); }
+      });
+    });
+  }
+  async function addPMs(){
+    var ta = document.getElementById('hrsPmPaste'), st = document.getElementById('hrsPmStatus');
+    var lines = ta.value.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean), add = [], bad = [];
+    lines.forEach(function(l){
+      var m = l.match(/^(.*?)[,;\t]\s*([^\s,;]+@[^\s,;]+)\s*$/) || l.match(/^(.*?)\s*<([^>]+@[^>]+)>\s*$/);
+      if(!m){ bad.push(l); return; }
+      var email = m[2].trim(), name = empClean(m[1]) || email;
+      if(hrsPMs.some(function(p){ return p.email.toLowerCase() === email.toLowerCase(); }) || add.some(function(p){ return p.email.toLowerCase() === email.toLowerCase(); })) return;
+      add.push({ name: name, email: email });
+    });
+    if(typeof upaeCreateProjectManager !== 'function'){ st.className = 'emp-status err'; st.textContent = 'SharePoint is not connected in this view.'; return; }
+    if(hrsPMError){ st.className = 'emp-status err'; st.textContent = 'The ProjectManagers list could not be read, so adding is switched off.'; return; }
+    st.className = 'emp-status'; st.textContent = 'Adding…';
+    var ok = 0, fail = 0;
+    for(var k = 0; k < add.length; k++){
+      try{ var it = await upaeCreateProjectManager(add[k]); hrsPMs.push({ spItemId: it && it.id, name: add[k].name, email: add[k].email }); ok++; }
+      catch(err){ fail++; console.error(err); }
+    }
+    ta.value = bad.join('\n');
+    renderPMs();
+    st.className = 'emp-status' + (fail || bad.length ? ' err' : '');
+    st.textContent = ok + ' added' + (fail ? ', ' + fail + ' failed' : '') + (bad.length ? '. ' + bad.length + ' line(s) were not understood and are left in the box (use: Name, email).' : '.');
+  }
+  document.getElementById('hrsPmAdd').addEventListener('click', addPMs);
 
   var hrsFileInput = document.getElementById('hrsFileInput');
   if(hrsFileInput){
@@ -3734,7 +4195,7 @@
       document.getElementById('hrsFileName').textContent = file.name;
       var el = document.getElementById('hoursWork');
       el.innerHTML = '<div class="emp-status">Reading ' + escapeHtml(file.name) + '…</div>';
-      hrsFindings = null; hrsFilter = 'all';
+      hrsFindings = null; hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsSel = {};
       try{
         var buf = await file.arrayBuffer();
         hrsFileInput.value = '';
@@ -3745,8 +4206,7 @@
         hrsWeek = hrsParseSummary(rows, file.name);
         if(!hrsWeek.records.length) throw new Error('No employee rows were found under the header.');
         el.innerHTML = '<div class="emp-status">Checking what is already saved in SharePoint…</div>';
-        await hrsLoadSaved();
-        renderHoursPanel();
+        await hrsRefreshSaved();
       } catch(err){
         console.error('UPAE: could not read the weekly summary', err);
         hrsWeek = null;
@@ -3755,7 +4215,11 @@
       }
     });
   }
-  renderHoursKpis();
+  // load saved weeks / findings / project managers the first time the screen is opened
+  Array.prototype.forEach.call(document.querySelectorAll('a[data-view="hours"]'), function(a){
+    a.addEventListener('click', function(){ if(!hrsLoadedOnce) hrsRefreshSaved().then(renderPMs); });
+  });
+  renderHoursKpis(); renderHoursSaved(); renderHoursDash(); renderPMs();
 
   renderUnionAdminList();
   renderLaborAdminList();
