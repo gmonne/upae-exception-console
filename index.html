@@ -150,7 +150,7 @@
     display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
   }
   .modal-overlay[hidden]{display:none;}
-  #view-dashboard[hidden], #view-insights[hidden], #view-rules[hidden], #view-admin[hidden], #view-employees[hidden], #view-help[hidden]{display:none !important;}
+  #view-dashboard[hidden], #view-insights[hidden], #view-rules[hidden], #view-admin[hidden], #view-employees[hidden], #view-hours[hidden], #view-help[hidden]{display:none !important;}
   .modal{
     background:var(--bg-raised); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
     width:100%; max-width:520px; max-height:90vh; overflow-y:auto;
@@ -573,6 +573,20 @@
   .code-multiselect .admin-empty{padding:10px;}
 
   /* ---- Employees screen ---- */
+
+  #view-hours{display:flex; flex-direction:column; gap:18px;}
+  #hoursKpis{grid-template-columns:repeat(4, 1fr);}
+  .hrs-week{display:flex; gap:14px; align-items:center; flex-wrap:wrap; padding:0 18px 12px;}
+  .hrs-week label{font-size:12.5px; font-weight:600; color:var(--ink-soft); display:flex; gap:6px; align-items:center;}
+  .hrs-week input{padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;}
+  .hrs-week input[type=number]{width:70px;}
+  .hrs-row{display:grid; grid-template-columns:78px minmax(0,1.3fr) 70px minmax(0,1fr) minmax(0,1fr) minmax(0,2.2fr); gap:10px; align-items:start; padding:9px 18px; border-top:1px solid var(--line-soft); font-size:13px;}
+  .hrs-row.head{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); font-weight:700; background:var(--bg); border-top:none;}
+  .hrs-row.crit{border-left:3px solid var(--crit);} .hrs-row.warn{border-left:3px solid var(--warn);}
+  .hrs-row .e-id{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft);}
+  .hrs-row .e-name{font-weight:600;} .hrs-row .e-sub{display:block; font-weight:400; font-size:11.5px; color:var(--ink-faint);}
+  .hrs-row .h-msg{color:var(--ink-soft); font-size:12.5px;}
+  @media (max-width:900px){ #hoursKpis{grid-template-columns:repeat(2,1fr);} .hrs-row{grid-template-columns:70px minmax(0,1fr);} .hrs-row.head{display:none;} }
   #view-employees{display:flex; flex-direction:column; gap:18px;}
   .emp-import{display:flex; align-items:center; gap:12px; padding:14px 18px; flex-wrap:wrap;}
   .emp-banner{padding:12px 16px; border-radius:8px; font-size:13px; line-height:1.5; background:var(--warn-soft); color:var(--warn); border:1px solid #e6d3a8;}
@@ -676,6 +690,10 @@
         <a href="#" data-view="employees">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M17 14.2c2.5 0 4.5 2 4.5 4.8"/></svg>
           Employees
+        </a>
+        <a href="#" data-view="hours">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Weekly Hours
         </a>
         <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Folded into Dashboard in this concept">
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 7l8 10"/></svg><span class="nav-label">Routing matrix</span></span>
@@ -1017,6 +1035,56 @@
 
       <p class="help-footnote">Deleting a union or labor type here only removes it from this reference list &mdash; it does not delete any rule already built against it, so a rule can end up pointing at a code that no longer exists. In a real build this would need a "can't delete &mdash; still referenced by Rule R-0XX" guard; not wired up in this concept.</p>
 
+    </div>
+
+    <div id="view-hours" hidden>
+
+      <section class="rules-intro">
+        <span class="help-eyebrow">UPAE &middot; Weekly Hours</span>
+        <h2>Check a week of hours against the union rules</h2>
+        <p>Load the B2W <b>Employee Hours Weekly Summary</b>. Each employee&rsquo;s union comes from the Employees screen (their default labor type), and the union&rsquo;s rule from the Rule Library decides how each day&rsquo;s total should be split into regular time, overtime (1.5x) and double time (2x). Days where the report&rsquo;s split is different are listed for review. Rules are applied to daily totals only &mdash; clock times are not needed.</p>
+        <span class="phase-tag">Only rules marked Structured are applied &middot; regular employees have no union rule</span>
+      </section>
+
+      <section class="kpis" id="hoursKpis"></section>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Load a week</h2>
+          <span class="panel-sub">.xlsx as exported from B2W</span>
+        </div>
+        <div class="emp-import">
+          <label class="btn primary" for="hrsFileInput" style="cursor:pointer;">Choose file&hellip;</label>
+          <input type="file" id="hrsFileInput" accept=".xlsx,.xlsm,.csv" hidden>
+          <span class="panel-sub" id="hrsFileName">No file chosen</span>
+        </div>
+        <div id="hoursWork"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Findings</h2>
+          <span class="panel-sub">Reported hours vs. what the rule says</span>
+        </div>
+        <div id="hoursFindings"></div>
+      </div>
+
+      <details class="emp-setup">
+        <summary>One-time setup: the SharePoint WeeklyHours list</summary>
+        <div class="emp-setup-body">
+          <p>Create a list named <b>WeeklyHours</b> on the CAC Contract Management site. One row is kept for each employee for each day they worked, so a week can be loaded again later without duplicates. Use these columns, with no spaces in the names:</p>
+          <table>
+            <tr><th>Column</th><th>Type</th></tr>
+            <tr><td>Title</td><td>Single line of text (already there)</td></tr>
+            <tr><td>EmployeeID</td><td>Single line of text</td></tr>
+            <tr><td>EmployeeName</td><td>Single line of text</td></tr>
+            <tr><td>WorkDate</td><td>Single line of text (e.g. 2026-10-19)</td></tr>
+            <tr><td>WeekStart</td><td>Single line of text (e.g. 2026-10-18)</td></tr>
+            <tr><td>WeekNo</td><td>Number (no decimals)</td></tr>
+            <tr><td>RT, OT, DT</td><td>Number (2 decimals) &mdash; three columns</td></tr>
+          </table>
+        </div>
+      </details>
     </div>
 
     <div id="view-employees" hidden>
@@ -1768,7 +1836,7 @@
   (function initViews(){
     var navLinks = document.querySelectorAll('.rail nav a[data-view]');
     var allTriggers = document.querySelectorAll('a[data-view]');
-    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), admin: document.getElementById('view-admin'), employees: document.getElementById('view-employees'), help: document.getElementById('view-help') };
+    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), admin: document.getElementById('view-admin'), employees: document.getElementById('view-employees'), hours: document.getElementById('view-hours'), help: document.getElementById('view-help') };
     allTriggers.forEach(function(link){
       link.addEventListener('click', function(e){
         e.preventDefault();
@@ -3236,6 +3304,458 @@
     renderEmpPreview();
     renderEmployees();
   };
+
+  // =====================================================================
+  // WEEKLY HOURS: upload the B2W "Employee Hours Weekly Summary", save it, check it against the rules
+  // =====================================================================
+  var hrsWeek = null;        // { fileName, weekNo, start, end, days:[iso...], records:[{id,name,days:{iso:{rt,ot,dt}}}], dupIds:[] }
+  var hrsSaved = null;       // rows already in SharePoint (null = not loaded / could not be read)
+  var hrsSavedError = null;
+  var hrsFindings = null;    // result of the last rule check
+  var hrsFilter = 'all';
+  var hrsShown = 150;
+  var hrsBusy = false;
+  var DOW = ['sun','mon','tue','wed','thu','fri','sat'];
+  var DOW_LABEL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var HRS_EXCESSIVE = 16;    // a single day above this is flagged for a look
+  var HRS_TOL = 0.01;
+
+  function hrsRound(n){ return Math.round(n * 100) / 100; }
+  function hrsIso(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function hrsFromIso(s){ var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function hrsPretty(iso){ var d = hrsFromIso(iso); return DOW_LABEL[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate(); }
+  function hrsSerialToDate(n){ var d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); }
+  function hrsIsoWeek(d){
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var dn = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - dn);
+    var y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return Math.ceil(((t - y0) / 86400000 + 1) / 7);
+  }
+  function hrsParseCell(v){
+    var out = { rt: 0, ot: 0, dt: 0 };
+    String(v == null ? '' : v).split(/\r?\n/).forEach(function(line){
+      var m = line.trim().match(/^(-?\d+(?:\.\d+)?)\s*(RT|OT|DT)$/i);
+      if(m) out[m[2].toLowerCase()] += parseFloat(m[1]);
+    });
+    return out;
+  }
+  function hrsDateFromHeader(c){
+    var s = empClean(c);
+    if(!s) return null;
+    if(/^\d{5}(\.\d+)?$/.test(s)) return hrsSerialToDate(parseFloat(s));
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m) return new Date(+m[3], +m[1] - 1, +m[2]);
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    return null;
+  }
+
+  function hrsParseSummary(rows, fileName){
+    var hi = -1, idCol = -1, nameCol = 0;
+    for(var r = 0; r < Math.min(rows.length, 30); r++){
+      var cells = (rows[r] || []).map(function(c){ return empClean(c).toLowerCase(); });
+      var k = cells.indexOf('employee id');
+      if(k !== -1){ hi = r; idCol = k; break; }
+    }
+    if(hi === -1) throw new Error('Could not find the header row. The weekly summary needs an "Employee ID" column followed by one column per day.');
+    var header = rows[hi], dayCols = [];
+    for(var c = idCol + 1; c < header.length; c++){
+      var d = hrsDateFromHeader(header[c]);
+      if(d) dayCols.push({ col: c, iso: hrsIso(d), date: d });
+    }
+    if(!dayCols.length) throw new Error('No date columns were found after "Employee ID".');
+    var filters = '';
+    for(var f = 0; f < hi; f++) (rows[f] || []).forEach(function(c){ filters += ' ' + String(c || ''); });
+    var rng = filters.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})\]/);
+    var start = dayCols[0].date, end = dayCols[dayCols.length - 1].date;
+    if(rng){ start = hrsDateFromHeader(rng[1]) || start; end = hrsDateFromHeader(rng[2]) || end; }
+    var records = [], seen = {}, dupIds = [];
+    for(var j = hi + 1; j < rows.length; j++){
+      var row = rows[j] || [];
+      var id = empClean(row[idCol]);
+      var nm = empClean(row[nameCol]);
+      if(!id) continue;                       // blank rows and the Total row have no ID
+      var key = empKey(id);
+      var rec = { id: id, name: nm, days: {} };
+      dayCols.forEach(function(dc){
+        var h = hrsParseCell(row[dc.col]);
+        if(h.rt || h.ot || h.dt) rec.days[dc.iso] = h;
+      });
+      if(seen[key]){ dupIds.push(id); continue; }
+      seen[key] = true;
+      records.push(rec);
+    }
+    // the Monday inside the range decides the ISO week number (Sunday-start weeks belong to the Monday after)
+    var mon = new Date(start); while(mon.getDay() !== 1 && mon <= end) mon.setDate(mon.getDate() + 1);
+    return { fileName: fileName, start: hrsIso(start), end: hrsIso(end), weekNo: hrsIsoWeek(mon > end ? start : mon),
+             days: dayCols.map(function(d){ return d.iso; }), records: records, dupIds: dupIds, hadRange: !!rng };
+  }
+
+  // ---------------- turning a rule into something that can be calculated ----------------
+  function hrsDayIndex(tok){ return DOW.indexOf(String(tok || '').slice(0, 3).toLowerCase()); }
+  function hrsExpandDays(a, b){
+    var i = hrsDayIndex(a); if(i < 0) return null;
+    if(b == null) return [i];
+    var j = hrsDayIndex(b); if(j < 0) return null;
+    var out = [], k = i, guard = 0;
+    while(guard++ < 8){ out.push(k); if(k === j) break; k = (k + 1) % 7; }
+    return out;
+  }
+  function hrsSplitSegments(text){
+    var segs = [], depth = 0, cur = '';
+    String(text).split('').forEach(function(ch){
+      if(ch === '(') depth++; if(ch === ')') depth = Math.max(0, depth - 1);
+      if((ch === ',' || ch === ';') && depth === 0){ segs.push(cur); cur = ''; } else cur += ch;
+    });
+    if(cur.trim()) segs.push(cur);
+    return segs;
+  }
+  // Reads one overtime tier. Returns { na:true } | { ok:true, daily:{dow:startHrs}, weekly:N|null } | { ok:false, why }
+  function hrsReadTier(label, trigger, threshold, daysText, stdDay){
+    var trig = empClean(trigger).toLowerCase();
+    if(!trig || /not applicable|^n\/?a$/.test(trig)) return { na: true };
+    var out = { ok: true, daily: {}, weekly: null };
+    var isWeekly = /week/.test(trig) && !/day-of-week/.test(trig) && !/daily/.test(trig);
+    var thrNum = (String(threshold).match(/(\d+(?:\.\d+)?)/) || [])[1];
+    if(isWeekly){
+      if(!thrNum) return { ok: false, why: label + ' is a weekly rule but no hours threshold could be read from "' + threshold + '".' };
+      out.weekly = parseFloat(thrNum);
+      return out;
+    }
+    var segs = hrsSplitSegments(daysText).filter(function(s){ return s.trim(); });
+    if(!segs.length) return { ok: false, why: label + ' has no applicable days filled in.' };
+    var overMatch = String(threshold).match(/over\s+(\d+(?:\.\d+)?)/i);
+    var defaultStart = overMatch ? parseFloat(overMatch[1]) : (stdDay || null);
+    for(var i = 0; i < segs.length; i++){
+      var m = segs[i].trim().match(/^([A-Za-z]{3,9})(?:\s*(?:[–—-]|to)\s*([A-Za-z]{3,9}))?\s*(?:\(([^)]*)\))?\s*$/);
+      if(!m) return { ok: false, why: label + ' applicable days "' + empClean(daysText) + '" could not be read (stuck on "' + segs[i].trim() + '").' };
+      var days = hrsExpandDays(m[1], m[2]);
+      if(!days) return { ok: false, why: label + ' applicable days "' + empClean(daysText) + '" has an unknown day name.' };
+      var note = (m[3] || '').toLowerCase(), start;
+      if(/\ball\b/.test(note)) start = 0;
+      else if(/over\s*(\d+(?:\.\d+)?)/.test(note)) start = parseFloat(note.match(/over\s*(\d+(?:\.\d+)?)/)[1]);
+      else if(defaultStart != null) start = defaultStart;
+      else return { ok: false, why: label + ' says nothing about when the tier starts (add "(over 8)" or "(all)" after the days, or "Over 8 hrs/day" in the threshold).' };
+      days.forEach(function(d){ out.daily[d] = start; });
+    }
+    return out;
+  }
+  function hrsCompileRule(rule){
+    if(!rule) return null;
+    var F = rule.fields || {};
+    if(rule.status !== 'structured') return { rule: rule, usable: false, why: 'Rule "' + rule.name + '" is not marked Structured yet (' + (rule.statusLabel || 'draft') + ').' };
+    var std = parseFloat(F['Standard workday (hrs)']) || null;
+    var t15 = hrsReadTier('OT 1.5x', F['OT 1.5 trigger type'], F['OT 1.5 threshold'], F['OT 1.5 applicable days'], std);
+    var t2  = hrsReadTier('OT 2x',  F['OT 2x trigger type'],  F['OT 2x threshold'],  F['OT 2x applicable days'],  std);
+    if(t15.ok === false) return { rule: rule, usable: false, why: 'Rule "' + rule.name + '": ' + t15.why };
+    if(t2.ok === false)  return { rule: rule, usable: false, why: 'Rule "' + rule.name + '": ' + t2.why };
+    if(t15.na && t2.na) return { rule: rule, usable: false, why: 'Rule "' + rule.name + '" has neither an OT 1.5x nor an OT 2x tier filled in.' };
+    return { rule: rule, usable: true, t15: t15, t2: t2 };
+  }
+
+  // Splits a day's total into RT / OT(1.5x) / DT(2x) the way the rule says it should be.
+  function hrsExpectedWeek(comp, recDays, isoDays){
+    var res = {}, cum = 0;
+    isoDays.slice().sort().forEach(function(iso){
+      var h = recDays[iso]; if(!h) return;
+      var total = hrsRound(h.rt + h.ot + h.dt), dow = hrsFromIso(iso).getDay();
+      var s15 = (!comp.t15.na && comp.t15.daily && comp.t15.daily[dow] != null) ? comp.t15.daily[dow] : Infinity;
+      var s2  = (!comp.t2.na  && comp.t2.daily  && comp.t2.daily[dow]  != null) ? comp.t2.daily[dow]  : Infinity;
+      var dt = Math.max(0, total - s2);
+      var ot = s15 < s2 ? Math.max(0, Math.min(total, s2) - s15) : 0;
+      var rt = total - dt - ot;
+      // weekly thresholds: straight-time hours past N in the week move up a tier
+      var wk15 = (!comp.t15.na && comp.t15.weekly != null) ? comp.t15.weekly : null;
+      var wk2  = (!comp.t2.na  && comp.t2.weekly  != null) ? comp.t2.weekly  : null;
+      var before = cum; cum += total;
+      if(wk15 != null && rt > 0){ var over = Math.max(0, Math.min(rt, cum - Math.max(before, wk15))); rt -= over; ot += over; }
+      if(wk2 != null){ var over2 = Math.max(0, Math.min(rt + ot, cum - Math.max(before, wk2))); var fromRt = Math.min(rt, over2); rt -= fromRt; ot -= (over2 - fromRt); dt += over2; }
+      res[iso] = { rt: hrsRound(rt), ot: hrsRound(ot), dt: hrsRound(dt), total: total };
+    });
+    return res;
+  }
+
+  function hrsFindRule(unionName){
+    var n = empClean(unionName).toLowerCase();
+    if(!n) return null;
+    return rules.filter(function(r){ return empClean(r.name).toLowerCase() === n; })[0] || null;
+  }
+
+  // ---------------- the check ----------------
+  function hrsRunCheck(){
+    var wk = hrsWeek; if(!wk) return null;
+    var empByKey = {}; employees.forEach(function(e){ empByKey[empKey(e.id)] = e; });
+    var compCache = {};
+    var out = { items: [], emp: { checked: 0, regular: 0, notListed: [], noLabor: [], noUnion: [], noRule: {}, hours: 0 }, rowsChecked: 0, matched: 0 };
+    wk.records.forEach(function(rec){
+      var total = 0; Object.keys(rec.days).forEach(function(i){ var h = rec.days[i]; total += h.rt + h.ot + h.dt; });
+      out.emp.hours += total;
+      var e = empByKey[empKey(rec.id)];
+      var base = { id: rec.id, name: rec.name };
+      Object.keys(rec.days).forEach(function(iso){
+        var h = rec.days[iso], t = hrsRound(h.rt + h.ot + h.dt);
+        if(t > HRS_EXCESSIVE) out.items.push(Object.assign({ kind: 'excessive', sev: 'warn', iso: iso, union: '', msg: t + ' hours logged in one day (over ' + HRS_EXCESSIVE + ') — please confirm.', rep: h }, base));
+        if(h.rt < 0 || h.ot < 0 || h.dt < 0) out.items.push(Object.assign({ kind: 'negative', sev: 'crit', iso: iso, union: '', msg: 'Negative hours in the file.', rep: h }, base));
+      });
+      if(!total) return;
+      if(!e){ out.emp.notListed.push(rec); out.items.push(Object.assign({ kind: 'notlisted', sev: 'warn', iso: '', union: '', msg: 'Employee ID is not in the Employees list, so no union or rule could be applied.' }, base)); return; }
+      var info = employeeUnionInfo(e);
+      if(info.kind === 'regular'){ out.emp.regular++; return; }
+      if(info.kind === 'nolabor'){ out.emp.noLabor.push(rec); out.items.push(Object.assign({ kind: 'nolabor', sev: 'warn', iso: '', union: '', msg: 'No default labor type on the Employees list, so no union rule could be applied.' }, base)); return; }
+      if(info.kind !== 'union'){ out.emp.noUnion.push(rec); return; }
+      var lt = laborTypes.filter(function(x){ return String(x.code).toUpperCase() === String(e.laborCode).toUpperCase(); })[0];
+      var unionName = lt ? lt.unionName : '';
+      if(!(unionName in compCache)) compCache[unionName] = hrsCompileRule(hrsFindRule(unionName)) || { usable: false, why: 'No rule exists yet for ' + unionName + '.' };
+      var comp = compCache[unionName];
+      if(!comp.usable){
+        (out.emp.noRule[unionName] = out.emp.noRule[unionName] || { why: comp.why, n: 0 }).n++;
+        return;
+      }
+      out.emp.checked++;
+      var exp = hrsExpectedWeek(comp, rec.days, wk.days);
+      Object.keys(exp).forEach(function(iso){
+        var rep = rec.days[iso], x = exp[iso];
+        out.rowsChecked++;
+        var dRt = hrsRound(rep.rt - x.rt), dOt = hrsRound(rep.ot - x.ot), dDt = hrsRound(rep.dt - x.dt);
+        if(Math.abs(dRt) > HRS_TOL || Math.abs(dOt) > HRS_TOL || Math.abs(dDt) > HRS_TOL){
+          var parts = [];
+          if(Math.abs(dRt) > HRS_TOL) parts.push('RT ' + rep.rt + ' vs ' + x.rt);
+          if(Math.abs(dOt) > HRS_TOL) parts.push('OT ' + rep.ot + ' vs ' + x.ot);
+          if(Math.abs(dDt) > HRS_TOL) parts.push('DT ' + rep.dt + ' vs ' + x.dt);
+          out.items.push(Object.assign({ kind: 'mismatch', sev: 'crit', iso: iso, union: unionName, rep: rep, exp: x, rule: comp.rule.name,
+            msg: 'Reported ' + hrsFmt(rep) + '; the ' + comp.rule.name + ' rule gives ' + hrsFmt(x) + ' (' + parts.join(', ') + ').' }, base));
+        } else out.matched++;
+      });
+    });
+    out.hours = hrsRound(out.emp.hours);
+    out.ranAt = new Date();
+    return out;
+  }
+  function hrsFmt(h){
+    var p = [];
+    if(h.rt) p.push(hrsRound(h.rt) + ' RT'); if(h.ot) p.push(hrsRound(h.ot) + ' OT'); if(h.dt) p.push(hrsRound(h.dt) + ' DT');
+    return p.join(' + ') || '0';
+  }
+
+  // ---------------- saved rows (SharePoint) ----------------
+  function hrsKey(id, iso){ return empKey(id) + '|' + iso; }
+  function hrsBuildRows(wk){
+    var rows = [];
+    wk.records.forEach(function(rec){
+      Object.keys(rec.days).forEach(function(iso){
+        var h = rec.days[iso];
+        rows.push({ key: hrsKey(rec.id, iso), employeeId: rec.id, employeeName: rec.name, workDate: iso, weekStart: wk.start, weekNo: wk.weekNo,
+                    rt: hrsRound(h.rt), ot: hrsRound(h.ot), dt: hrsRound(h.dt) });
+      });
+    });
+    return rows;
+  }
+  function hrsPlanSave(){
+    var wk = hrsWeek, rows = hrsBuildRows(wk), cur = {};
+    (hrsSaved || []).forEach(function(r){ cur[r.key] = r; });
+    var fresh = [], changed = [], same = 0, seen = {};
+    rows.forEach(function(r){
+      seen[r.key] = true;
+      var c = cur[r.key];
+      if(!c) fresh.push(r);
+      else if(Math.abs(c.rt - r.rt) > HRS_TOL || Math.abs(c.ot - r.ot) > HRS_TOL || Math.abs(c.dt - r.dt) > HRS_TOL || String(c.weekNo) !== String(r.weekNo)) changed.push({ cur: c, next: r });
+      else same++;
+    });
+    // rows saved earlier for the same week that are no longer in the file
+    var gone = (hrsSaved || []).filter(function(r){ return r.weekStart === wk.start && !seen[r.key]; });
+    return { fresh: fresh, changed: changed, same: same, gone: gone, total: rows.length };
+  }
+
+  // ---------------- screen ----------------
+  var HRS_KINDS = {
+    mismatch: 'Hours differ from rule', notlisted: 'Not in Employees list', nolabor: 'No default labor type',
+    excessive: 'Very long day', negative: 'Negative hours'
+  };
+  function renderHoursKpis(){
+    var el = document.getElementById('hoursKpis'); if(!el) return;
+    var wk = hrsWeek, f = hrsFindings;
+    function kpi(label, val, sub, cls){ return '<div class="kpi"><div class="k-label">' + label + '</div><div class="k-value">' + val + '</div><div class="k-delta ' + (cls || 'flat') + '">' + sub + '</div></div>'; }
+    if(!wk){
+      el.innerHTML = kpi('Week', '—', 'no file loaded yet') + kpi('Employees in file', '—', '') + kpi('Total hours', '—', '') + kpi('Findings', '—', 'run the check after loading');
+      return;
+    }
+    var hrs = 0; wk.records.forEach(function(r){ Object.keys(r.days).forEach(function(i){ var h = r.days[i]; hrs += h.rt + h.ot + h.dt; }); });
+    var worked = wk.records.filter(function(r){ return Object.keys(r.days).length; }).length;
+    var nCrit = f ? f.items.filter(function(i){ return i.sev === 'crit'; }).length : null;
+    el.innerHTML =
+      kpi('Week ' + (wk.weekNo || '?'), hrsPretty(wk.start).replace(/^\w+ /, '') + '–' + hrsPretty(wk.end).replace(/^\w+ /, ''), 'week number can be changed below') +
+      kpi('Employees with hours', worked, 'of ' + wk.records.length + ' listed in the file') +
+      kpi('Total hours', hrsRound(hrs).toLocaleString(), 'RT + OT + DT') +
+      (f ? kpi('Rule differences', nCrit, (f.rowsChecked ? f.rowsChecked + ' employee-days checked' : 'no days could be checked'), nCrit ? 'up' : 'flat')
+         : kpi('Rule differences', '—', 'check not run yet'));
+  }
+  function hrsSavedLine(){
+    if(hrsSavedError) return '<div class="emp-status err">Saved hours could not be read from SharePoint (' + escapeHtml(hrsSavedError) + '). Saving is switched off so nothing is duplicated; the rule check still works.</div>';
+    return '';
+  }
+  function renderHoursPanel(){
+    var el = document.getElementById('hoursWork'); if(!el) return;
+    var wk = hrsWeek;
+    if(!wk){ el.innerHTML = ''; renderHoursKpis(); renderHoursFindings(); return; }
+    var plan = hrsSaved ? hrsPlanSave() : null;
+    var html = '<div class="hrs-week">' +
+      '<label>Week no. <input type="number" id="hrsWeekNo" min="1" max="53" value="' + (wk.weekNo || '') + '"></label>' +
+      '<label>Start <input type="date" id="hrsStart" value="' + wk.start + '"></label>' +
+      '<label>End <input type="date" id="hrsEnd" value="' + wk.end + '"></label>' +
+      '<span class="panel-sub">' + (wk.hadRange ? 'Dates read from the report header.' : 'Dates taken from the day columns.') + ' Week no. is the ISO week &mdash; change it if Payroll numbers weeks differently.</span></div>';
+    html += '<div class="emp-sum"><span class="emp-pill"><b>' + wk.records.length + '</b>employees in file</span>' +
+      (wk.dupIds.length ? '<span class="emp-pill chg"><b>' + wk.dupIds.length + '</b>repeated IDs skipped</span>' : '') +
+      (plan ? '<span class="emp-pill new"><b>' + plan.fresh.length + '</b>new day rows</span><span class="emp-pill chg"><b>' + plan.changed.length + '</b>changed</span><span class="emp-pill"><b>' + plan.same + '</b>already saved</span>' : '') +
+      '</div>';
+    if(plan && plan.changed.length){
+      html += '<details class="emp-details"><summary>Rows that differ from what was saved (' + plan.changed.length + ')</summary><div class="emp-detail-body">';
+      plan.changed.slice(0, 100).forEach(function(c){
+        html += '<div><span class="mono">' + escapeHtml(c.next.employeeId) + '</span> ' + hrsPretty(c.next.workDate) + ': <i>' + hrsFmt({ rt: c.cur.rt, ot: c.cur.ot, dt: c.cur.dt }) + '</i> &rarr; <b>' + hrsFmt({ rt: c.next.rt, ot: c.next.ot, dt: c.next.dt }) + '</b></div>';
+      });
+      html += '</div></details>';
+    }
+    if(plan && plan.gone.length) html += '<div class="emp-status">' + plan.gone.length + ' day row(s) saved earlier for this week are not in this file. They are left alone.</div>';
+    var blocked = hrsSavedError ? 'blocked' : '';
+    var nSave = plan ? plan.fresh.length + plan.changed.length : 0;
+    html += '<div class="emp-actions">' +
+      '<button class="btn primary" type="button" id="hrsCheckBtn">Run rule check</button>' +
+      '<button class="btn" type="button" id="hrsSaveBtn"' + ((!plan || !nSave || blocked || hrsBusy) ? ' disabled' : '') + '>' + (plan ? (nSave ? 'Save ' + nSave + ' day row' + (nSave === 1 ? '' : 's') + ' to SharePoint' : 'Nothing new to save') : 'Save to SharePoint') + '</button>' +
+      '<button class="btn ghost" type="button" id="hrsDiscardBtn">Discard</button></div>' + hrsSavedLine() + '<div class="emp-status" id="hrsStatus"></div>';
+    el.innerHTML = html;
+    document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsShown = 150; renderHoursKpis(); renderHoursFindings(); });
+    document.getElementById('hrsSaveBtn').addEventListener('click', hrsSave);
+    document.getElementById('hrsDiscardBtn').addEventListener('click', function(){ hrsWeek = null; hrsFindings = null; hrsSaved = null; document.getElementById('hrsFileName').textContent = 'No file chosen'; renderHoursPanel(); });
+    document.getElementById('hrsWeekNo').addEventListener('change', function(){ wk.weekNo = parseInt(this.value, 10) || null; renderHoursKpis(); renderHoursPanelKeepFocus(); });
+    document.getElementById('hrsStart').addEventListener('change', function(){ if(this.value){ wk.start = this.value; renderHoursKpis(); renderHoursPanelKeepFocus(); } });
+    document.getElementById('hrsEnd').addEventListener('change', function(){ if(this.value){ wk.end = this.value; renderHoursKpis(); } });
+    renderHoursKpis();
+    renderHoursFindings();
+  }
+  function renderHoursPanelKeepFocus(){ renderHoursPanel(); }
+
+  function renderHoursFindings(){
+    var el = document.getElementById('hoursFindings'); if(!el) return;
+    var f = hrsFindings;
+    if(!f){ el.innerHTML = hrsWeek ? '<div class="emp-status">Press <b>Run rule check</b> to compare each union employee&rsquo;s daily hours with their union&rsquo;s rule.</div>' : ''; return; }
+    var counts = {}; f.items.forEach(function(i){ counts[i.kind] = (counts[i.kind] || 0) + 1; });
+    var e = f.emp;
+    var html = '<div class="emp-sum">' +
+      '<span class="emp-pill new"><b>' + e.checked + '</b>employees checked against a rule</span>' +
+      '<span class="emp-pill"><b>' + f.matched + '</b>days match the rule</span>' +
+      '<span class="emp-pill' + (counts.mismatch ? ' chg' : '') + '"><b>' + (counts.mismatch || 0) + '</b>days differ</span>' +
+      '<span class="emp-pill"><b>' + e.regular + '</b>regular employees (no union rule)</span>' +
+      (e.noUnion.length ? '<span class="emp-pill"><b>' + e.noUnion.length + '</b>labor type has no union</span>' : '') + '</div>';
+    var nr = Object.keys(e.noRule);
+    if(nr.length){
+      html += '<details class="emp-details"><summary>Unions that could not be checked (' + nr.length + ') &mdash; ' + nr.reduce(function(s, k){ return s + e.noRule[k].n; }, 0) + ' employees</summary><div class="emp-detail-body">' +
+        nr.sort().map(function(k){ return '<div><b>' + escapeHtml(k || '(no union)') + '</b> &middot; ' + e.noRule[k].n + ' employee(s) &mdash; ' + escapeHtml(e.noRule[k].why) + '</div>'; }).join('') + '</div></details>';
+    }
+    html += '<div class="filters" style="padding:4px 18px 10px;"><button class="chip-filter' + (hrsFilter === 'all' ? ' active' : '') + '" type="button" data-hrs-filter="all">All (' + f.items.length + ')</button>' +
+      Object.keys(HRS_KINDS).filter(function(k){ return counts[k]; }).map(function(k){
+        return '<button class="chip-filter' + (hrsFilter === k ? ' active' : '') + '" type="button" data-hrs-filter="' + k + '">' + HRS_KINDS[k] + ' (' + counts[k] + ')</button>';
+      }).join('') +
+      '<button class="btn ghost" type="button" id="hrsCsvBtn" style="margin-left:auto;">Download findings (CSV)</button></div>';
+    var list = f.items.filter(function(i){ return hrsFilter === 'all' || i.kind === hrsFilter; })
+      .sort(function(a, b){ return (a.sev === b.sev ? 0 : a.sev === 'crit' ? -1 : 1) || a.id.localeCompare(b.id) || (a.iso || '').localeCompare(b.iso || ''); });
+    if(!list.length) html += '<div class="emp-status">' + (f.items.length ? 'Nothing in this filter.' : 'No findings. Every checked day matches its rule.') + '</div>';
+    else {
+      html += '<div class="hrs-row head"><div>ID</div><div>Employee</div><div>Day</div><div>Reported</div><div>Rule says</div><div>Finding</div></div>';
+      list.slice(0, hrsShown).forEach(function(i){
+        html += '<div class="hrs-row ' + i.sev + '"><div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
+          '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div><div class="h-msg">' + escapeHtml(i.msg) + '</div></div>';
+      });
+      if(list.length > hrsShown) html += '<div class="emp-actions"><button class="btn" type="button" id="hrsMoreBtn">Show ' + Math.min(150, list.length - hrsShown) + ' more (' + (list.length - hrsShown) + ' left)</button></div>';
+    }
+    el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-filter]'), function(b){
+      b.addEventListener('click', function(){ hrsFilter = b.getAttribute('data-hrs-filter'); hrsShown = 150; renderHoursFindings(); });
+    });
+    var more = document.getElementById('hrsMoreBtn'); if(more) more.addEventListener('click', function(){ hrsShown += 150; renderHoursFindings(); });
+    document.getElementById('hrsCsvBtn').addEventListener('click', hrsDownloadCsv);
+  }
+  function hrsDownloadCsv(){
+    var f = hrsFindings; if(!f) return;
+    function q(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+    var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Detail'].join(',')];
+    f.items.forEach(function(i){
+      lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.msg].map(q).join(','));
+    });
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'UPAE_week_' + (hrsWeek.weekNo || 'x') + '_findings.csv';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+  async function hrsSave(){
+    if(hrsBusy || !hrsWeek || !hrsSaved || hrsSavedError) return;
+    if(typeof upaeBatchWeeklyHours !== 'function'){ alert('SharePoint is not connected in this view.'); return; }
+    var plan = hrsPlanSave(), ops = [];
+    plan.fresh.forEach(function(r){ ops.push({ kind: 'create', row: r }); });
+    plan.changed.forEach(function(c){ ops.push({ kind: 'update', row: c.next, spItemId: c.cur.spItemId }); });
+    if(!ops.length) return;
+    hrsBusy = true; document.getElementById('hrsSaveBtn').disabled = true;
+    var st = document.getElementById('hrsStatus');
+    try{
+      var res = await upaeBatchWeeklyHours(ops, function(done, total){ st.textContent = 'Saving ' + done + ' of ' + total + '…'; });
+      var ok = 0, bad = [];
+      res.forEach(function(r, i){
+        if(r && r.ok){
+          ok++;
+          var row = ops[i].row;
+          if(ops[i].kind === 'create') hrsSaved.push(Object.assign({}, row, { spItemId: r.spItemId }));
+          else { var cur = hrsSaved.filter(function(x){ return x.spItemId === ops[i].spItemId; })[0]; if(cur) Object.assign(cur, row); }
+        } else bad.push({ op: ops[i], error: r && r.error });
+      });
+      hrsBusy = false;
+      renderHoursPanel();
+      var st2 = document.getElementById('hrsStatus');
+      if(bad.length){ st2.className = 'emp-status err'; st2.textContent = ok + ' saved, ' + bad.length + ' failed (' + (bad[0].error || 'unknown error') + '). Press Save again to retry only the missing rows.'; }
+      else st2.textContent = 'Saved ' + ok + ' day row' + (ok === 1 ? '' : 's') + ' for week ' + hrsWeek.weekNo + '.';
+    } catch(err){
+      hrsBusy = false; console.error('UPAE: saving weekly hours failed', err);
+      renderHoursPanel();
+      var st3 = document.getElementById('hrsStatus'); st3.className = 'emp-status err'; st3.textContent = 'Saving failed: ' + (err.message || err);
+    }
+  }
+
+  async function hrsLoadSaved(){
+    hrsSaved = null; hrsSavedError = null;
+    if(typeof upaeFetchWeeklyHours !== 'function'){ hrsSavedError = 'not connected to SharePoint'; return; }
+    try{ hrsSaved = await upaeFetchWeeklyHours(); }
+    catch(err){ console.warn('UPAE: could not read WeeklyHours', err); hrsSavedError = err.message || String(err); }
+  }
+
+  var hrsFileInput = document.getElementById('hrsFileInput');
+  if(hrsFileInput){
+    hrsFileInput.addEventListener('change', async function(){
+      var file = hrsFileInput.files && hrsFileInput.files[0];
+      if(!file) return;
+      document.getElementById('hrsFileName').textContent = file.name;
+      var el = document.getElementById('hoursWork');
+      el.innerHTML = '<div class="emp-status">Reading ' + escapeHtml(file.name) + '…</div>';
+      hrsFindings = null; hrsFilter = 'all';
+      try{
+        var buf = await file.arrayBuffer();
+        hrsFileInput.value = '';
+        var head = new Uint8Array(buf.slice(0, 2)), rows;
+        if(head[0] === 0x50 && head[1] === 0x4B) rows = await empParseXlsx(buf);
+        else if(/\.xls$/i.test(file.name)) throw new Error('Old .xls files are not supported. Please save it as .xlsx and try again.');
+        else rows = empParseCsv(new TextDecoder().decode(buf));
+        hrsWeek = hrsParseSummary(rows, file.name);
+        if(!hrsWeek.records.length) throw new Error('No employee rows were found under the header.');
+        el.innerHTML = '<div class="emp-status">Checking what is already saved in SharePoint…</div>';
+        await hrsLoadSaved();
+        renderHoursPanel();
+      } catch(err){
+        console.error('UPAE: could not read the weekly summary', err);
+        hrsWeek = null;
+        el.innerHTML = '<div class="emp-status err">' + escapeHtml(err.message || String(err)) + '</div>';
+        renderHoursKpis();
+      }
+    });
+  }
+  renderHoursKpis();
 
   renderUnionAdminList();
   renderLaborAdminList();

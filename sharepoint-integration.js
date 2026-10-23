@@ -39,6 +39,7 @@ const UPAE_CONFIG = {
     ruleLaborTypes: "RuleLaborTypes",
     ruleExamples: "RuleExamples",
     employees: "Employees",
+    weeklyHours: "WeeklyHours",
   },
 };
 
@@ -476,9 +477,9 @@ async function upaeDeleteEmployee(spItemId) {
    Returns one result per op, in order: { ok, spItemId?, error? }.
    Throttled (429/503/504) sub-requests are retried up to 4 times, honouring
    Retry-After. onProgress(doneCount, total) is called after each batch. */
-async function upaeBatchEmployees(ops, onProgress) {
+async function upaeBatchList(listKey, ops, toFields, onProgress) {
   const siteId = await upaeGetSiteId();
-  const base = `/sites/${siteId}/lists/${UPAE_CONFIG.lists.employees}/items`;
+  const base = `/sites/${siteId}/lists/${UPAE_CONFIG.lists[listKey]}/items`;
   const results = new Array(ops.length);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let done = 0;
@@ -489,8 +490,8 @@ async function upaeBatchEmployees(ops, onProgress) {
       const requests = pending.map((i) => {
         const op = ops[i];
         return op.kind === "create"
-          ? { id: String(i), method: "POST", url: base, headers: { "Content-Type": "application/json" }, body: { fields: upaeEmployeeToFields(op.employee) } }
-          : { id: String(i), method: "PATCH", url: `${base}/${op.spItemId}/fields`, headers: { "Content-Type": "application/json" }, body: upaeEmployeeToFields(op.employee) };
+          ? { id: String(i), method: "POST", url: base, headers: { "Content-Type": "application/json" }, body: { fields: toFields(op) } }
+          : { id: String(i), method: "PATCH", url: `${base}/${op.spItemId}/fields`, headers: { "Content-Type": "application/json" }, body: toFields(op) };
       });
       const res = await upaeGraphFetch("/$batch", { method: "POST", body: JSON.stringify({ requests }) });
       const retry = [];
@@ -520,6 +521,56 @@ async function upaeBatchEmployees(ops, onProgress) {
     if (typeof onProgress === "function") onProgress(done, ops.length);
   }
   return results;
+}
+
+async function upaeBatchEmployees(ops, onProgress) {
+  return upaeBatchList("employees", ops, (op) => upaeEmployeeToFields(op.employee), onProgress);
+}
+
+// ---- Weekly hours: one row per employee per worked day ----
+function upaeWeeklyHoursFromItem(item) {
+  const f = item.fields || {};
+  const id = f.EmployeeID || "";
+  return {
+    spItemId: item.id,
+    key: String(id).trim().toUpperCase() + "|" + (f.WorkDate || ""),
+    employeeId: id,
+    employeeName: f.EmployeeName || "",
+    workDate: f.WorkDate || "",
+    weekStart: f.WeekStart || "",
+    weekNo: f.WeekNo != null ? Number(f.WeekNo) : null,
+    rt: Number(f.RT) || 0,
+    ot: Number(f.OT) || 0,
+    dt: Number(f.DT) || 0,
+  };
+}
+function upaeWeeklyHoursToFields(r) {
+  return {
+    Title: r.employeeId + " " + r.workDate,
+    EmployeeID: r.employeeId,
+    EmployeeName: r.employeeName || "",
+    WorkDate: r.workDate,
+    WeekStart: r.weekStart,
+    WeekNo: r.weekNo,
+    RT: r.rt,
+    OT: r.ot,
+    DT: r.dt,
+  };
+}
+async function upaeFetchWeeklyHours() {
+  let url = await upaeListItemsUrl("weeklyHours", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 400) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => out.push(upaeWeeklyHoursFromItem(item)));
+    const next = data["@odata.nextLink"];
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
+}
+async function upaeBatchWeeklyHours(ops, onProgress) {
+  return upaeBatchList("weeklyHours", ops, (op) => upaeWeeklyHoursToFields(op.row), onProgress);
 }
 
 /* ------------------------------ LOAD + WIRE-UP ------------------------------
