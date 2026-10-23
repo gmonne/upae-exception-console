@@ -38,6 +38,7 @@ const UPAE_CONFIG = {
     rules: "Rules",
     ruleLaborTypes: "RuleLaborTypes",
     ruleExamples: "RuleExamples",
+    employees: "Employees",
   },
 };
 
@@ -393,6 +394,134 @@ async function upaeDeleteRuleExample(spItemId) {
   });
 }
 
+/* ------------------------------ EMPLOYEES ------------------------------
+   The Employees list holds the employee master (from the B2W Employee Listing
+   spreadsheet). Plain-text columns only - no Lookup columns - so none of the
+   Lookup read/write quirks above apply. Internal column names:
+     Title (= "Last, First"), EmployeeID, LastName, FirstName, BusinessUnit,
+     DefaultLaborCode, DefaultLaborName, Role
+   An employee's union is NOT stored: it is derived in the app from
+   DefaultLaborCode -> LaborTypes.Union, so renaming/re-mapping a union
+   never leaves stale employee rows behind. */
+
+function upaeEmployeeFromItem(item) {
+  const f = item.fields || {};
+  return {
+    spItemId: item.id,
+    id: f.EmployeeID || "",
+    last: f.LastName || "",
+    first: f.FirstName || "",
+    businessUnit: f.BusinessUnit || "",
+    laborCode: f.DefaultLaborCode || "",
+    laborName: f.DefaultLaborName || "",
+    role: f.Role || "",
+  };
+}
+
+function upaeEmployeeToFields(e) {
+  return {
+    Title: [e.last, e.first].filter(Boolean).join(", ") || e.id,
+    EmployeeID: e.id,
+    LastName: e.last || "",
+    FirstName: e.first || "",
+    BusinessUnit: e.businessUnit || "",
+    DefaultLaborCode: e.laborCode || "",
+    DefaultLaborName: e.laborName || "",
+    Role: e.role || "",
+  };
+}
+
+async function upaeFetchEmployees() {
+  // Follows @odata.nextLink so lists larger than one page are read in full.
+  let url = await upaeListItemsUrl("employees", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 100) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => out.push(upaeEmployeeFromItem(item)));
+    const next = data["@odata.nextLink"];
+    // nextLink is absolute; upaeGraphFetch wants a path relative to /v1.0
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
+}
+
+async function upaeCreateEmployee(e) {
+  const url = await upaeListItemsUrl("employees");
+  const item = await upaeGraphFetch(url, {
+    method: "POST",
+    body: JSON.stringify({ fields: upaeEmployeeToFields(e) }),
+  });
+  return item; // item.id is the new SharePoint item id
+}
+
+async function upaeUpdateEmployee(spItemId, e) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.employees}/items/${spItemId}/fields`, {
+    method: "PATCH",
+    body: JSON.stringify(upaeEmployeeToFields(e)),
+  });
+}
+
+async function upaeDeleteEmployee(spItemId) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.employees}/items/${spItemId}`, {
+    method: "DELETE",
+  });
+}
+
+/* Bulk create/update through Graph's $batch endpoint (max 20 requests per
+   batch), so a first import of ~1,100 employees is ~57 calls instead of 1,100.
+   ops: [{ kind: "create"|"update", employee, spItemId? }]
+   Returns one result per op, in order: { ok, spItemId?, error? }.
+   Throttled (429/503/504) sub-requests are retried up to 4 times, honouring
+   Retry-After. onProgress(doneCount, total) is called after each batch. */
+async function upaeBatchEmployees(ops, onProgress) {
+  const siteId = await upaeGetSiteId();
+  const base = `/sites/${siteId}/lists/${UPAE_CONFIG.lists.employees}/items`;
+  const results = new Array(ops.length);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let done = 0;
+  for (let start = 0; start < ops.length; start += 20) {
+    let pending = [];
+    for (let i = start; i < Math.min(start + 20, ops.length); i++) pending.push(i);
+    for (let attempt = 0; attempt < 5 && pending.length; attempt++) {
+      const requests = pending.map((i) => {
+        const op = ops[i];
+        return op.kind === "create"
+          ? { id: String(i), method: "POST", url: base, headers: { "Content-Type": "application/json" }, body: { fields: upaeEmployeeToFields(op.employee) } }
+          : { id: String(i), method: "PATCH", url: `${base}/${op.spItemId}/fields`, headers: { "Content-Type": "application/json" }, body: upaeEmployeeToFields(op.employee) };
+      });
+      const res = await upaeGraphFetch("/$batch", { method: "POST", body: JSON.stringify({ requests }) });
+      const retry = [];
+      let waitMs = 0;
+      (res.responses || []).forEach((r) => {
+        const i = parseInt(r.id, 10);
+        if (r.status >= 200 && r.status < 300) {
+          results[i] = { ok: true, spItemId: r.body && r.body.id ? r.body.id : ops[i].spItemId };
+        } else if ([429, 503, 504].includes(r.status) && attempt < 4) {
+          retry.push(i);
+          const ra = r.headers && (r.headers["Retry-After"] || r.headers["retry-after"]);
+          waitMs = Math.max(waitMs, (parseInt(ra, 10) || 2) * 1000);
+        } else {
+          const msg = r.body && r.body.error && r.body.error.message ? r.body.error.message : "HTTP " + r.status;
+          results[i] = { ok: false, error: msg };
+        }
+      });
+      // Any request missing from the response is treated as failed, not silently dropped.
+      pending.forEach((i) => {
+        if (!results[i] && !retry.includes(i)) results[i] = { ok: false, error: "No response from SharePoint for this row" };
+      });
+      pending = retry;
+      if (pending.length) await sleep(waitMs);
+    }
+    pending.forEach((i) => { if (!results[i]) results[i] = { ok: false, error: "SharePoint kept throttling this row" }; });
+    done += Math.min(20, ops.length - start);
+    if (typeof onProgress === "function") onProgress(done, ops.length);
+  }
+  return results;
+}
+
 /* ------------------------------ LOAD + WIRE-UP ------------------------------
    Called by the sign-in button (see index.html/upae-mockup.html). Fetches all
    5 lists, then hands the results to window.upaeApplyLiveData — a bridge
@@ -419,6 +548,19 @@ async function upaeLoadAllData() {
     r.examples = await upaeFetchRuleExamples(r.name);
   }
 
+  // Employees are loaded last and NEVER block sign-in: if the Employees list has
+  // not been created in SharePoint yet, the rest of the app still works and the
+  // Employees screen explains what is missing.
+  let liveEmployees = null;
+  let employeesError = null;
+  setStatus('Loading employees...');
+  try {
+    liveEmployees = await upaeFetchEmployees();
+  } catch (err) {
+    console.warn('UPAE: could not load the Employees list', err);
+    employeesError = err.message || String(err);
+  }
+
   if (typeof window.upaeApplyLiveData !== 'function') {
     throw new Error(
       'window.upaeApplyLiveData is not defined — make sure sharepoint-integration.js ' +
@@ -428,6 +570,9 @@ async function upaeLoadAllData() {
     );
   }
   window.upaeApplyLiveData(liveUnions, liveLaborTypes, liveRules);
+  if (typeof window.upaeApplyEmployees === 'function') {
+    window.upaeApplyEmployees(liveEmployees, employeesError);
+  }
   setStatus('Loaded.');
 }
 
