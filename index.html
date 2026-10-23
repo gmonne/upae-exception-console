@@ -244,7 +244,8 @@
 
   /* ---- KPI strip ---- */
   .kpis{display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;}
-  @media (max-width:700px){ .kpis{grid-template-columns:repeat(2,1fr);} }
+  #employeeKpis{grid-template-columns:repeat(5, 1fr);}
+  @media (max-width:700px){ .kpis, #employeeKpis{grid-template-columns:repeat(2,1fr);} }
   .kpi{
     background:var(--bg-raised); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
     box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
@@ -1053,6 +1054,7 @@
         <div class="filters" style="padding:0 18px 10px;">
           <button class="chip-filter active" type="button" data-emp-filter="all">All</button>
           <button class="chip-filter" type="button" data-emp-filter="union">Has a union</button>
+          <button class="chip-filter" type="button" data-emp-filter="regular">Regular employees</button>
           <button class="chip-filter" type="button" data-emp-filter="nounion">No union / unknown</button>
           <button class="chip-filter" type="button" data-emp-filter="nolabor">No default labor type</button>
         </div>
@@ -2681,7 +2683,17 @@
   function empName(e){ return [e.last, e.first].filter(Boolean).join(', ') || e.id; }
 
   // An employee's union is derived, never stored: default labor code -> LaborTypes -> union.
+  // Built-in default labor type "Employee": regular staff, no union. Anyone whose Role is one of
+  // these and who has no default labor type in the listing is treated as (and imported as) Employee.
+  var EMP_REGULAR_ROLES = ['field employee', 'project manager', 'field log', 'supervisor'];
+  function empRegularRole(role){
+    var r = empClean(role).toLowerCase();
+    if(!r) return false;
+    return EMP_REGULAR_ROLES.some(function(x){ return r.indexOf(x) !== -1; });
+  }
   function employeeUnionInfo(e){
+    if(String(e.laborCode || '').toUpperCase() === 'EMPLOYEE' || (!e.laborCode && !e.laborName && empRegularRole(e.role)))
+      return { label: 'Employee (regular, no union)', cls: 'muted', kind: 'regular' };
     if(!e.laborCode) return { label: 'No default labor type', cls: 'warn', kind: 'nolabor' };
     var code = String(e.laborCode).toUpperCase();
     var lt = laborTypes.filter(function(x){ return String(x.code).toUpperCase() === code; })[0];
@@ -2698,10 +2710,10 @@
   function renderEmployeeKpis(){
     var el = document.getElementById('employeeKpis');
     if(!el) return;
-    var withUnion = 0, noUnion = 0, noLabor = 0;
+    var withUnion = 0, noUnion = 0, noLabor = 0, regular = 0;
     employees.forEach(function(e){
       var k = employeeUnionInfo(e).kind;
-      if(k === 'union') withUnion++; else if(k === 'nolabor') noLabor++; else noUnion++;
+      if(k === 'union') withUnion++; else if(k === 'regular') regular++; else if(k === 'nolabor') noLabor++; else noUnion++;
     });
     var bus = {};
     employees.forEach(function(e){ if(e.businessUnit) bus[e.businessUnit] = true; });
@@ -2710,6 +2722,8 @@
         '<div class="k-delta flat">across ' + Object.keys(bus).length + ' business unit' + (Object.keys(bus).length === 1 ? '' : 's') + '</div></div>' +
       '<div class="kpi"><div class="k-label">With a union</div><div class="k-value">' + withUnion + '<span class="unit">/' + employees.length + '</span></div>' +
         '<div class="k-delta flat">from their default labor type</div></div>' +
+      '<div class="kpi"><div class="k-label">Regular employees</div><div class="k-value">' + regular + '</div>' +
+        '<div class="k-delta flat">default labor type Employee, no union</div></div>' +
       '<div class="kpi"><div class="k-label">No union / unknown</div><div class="k-value">' + noUnion + '</div>' +
         '<div class="k-delta ' + (noUnion ? 'up' : 'flat') + '">labor type has no union, or is not in the list</div></div>' +
       '<div class="kpi"><div class="k-label">No default labor type</div><div class="k-value">' + noLabor + '</div>' +
@@ -2735,6 +2749,7 @@
       var info = employeeUnionInfo(e);
       if(empFilter === 'union' && info.kind !== 'union') return false;
       if(empFilter === 'nounion' && info.kind !== 'nounion') return false;
+      if(empFilter === 'regular' && info.kind !== 'regular') return false;
       if(empFilter === 'nolabor' && info.kind !== 'nolabor') return false;
       if(!q) return true;
       return (e.id + ' ' + empName(e) + ' ' + e.businessUnit + ' ' + e.laborName + ' ' + e.laborCode + ' ' + info.label).toLowerCase().indexOf(q) !== -1;
@@ -2931,6 +2946,7 @@
       var id = cell(row, cols.id);
       if(!id) continue;
       var lab = empSplitLabor(cell(row, cols.dl));
+      if(!lab.code && !lab.name && empRegularRole(cell(row, cols.role))) lab = { code: 'EMPLOYEE', name: 'Employee' };
       all.push({ id: id, last: cell(row, cols.last), first: cell(row, cols.first), businessUnit: cell(row, cols.bu),
                  laborCode: lab.code, laborName: lab.name, role: cell(row, cols.role) });
     }
@@ -3109,6 +3125,12 @@
     var sorted = laborTypes.slice().sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); });
     var html = '<option value="">— None —</option>';
     var found = false;
+    var hasEmp = sorted.some(function(lt){ return String(lt.code).toUpperCase() === 'EMPLOYEE'; });
+    if(!hasEmp){
+      var empSel = selectedCode && String(selectedCode).toUpperCase() === 'EMPLOYEE';
+      if(empSel) found = true;
+      html += '<option value="EMPLOYEE"' + (empSel ? ' selected' : '') + '>Employee [EMPLOYEE] (regular, no union)</option>';
+    }
     sorted.forEach(function(lt){
       var isSel = selectedCode && String(lt.code).toUpperCase() === String(selectedCode).toUpperCase();
       if(isSel) found = true;
@@ -3163,7 +3185,7 @@
       first: empClean(document.getElementById('em_first').value),
       businessUnit: empClean(document.getElementById('em_bu').value),
       laborCode: code,
-      laborName: lt ? lt.name : (existing && existing.laborCode === code ? existing.laborName : ''),
+      laborName: lt ? lt.name : (String(code).toUpperCase() === 'EMPLOYEE' ? 'Employee' : (existing && existing.laborCode === code ? existing.laborName : '')),
       role: empClean(document.getElementById('em_role').value)
     };
     if(!existing){
