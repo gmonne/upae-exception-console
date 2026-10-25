@@ -1730,6 +1730,7 @@
       </div>
       <div class="field-group" style="display:flex; gap:18px; flex-wrap:wrap; font-size:13px;">
         <label><input type="checkbox" id="hrsMailCopyMe"> Send me a copy</label>
+        <label><input type="checkbox" id="hrsMailAi"> <span id="hrsMailAiLbl">Include the AI explanation</span></label>
         <label><input type="checkbox" id="hrsMailRemember" checked> Remember each employee's PM for next time</label>
       </div>
       <div class="emp-status" id="hrsMailStatus" style="padding:0 0 10px;"></div>
@@ -4358,12 +4359,13 @@
     return '<option value="">— choose a project manager —</option>' + hrsPMs.slice().sort(function(a, b){ return a.name.localeCompare(b.name); })
       .map(function(p){ return '<option value="' + escapeHtml(p.email) + '"' + (selected && selected.toLowerCase() === p.email.toLowerCase() ? ' selected' : '') + '>' + escapeHtml(p.name) + ' &lt;' + escapeHtml(p.email) + '&gt;</option>'; }).join('');
   }
-  function mailTable(items){
+  function mailTable(items, withAi){
     var th = 'style="text-align:left;padding:5px 8px;border:1px solid #ccc;background:#f0f0f0;font-size:12px;"', td = 'style="padding:5px 8px;border:1px solid #ccc;font-size:12px;vertical-align:top;"';
     return '<table style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif;"><tr><th ' + th + '>Employee</th><th ' + th + '>Day</th><th ' + th + '>Reported</th><th ' + th + '>Rule says</th><th ' + th + '>Rule broken</th></tr>' +
       items.map(function(i){
         return '<tr><td ' + td + '>' + escapeHtml(i.name) + ' (' + escapeHtml(i.id) + ')' + (i.union ? '<br><span style="color:#666">' + escapeHtml(i.union) + '</span>' : '') + '</td><td ' + td + '>' + (i.iso ? hrsPretty(i.iso) : '—') + '</td><td ' + td + '>' + (i.rep ? hrsFmt(i.rep) : '—') +
-          '</td><td ' + td + '>' + (i.exp ? hrsFmt(i.exp) : '—') + '</td><td ' + td + '><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleName) + '</b><br>' + escapeHtml(i.broken.join(' ')) + '</td></tr>';
+          '</td><td ' + td + '>' + (i.exp ? hrsFmt(i.exp) : '—') + '</td><td ' + td + '><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleName) + '</b><br>' + escapeHtml(i.broken.join(' ')) +
+          (withAi && i.ai && i.ai.explanation ? '<div style="margin-top:6px;padding:5px 7px;background:#f4f1fb;border-left:3px solid #7a5fc0;color:#333;"><b>AI note:</b> ' + escapeHtml(i.ai.explanation) + (i.ai.suggestedAction ? '<br><b>Suggested check:</b> ' + escapeHtml(i.ai.suggestedAction) : '') + '<br><span style="color:#777;font-size:11px;">AI-generated, ' + escapeHtml(i.ai.confidence || 'low') + ' confidence – please verify.</span></div>' : '') + '</td></tr>';
       }).join('') + '</table>';
   }
 
@@ -4390,7 +4392,7 @@
       return '<div class="mail-group"><div class="mg-head"><b>' + g.items.length + ' record' + (g.items.length === 1 ? '' : 's') + '</b>' +
         (g.suggested ? '<span class="mg-tag">usual PM</span>' : '<span class="mg-tag warn">no usual PM yet</span>') +
         '<select data-mg-pm="' + gi + '">' + pmOptions(g.pm) + '</select></div>' +
-        '<details><summary>Records in this email</summary>' + mailTable(g.items.slice(0, 15)) + (g.items.length > 15 ? '<div class="emp-status">&hellip; and ' + (g.items.length - 15) + ' more rows in the email.</div>' : '') + '</details></div>';
+        '<details><summary>Records in this email</summary>' + mailTable(g.items.slice(0, 15), document.getElementById('hrsMailAi').checked) + (g.items.length > 15 ? '<div class="emp-status">&hellip; and ' + (g.items.length - 15) + ' more rows in the email.</div>' : '') + '</details></div>';
     }).join('');
     Array.prototype.forEach.call(el.querySelectorAll('[data-mg-pm]'), function(s){
       s.addEventListener('change', function(){ mailGroups[parseInt(s.getAttribute('data-mg-pm'), 10)].pm = s.value; updateMailSummary(); });
@@ -4422,6 +4424,9 @@
     document.getElementById('hrsMailCc').value = '';
     document.getElementById('hrsMailCopyMe').checked = false;
     document.getElementById('hrsMailRemember').checked = true;
+    var nAi = items.filter(function(i){ return i.ai && i.ai.explanation; }).length;
+    document.getElementById('hrsMailAi').checked = nAi > 0; document.getElementById('hrsMailAi').disabled = !nAi;
+    document.getElementById('hrsMailAiLbl').textContent = 'Include the AI explanation (' + nAi + ' of ' + items.length + ' records have one)';
     document.getElementById('hrsMailSubject').value = mailSubjectBase();
     document.getElementById('hrsMailNote').value = mailIntro();
     document.getElementById('hrsMailCount').textContent = sel.length + ' record' + (sel.length === 1 ? '' : 's') + ' selected.';
@@ -4433,7 +4438,7 @@
   function mailBody(pmName, items){
     var note = document.getElementById('hrsMailNote').value.split('\n').map(function(l){ return l.trim() ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">' + escapeHtml(l) + '</p>' : ''; }).join('');
     var first = pmName ? pmName.split(/[ ,]+/)[0] : '';
-    return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + mailTable(items) + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
+    return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + mailTable(items, document.getElementById('hrsMailAi').checked) + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
   }
   async function sendMails(testOnly){
     if(mailBusy) return;
@@ -4496,6 +4501,7 @@
   document.getElementById('hrsMailCancel').addEventListener('click', closeMailModal);
   document.getElementById('hrsMailClose').addEventListener('click', closeMailModal);
   document.getElementById('hrsMailCopyMe').addEventListener('change', updateMailSummary);
+  document.getElementById('hrsMailAi').addEventListener('change', function(){ renderMailGroups(); });
   document.getElementById('hrsMailIncludeSent').addEventListener('change', function(){
     var inc = this.checked, sel = selectedItems().filter(function(i){ return inc || i.status !== STATUS_SENT; });
     var keep = {}; mailGroups.forEach(function(g){ g.items.forEach(function(i){ keep[i.key] = g.pm; }); });
