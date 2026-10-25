@@ -43,6 +43,7 @@ const UPAE_CONFIG = {
     weeklyFindings: "WeeklyFindings",
     projectManagers: "ProjectManagers",
     aiLog: "AILog",
+    findingHistory: "FindingHistory",
   },
 };
 
@@ -638,6 +639,7 @@ async function upaeLoadAllData() {
     window.upaeApplyEmployees(liveEmployees, employeesError);
   }
   setStatus('Loaded.');
+  if (typeof window.upaeDashRefresh === 'function') window.upaeDashRefresh();
 }
 
 // ---- Weekly findings (what the rule check flagged, plus review status) ----
@@ -673,6 +675,8 @@ function upaeFindingFromItem(item) {
     resReason: f.ResolutionReason || "",
     resolvedBy: f.ResolvedBy || "",
     resolvedDate: f.ResolvedDate || "",
+    modified: item.lastModifiedDateTime || "",
+    modifiedBy: (item.lastModifiedBy && item.lastModifiedBy.user && (item.lastModifiedBy.user.email || item.lastModifiedBy.user.displayName)) || "",
   };
 }
 function upaeFindingToFields(r) {
@@ -717,6 +721,56 @@ async function upaeFetchFindings() {
   while (url && guard++ < 400) {
     const data = await upaeGraphFetch(url);
     (data.value || []).forEach((item) => out.push(upaeFindingFromItem(item)));
+    const next = data["@odata.nextLink"];
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
+}
+// Who last changed these rows, and when (used to warn before overwriting somebody else's change).
+async function upaeFetchFindingStamps(ids) {
+  const siteId = await upaeGetSiteId();
+  const base = `/sites/${siteId}/lists/${UPAE_CONFIG.lists.weeklyFindings}/items`;
+  const out = {};
+  for (let start = 0; start < ids.length; start += 20) {
+    const chunk = ids.slice(start, start + 20);
+    const requests = chunk.map((id, i) => ({ id: String(i), method: "GET", url: `${base}/${id}?$select=id,lastModifiedDateTime,lastModifiedBy` }));
+    const res = await upaeGraphFetch("/$batch", { method: "POST", body: JSON.stringify({ requests }) });
+    (res.responses || []).forEach((r) => {
+      const id = chunk[parseInt(r.id, 10)];
+      if (r.status >= 200 && r.status < 300 && r.body) {
+        const u = r.body.lastModifiedBy && r.body.lastModifiedBy.user;
+        out[id] = { modified: r.body.lastModifiedDateTime || "", modifiedBy: u ? (u.email || u.displayName || "") : "" };
+      } else if (r.status === 404) out[id] = { gone: true };
+    });
+  }
+  return out;
+}
+
+// ---- Change history: one row each time a finding's status changes ----
+async function upaeLogHistory(entries) {
+  const ops = entries.map((e) => ({ kind: "create", row: e }));
+  return upaeBatchList("findingHistory", ops, (op) => ({
+    Title: (op.row.key || "").slice(0, 250),
+    FindingKey: op.row.key || "",
+    WeekStart: op.row.weekStart || "",
+    EmployeeID: op.row.id || "",
+    EmployeeName: op.row.name || "",
+    FromStatus: op.row.from || "",
+    ToStatus: op.row.to || "",
+    Detail: op.row.detail || "",
+    ChangedBy: op.row.by || "",
+  }));
+}
+async function upaeFetchHistory() {
+  let url = await upaeListItemsUrl("findingHistory", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 400) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => {
+      const f = item.fields || {};
+      out.push({ key: f.FindingKey || "", weekStart: f.WeekStart || "", id: f.EmployeeID || "", name: f.EmployeeName || "", from: f.FromStatus || "", to: f.ToStatus || "", detail: f.Detail || "", by: f.ChangedBy || "", at: item.createdDateTime || "" });
+    });
     const next = data["@odata.nextLink"];
     url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
   }

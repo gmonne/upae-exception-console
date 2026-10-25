@@ -783,53 +783,33 @@
         <span class="help-banner-cta">Help &amp; next steps &rarr;</span>
       </a>
 
-      <section class="kpis">
-        <div class="kpi">
-          <div class="k-label">Open exceptions</div>
-          <div class="k-value">14</div>
-          <div class="k-delta down">↓ 6 vs. last cycle</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label">Auto-resolved pre-finalize</div>
-          <div class="k-value">9<span class="unit">of 23</span></div>
-          <div class="k-delta flat">39% of flagged items</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label">AI-flagged, no rule match</div>
-          <div class="k-value">5</div>
-          <div class="k-delta up">↑ 2 vs. last cycle</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label">Median time to resolve</div>
-          <div class="k-value">3.4<span class="unit">hrs</span></div>
-          <div class="k-delta down">↓ 1.1 hrs vs. last cycle</div>
-        </div>
-      </section>
+      <section class="kpis" id="dashKpis"></section>
 
       <section class="workspace">
 
         <div class="panel">
           <div class="panel-head">
             <h2>Exception queue</h2>
-            <span class="panel-sub">Job 24-118 &middot; Girard Ave. Overpass &middot; period ending 09/14</span>
+            <span class="panel-sub" id="dashQueueSub">not loaded</span>
+            <button class="btn ghost" type="button" id="dashRefreshBtn" style="margin-left:auto; padding:4px 10px; font-size:12px;">Refresh</button>
           </div>
           <div class="filters" id="filters">
-            <button class="chip-filter active" data-filter="all">All &middot; 14</button>
-            <button class="chip-filter" data-filter="crit">Critical &middot; 4</button>
-            <button class="chip-filter" data-filter="needs-review">Needs review &middot; 7</button>
-            <button class="chip-filter" data-filter="rule">Rule-based</button>
-            <button class="chip-filter" data-filter="ai">AI-flagged</button>
+            <button class="chip-filter active" data-filter="all">All</button>
+            <button class="chip-filter" data-filter="crit">Critical</button>
+            <button class="chip-filter" data-filter="needs-review">Not resolved</button>
+            <button class="chip-filter" data-filter="rule">Sent to PM</button>
+            <button class="chip-filter" data-filter="ai">Has AI note</button>
           </div>
           <div class="legend queue-legend">
             <span><i class="legend-dot crit"></i>Critical</span>
             <span><i class="legend-dot warn"></i>Needs review</span>
             <span><i class="legend-dot good"></i>Resolved</span>
             <span class="legend-sep"></span>
-            <span><span class="src-tag rule" style="padding:2px 6px;">Rule</span> = matched an explicit CMiC/CBA rule</span>
-            <span><span class="src-tag ai" style="padding:2px 6px;">AI flag</span> = pattern deviation, no rule violated</span>
+            <span><span class="src-tag rule" style="padding:2px 6px;">Rule</span> = broke a rule from the Rule Library</span>
+            <span><span class="src-tag ai" style="padding:2px 6px;">AI note</span> = has an AI explanation</span>
           </div>
           <div class="queue" id="queue">
-            <!-- rows injected by JS from sample data -->
+            <!-- rows injected by JS from the live WeeklyFindings list -->
           </div>
         </div>
 
@@ -847,50 +827,29 @@
 
         <div class="panel">
           <div class="panel-head">
-            <h2>Exceptions by category</h2>
-            <span class="panel-sub">Last 6 pay periods</span>
+            <h2>Findings by week</h2>
+            <span class="panel-sub">Last 6 saved weeks</span>
           </div>
           <div class="legend">
-            <span><i style="background:var(--accent)"></i>Rule-based</span>
-            <span><i style="background:var(--ai-tag)"></i>AI-flagged</span>
+            <span><i style="background:var(--accent)"></i>Flagged</span>
+            <span><i style="background:var(--ai-tag)"></i>Resolved</span>
           </div>
           <div class="panel-body" style="padding-top:4px;">
-            <svg id="trendChart" viewBox="0 0 560 200" width="100%" height="200" role="img" aria-label="Exceptions by category over the last six pay periods, rule-based and AI-flagged"></svg>
+            <svg id="trendChart" viewBox="0 0 560 200" width="100%" height="200" role="img" aria-label="Findings flagged and resolved per saved week"></svg>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-head">
             <h2>Routing matrix</h2>
-            <span class="panel-sub">Job 24-118</span>
+            <span class="panel-sub">By project manager</span>
           </div>
           <div class="panel-body">
             <table>
               <thead>
                 <tr><th>Reviewer</th><th>Scope</th><th class="num">Queue</th></tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td><div class="route-name">D. Ferretti</div><div class="route-role">Payroll Supervisor</div></td>
-                  <td>All classifications, job 24-118</td>
-                  <td class="num"><span class="load-bar"><span style="width:70%"></span></span>7</td>
-                </tr>
-                <tr>
-                  <td><div class="route-name">M. Ochoa</div><div class="route-role">Union Compliance Analyst</div></td>
-                  <td>IUOE Local 542 rule set</td>
-                  <td class="num"><span class="load-bar"><span style="width:40%"></span></span>4</td>
-                </tr>
-                <tr>
-                  <td><div class="route-name">R. Whitfield</div><div class="route-role">Project Accountant</div></td>
-                  <td>Cost-code &amp; allocation errors</td>
-                  <td class="num"><span class="load-bar"><span style="width:30%"></span></span>3</td>
-                </tr>
-                <tr>
-                  <td><div class="route-name">UPAE Auto-Resolve</div><div class="route-role">Duplicate suppression rule</div></td>
-                  <td>Exact duplicate entries only</td>
-                  <td class="num"><span class="load-bar"><span style="width:90%"></span></span>9</td>
-                </tr>
-              </tbody>
+              <tbody id="dashRouting"></tbody>
             </table>
           </div>
         </div>
@@ -1191,6 +1150,13 @@
             <tr><td>Title</td><td>Single line of text (already there)</td></tr>
             <tr><td>Purpose, FindingKey, WeekStart, UserEmail, Model, PromptVersion, Confidence, Feedback</td><td>Single line of text (8 columns)</td></tr>
             <tr><td>Output</td><td>Multiple lines of text (plain text)</td></tr>
+          </table>
+          <p><b>FindingHistory</b> &mdash; one row each time a finding's status changes (who, when, from/to). Powers the History box on the Dashboard.</p>
+          <table>
+            <tr><th>Column</th><th>Type</th></tr>
+            <tr><td>Title</td><td>Single line of text (already there)</td></tr>
+            <tr><td>FindingKey, WeekStart, EmployeeID, EmployeeName, FromStatus, ToStatus, ChangedBy</td><td>Single line of text (7 columns)</td></tr>
+            <tr><td>Detail</td><td>Multiple lines of text (plain text)</td></tr>
           </table>
           <p>Sending email needs the <b>Mail.Send</b> delegated permission on the app registration (an administrator may need to grant consent).</p>
         </div>
@@ -1801,214 +1767,178 @@
 
 <script>
 (function(){
-  var exceptions = [
-    {
-      id: "EX-0932", severity:"crit", source:"rule", status:"open",
-      title:"Overtime rate mismatch — OE1 classification",
-      meta:"Emp. #4471 · J. Castellano · IUOE Local 542",
-      reviewer:"M. Ochoa",
-      detail:{
-        rule:"Rule R-OT-12 · Local 542 CBA Art. 9.3",
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Operating Engineer Grp. 1 (OE1)",
-        hours:"6.0 hrs OT @ 1.5×",
-        expected:"$58.40/hr OT base",
-        found:"$52.15/hr applied",
-        note:"Timecard used prior CBA rate; current agreement (eff. 07/01) not reflected in crew rate table."
-      }
-    },
-    {
-      id: "EX-0931", severity:"warn", source:"ai", status:"review",
-      title:"Unusual hours pattern — possible split shift error",
-      meta:"Emp. #3108 · A. Reyes · Laborers Local 413",
-      reviewer:"D. Ferretti",
-      detail:{
-        confidence: 78,
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Laborer Grp. 2",
-        pattern:"11.5 hrs logged across two non-adjacent cost codes with a 40-min gap",
-        history:"Employee's 12-week average: 8.2 hrs/day, single cost code",
-        rationale:"Hours and cost-code split fall outside this employee's typical pattern and outside the crew's typical pattern for this job. No rule violation — flagged for pattern deviation only. Similar splits were corrected as clerical entry errors in 4 of the last 6 instances."
-      }
-    },
-    {
-      id: "EX-0929", severity:"crit", source:"rule", status:"open",
-      title:"Missing fringe benefit contribution — health & welfare",
-      meta:"Emp. #2290 · T. Nowicki · IBEW Local 98",
-      reviewer:"M. Ochoa",
-      detail:{
-        rule:"Rule R-FB-04 · Local 98 CBA Schedule C",
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Journeyman Wireman",
-        hours:"38.0 straight-time hrs",
-        expected:"$9.85/hr H&W contribution",
-        found:"$0.00 recorded",
-        note:"H&W contribution code absent from timecard batch import; likely dropped during CMiC cost-code remap on 09/10."
-      }
-    },
-    {
-      id: "EX-0927", severity:"warn", source:"rule", status:"review",
-      title:"Job/cost-code allocation outside approved WBS",
-      meta:"Emp. #5502 · K. Boakye · IUOE Local 542",
-      reviewer:"R. Whitfield",
-      detail:{
-        rule:"Rule R-AL-07 · WBS validation",
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Operating Engineer Grp. 2 (OE2)",
-        hours:"9.0 hrs on cost code 03-410",
-        expected:"Approved codes: 03-310, 03-320, 03-330",
-        found:"Code 03-410 not on approved WBS for this job",
-        note:"Cost code may belong to adjacent job 24-119; confirm with field super before reallocating."
-      }
-    },
-    {
-      id: "EX-0924", severity:"good", source:"ai", status:"resolved",
-      title:"Duplicate timecard entry — auto-suppressed",
-      meta:"Emp. #1187 · S. Delacroix · Laborers Local 413",
-      reviewer:"UPAE Auto-Resolve",
-      detail:{
-        confidence: 96,
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Laborer Grp. 1",
-        pattern:"Identical 8.0 hr entry submitted twice, 4 minutes apart, same cost code",
-        history:"Matches signature of 11 prior confirmed double-submissions from mobile timecard app",
-        rationale:"Exact duplicate on employee, date, cost code and hours, submitted within a 5-minute window. Auto-suppressed per standing rule; no reviewer action required unless overridden."
-      }
-    },
-    {
-      id: "EX-0921", severity:"warn", source:"ai", status:"review",
-      title:"Classification drift — hours logged above typical OE1 mix",
-      meta:"Emp. #3960 · P. Voss · IUOE Local 542",
-      reviewer:"M. Ochoa",
-      detail:{
-        confidence: 64,
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Logged as OE1, historically OE2",
-        pattern:"3rd consecutive period logged at OE1 rate; prior 9 periods logged OE2",
-        history:"No corresponding change in crew assignment or equipment log",
-        rationale:"Classification change wasn't accompanied by a crew reassignment record. Could reflect a legitimate promotion — recommend confirming with field super rather than treating as an error."
-      }
-    },
-    {
-      id: "EX-0918", severity:"good", source:"rule", status:"resolved",
-      title:"Per diem applied without qualifying travel distance",
-      meta:"Emp. #4890 · L. Marchetti · IBEW Local 98",
-      reviewer:"R. Whitfield",
-      detail:{
-        rule:"Rule R-PD-02 · Per diem eligibility",
-        job:"24-118 · Girard Ave. Overpass",
-        classification:"Apprentice Wireman, 2nd yr",
-        hours:"$65.00 per diem applied",
-        expected:"Home local within 30-mile radius — not eligible",
-        found:"Per diem code applied in error",
-        note:"Corrected before finalize; per diem code removed and confirmed with payroll clerk."
-      }
-    }
-  ];
+  var exceptions = [], liveFindings = [], liveHistory = null, liveHistError = null, liveError = null, liveLoaded = false, liveStamp = 0, liveStale = false, liveBusy = false;
 
   var sevRank = {crit:0, warn:1, good:2};
   var queueEl = document.getElementById('queue');
   var detailBody = document.getElementById('detailBody');
   var detailSub = document.getElementById('detailSub');
-  var selectedId = exceptions[0].id;
+  var selectedId = null;
   var activeFilter = 'all';
 
   function statusLabel(s){
-    return s === 'open' ? 'Open' : s === 'review' ? 'In review' : 'Resolved';
+    return s === 'open' ? 'Open' : s === 'review' ? 'Sent to PM' : 'Resolved';
   }
-
+  var KIND_LABEL = { mismatch: 'Hours differ from rule', notlisted: 'Not in Employees list', nolabor: 'No default labor type', excessive: 'Very long day', negative: 'Negative hours' };
+  function dEsc(x){ return String(x == null ? '' : x).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function dDay(iso){ if(!iso) return ''; var p = String(iso).split('-'); return p.length === 3 ? (+p[1]) + '/' + (+p[2]) : iso; }
+  function buildExceptions(list){
+    return list.map(function(f){
+      var st = f.status === 'Resolved' ? 'resolved' : f.status === 'Sent to PM' ? 'review' : 'open';
+      var sev = st === 'resolved' ? 'good' : (f.kind === 'mismatch' ? 'crit' : 'warn');
+      var pmName = f.sentTo ? String(f.sentTo).replace(/\s*<.*>$/, '') : '';
+      return { id: 'W' + (f.weekNo || '?') + ' · ' + f.id + ' · ' + dDay(f.iso), key: f.key, severity: sev, source: f.aiExplanation ? 'ai' : 'rule', status: st,
+        title: (KIND_LABEL[f.kind] || f.kind) + ' — ' + (f.name || f.id),
+        meta: f.id + ' · ' + (f.union || 'no union') + ' · week ' + (f.weekNo || '?'),
+        reviewer: pmName || 'Not sent yet', f: f };
+    });
+  }
   function matchesFilter(ex){
     switch(activeFilter){
       case 'crit': return ex.severity === 'crit';
       case 'needs-review': return ex.status !== 'resolved';
-      case 'rule': return ex.source === 'rule';
+      case 'rule': return ex.status === 'review';
       case 'ai': return ex.source === 'ai';
       default: return true;
     }
   }
-
+  var SHOW_MAX = 100;
+  function renderChips(){
+    var c = { all: exceptions.length, crit: 0, nr: 0, sent: 0, ai: 0 };
+    exceptions.forEach(function(e){ if(e.severity === 'crit') c.crit++; if(e.status !== 'resolved') c.nr++; if(e.status === 'review') c.sent++; if(e.source === 'ai') c.ai++; });
+    var lab = { all: 'All · ' + c.all, crit: 'Critical · ' + c.crit, 'needs-review': 'Not resolved · ' + c.nr, rule: 'Sent to PM · ' + c.sent, ai: 'Has AI note · ' + c.ai };
+    Array.prototype.forEach.call(document.querySelectorAll('#filters .chip-filter'), function(ch){ ch.textContent = lab[ch.getAttribute('data-filter')]; });
+  }
   function renderQueue(){
     queueEl.innerHTML = '';
+    renderChips();
+    if(!liveLoaded){ queueEl.innerHTML = '<div class="empty-note">' + (liveError ? 'Could not read the WeeklyFindings list: ' + dEsc(liveError) : 'Sign in to load the live exception queue from SharePoint.') + '</div>'; return; }
     var visible = exceptions.filter(matchesFilter);
     if(visible.length === 0){
-      queueEl.innerHTML = '<div class="empty-note">No exceptions match this filter in the current sample.</div>';
+      queueEl.innerHTML = '<div class="empty-note">' + (exceptions.length ? 'No exceptions match this filter.' : 'No findings saved yet. Load a week on the Weekly Hours screen, run the check and save it; the findings show up here.') + '</div>';
       return;
     }
-    visible.forEach(function(ex){
+    var rank = { open: 0, review: 1, resolved: 2 };
+    visible = visible.slice().sort(function(a, b){ return (rank[a.status] - rank[b.status]) || (sevRank[a.severity] - sevRank[b.severity]) || String(b.f.weekStart).localeCompare(String(a.f.weekStart)) || String(a.f.name).localeCompare(String(b.f.name)); });
+    visible.slice(0, SHOW_MAX).forEach(function(ex){
       var row = document.createElement('div');
-      row.className = 'qrow' + (ex.id === selectedId ? ' selected' : '');
+      row.className = 'qrow' + (ex.key === selectedId ? ' selected' : '');
       row.setAttribute('role','button');
       row.setAttribute('tabindex','0');
       row.innerHTML =
         '<span class="sev-stripe ' + ex.severity + '" aria-hidden="true"></span>' +
         '<span class="q-main">' +
-          '<span class="q-title">' + ex.title + '</span>' +
-          '<span class="q-meta"><span class="mono">' + ex.id + '</span> · ' + ex.meta + '</span>' +
+          '<span class="q-title">' + dEsc(ex.title) + '</span>' +
+          '<span class="q-meta"><span class="mono">' + dEsc(ex.id) + '</span> · ' + dEsc(ex.meta) + '</span>' +
         '</span>' +
-        '<span class="src-tag ' + ex.source + '">' + (ex.source === 'ai' ? 'AI flag' : 'Rule') + '</span>' +
-        '<span class="q-reviewer">' + ex.reviewer + '</span>' +
+        '<span class="src-tag ' + ex.source + '">' + (ex.source === 'ai' ? 'AI note' : 'Rule') + '</span>' +
+        '<span class="q-reviewer">' + dEsc(ex.reviewer) + '</span>' +
         '<span class="status-pill ' + ex.status + '">' + statusLabel(ex.status) + '</span>';
-      row.addEventListener('click', function(){ selectedId = ex.id; renderQueue(); renderDetail(); });
-      row.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectedId = ex.id; renderQueue(); renderDetail(); }});
+      var pick = function(){ selectedId = ex.key; renderQueue(); renderDetail(); };
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(); }});
       queueEl.appendChild(row);
     });
+    if(visible.length > SHOW_MAX){ var more = document.createElement('div'); more.className = 'empty-note'; more.textContent = 'Showing the first ' + SHOW_MAX + ' of ' + visible.length + '. Use the filters to narrow the list.'; queueEl.appendChild(more); }
   }
 
   function renderDetail(){
-    var ex = exceptions.find(function(e){ return e.id === selectedId; });
-    if(!ex){ detailBody.innerHTML = '<div class="empty-note">Select an exception from the queue.</div>'; detailSub.textContent=''; return; }
+    var ex = exceptions.filter(function(e){ return e.key === selectedId; })[0];
+    if(!ex){ detailBody.innerHTML = '<div class="empty-note">Select an exception from the queue.</div>'; detailSub.textContent = ''; return; }
+    var f = ex.f;
     detailSub.textContent = ex.id + ' · ' + statusLabel(ex.status);
-    var d = ex.detail;
-
-    var fieldsHtml = '';
-    if(ex.source === 'rule'){
-      fieldsHtml =
-        field('Rule triggered', d.rule) +
-        field('Job', d.job) +
-        field('Classification', d.classification) +
-        field('Logged', d.hours) +
-        field('Expected', d.expected) +
-        field('Found', d.found);
-    } else {
-      fieldsHtml =
-        field('Job', d.job) +
-        field('Classification', d.classification) +
-        field('Pattern detected', d.pattern) +
-        field('Historical baseline', d.history);
-    }
-
+    function field(label, value){ return '<div class="detail-field"><div class="f-label">' + label + '</div><div class="f-value">' + dEsc(value || '—') + '</div></div>'; }
+    var fieldsHtml = field('Employee', (f.name || '') + ' (' + f.id + ')') + field('Union', f.union) + field('Day', f.iso) + field('Week', f.weekNo ? 'Week ' + f.weekNo + ' (starts ' + f.weekStart + ')' : f.weekStart) +
+      field('Rule triggered', f.ruleId === 'Data check' ? 'Data check' : (f.ruleId + ' · ' + f.ruleName)) + field('Reported', f.reported) + field('Rule says', f.expected) + field('Sent to', f.sentTo ? f.sentTo + (f.sentDate ? ' on ' + f.sentDate : '') : '');
+    var noteBlock = '<div class="rationale" style="background:var(--accent-soft); border-color:transparent; color:var(--accent-soft-ink);"><div class="r-head" style="color:var(--accent-soft-ink);">Rule broken</div>' + dEsc(f.broken ? String(f.broken).split(' | ').join(' ') : '—') + '</div>';
     var aiBlock = '';
-    if(ex.source === 'ai'){
-      aiBlock =
-        '<div class="confidence-wrap">' +
-          '<div class="confidence-head"><span>Model confidence</span><b>' + d.confidence + '%</b></div>' +
-          '<div class="meter"><span style="width:' + d.confidence + '%"></span></div>' +
-        '</div>' +
-        '<div class="rationale"><div class="r-head">AI rationale</div>' + d.rationale + '</div>';
-    } else {
-      aiBlock = '<div class="rationale" style="background:var(--accent-soft); border-color:transparent; color:var(--accent-soft-ink);">' +
-        '<div class="r-head" style="color:var(--accent-soft-ink);">Reviewer note</div>' + d.note + '</div>';
+    if(f.aiExplanation){
+      aiBlock = '<div class="rationale"><div class="r-head">AI explanation · ' + dEsc(f.aiConfidence || 'low') + ' confidence</div>' + dEsc(f.aiExplanation) +
+        (f.aiSuggestedAction ? '<br><b>Suggested check:</b> ' + dEsc(f.aiSuggestedAction) : '') + '</div>';
     }
-
-    var actions = ex.status === 'resolved'
-      ? '<button class="btn ghost" type="button">View resolution log</button>'
-      : '<button class="btn primary" type="button">Approve correction</button>' +
-        '<button class="btn" type="button">Reassign</button>' +
-        '<button class="btn ghost" type="button">Mark false positive</button>';
-
+    var resBlock = '';
+    if(ex.status === 'resolved'){
+      resBlock = '<div class="rationale" style="background:#eaf5ee; border-color:transparent;"><div class="r-head">Resolution</div>' + dEsc(f.resReason || 'Resolved') + (f.note ? ' — ' + dEsc(f.note) : '') + '<br><span style="color:var(--ink-soft)">' + dEsc(f.resolvedBy || '') + (f.resolvedDate ? ' on ' + dEsc(f.resolvedDate) : '') + '</span></div>';
+    } else if(f.note){
+      resBlock = '<div class="rationale"><div class="r-head">Note</div>' + dEsc(f.note) + '</div>';
+    }
+    var hist = '';
+    if(liveHistory){
+      var h = liveHistory.filter(function(x){ return x.key === f.key; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); });
+      hist = '<div class="rationale"><div class="r-head">History</div>' + (h.length ? h.map(function(x){
+        return '<div style="margin-bottom:4px;">' + dEsc(x.at ? new Date(x.at).toLocaleString() : '') + ' — <b>' + dEsc(x.from || '—') + ' → ' + dEsc(x.to) + '</b> by ' + dEsc(x.by || 'unknown') + (x.detail ? '<br><span style="color:var(--ink-soft)">' + dEsc(x.detail) + '</span>' : '') + '</div>';
+      }).join('') : 'No status changes recorded yet.') + '</div>';
+    } else if(liveHistError){
+      hist = '<div class="rationale"><div class="r-head">History</div>The FindingHistory list could not be read (' + dEsc(liveHistError) + '). Create it to start recording who changed what.</div>';
+    }
+    var stamp = f.modified ? '<div class="emp-status" style="padding:8px 0 0;">Last updated ' + dEsc(new Date(f.modified).toLocaleString()) + (f.modifiedBy ? ' by ' + dEsc(f.modifiedBy) : '') + '</div>' : '';
     detailBody.innerHTML =
-      '<div class="detail-title">' + ex.title + '</div>' +
-      '<div class="detail-grid">' + fieldsHtml + '</div>' +
-      aiBlock +
-      '<div class="actions">' + actions + '</div>';
-
-    function field(label, value){
-      return '<div class="detail-field"><div class="f-label">' + label + '</div><div class="f-value">' + value + '</div></div>';
-    }
+      '<div class="detail-title">' + dEsc(ex.title) + '</div>' +
+      '<div class="detail-grid">' + fieldsHtml + '</div>' + noteBlock + aiBlock + resBlock + hist + stamp +
+      '<div class="actions"><button class="btn primary" type="button" id="dashOpenWeek">Open this week in Weekly Hours</button></div>';
+    document.getElementById('dashOpenWeek').addEventListener('click', async function(){
+      var nav = document.querySelector('.rail nav a[data-view="hours"]'); if(nav) nav.click();
+      if(typeof window.hrsOpenWeek === 'function'){ try{ await window.hrsOpenWeek(f.weekStart); }catch(err){ console.warn('UPAE: open week', err); } }
+    });
   }
 
-  renderQueue();
-  renderDetail();
+  // ---- live KPIs, routing and trend ----
+  function medianDays(list){
+    var d = [];
+    list.forEach(function(f){ if(f.status === 'Resolved' && f.sentDate && f.resolvedDate){ var x = (Date.parse(f.resolvedDate) - Date.parse(f.sentDate)) / 86400000; if(isFinite(x) && x >= 0) d.push(x); } });
+    if(!d.length) return null; d.sort(function(a, b){ return a - b; }); var m = Math.floor(d.length / 2);
+    return d.length % 2 ? d[m] : (d[m - 1] + d[m]) / 2;
+  }
+  function renderLiveKpis(){
+    var el = document.getElementById('dashKpis'); if(!el) return;
+    function kpi(label, val, sub, cls){ return '<div class="kpi"><div class="k-label">' + label + '</div><div class="k-value">' + val + '</div><div class="k-delta ' + (cls || 'flat') + '">' + sub + '</div></div>'; }
+    if(!liveLoaded){ el.innerHTML = kpi('Open exceptions', '—', 'sign in to load') + kpi('Resolved', '—', '') + kpi('With an AI note', '—', '') + kpi('Median days to resolve', '—', ''); return; }
+    var total = exceptions.length, res = exceptions.filter(function(e){ return e.status === 'resolved'; }).length, sent = exceptions.filter(function(e){ return e.status === 'review'; }).length;
+    var open = total - res, ai = exceptions.filter(function(e){ return e.source === 'ai' && e.status !== 'resolved'; }).length, md = medianDays(liveFindings);
+    el.innerHTML = kpi('Open exceptions', open, sent + ' waiting on a PM · ' + (open - sent) + ' not sent yet', open ? 'up' : 'down') +
+      kpi('Resolved', res + '<span class="unit">of ' + total + '</span>', (total ? Math.round(res * 100 / total) : 0) + '% of flagged items', 'flat') +
+      kpi('Open with an AI note', ai, 'explained with AI, still open', 'flat') +
+      kpi('Median days to resolve', md == null ? '—' : (Math.round(md * 10) / 10) + '<span class="unit">days</span>', md == null ? 'no sent-then-resolved items yet' : 'from sent to PM until resolved', 'flat');
+  }
+  function renderLiveRouting(){
+    var tb = document.getElementById('dashRouting'); if(!tb) return;
+    if(!liveLoaded){ tb.innerHTML = '<tr><td colspan="3" class="empty-note">Loads after sign-in.</td></tr>'; return; }
+    var by = {}, notSent = 0;
+    exceptions.forEach(function(e){
+      if(e.status === 'open'){ notSent++; return; }
+      var k = e.reviewer; var o = by[k] = by[k] || { name: k, waiting: 0, done: 0 };
+      if(e.status === 'review') o.waiting++; else o.done++;
+    });
+    var rows = Object.keys(by).map(function(k){ return by[k]; }).sort(function(a, b){ return (b.waiting - a.waiting) || (b.done - a.done); });
+    var max = Math.max.apply(null, [notSent].concat(rows.map(function(r){ return r.waiting; })).concat([1]));
+    tb.innerHTML = rows.slice(0, 12).map(function(r){
+      return '<tr><td><div class="route-name">' + dEsc(r.name) + '</div><div class="route-role">Project manager</div></td><td>' + r.waiting + ' waiting · ' + r.done + ' resolved</td><td class="num"><span class="load-bar"><span style="width:' + Math.round(r.waiting * 100 / max) + '%"></span></span>' + r.waiting + '</td></tr>';
+    }).join('') + '<tr><td><div class="route-name">Not sent yet</div><div class="route-role">Needs a PM</div></td><td>Open findings with no PM</td><td class="num"><span class="load-bar"><span style="width:' + Math.round(notSent * 100 / max) + '%"></span></span>' + notSent + '</td></tr>';
+  }
+  function renderLiveTrend(){
+    var by = {};
+    liveFindings.forEach(function(f){ var w = f.weekStart || '?'; var o = by[w] = by[w] || { w: w, flagged: 0, resolved: 0 }; o.flagged++; if(f.status === 'Resolved') o.resolved++; });
+    var weeks = Object.keys(by).sort().slice(-6).map(function(k){ return by[k]; });
+    if(!weeks.length){ drawTrend([], [], []); return; }
+    drawTrend(weeks.map(function(w){ return dDay(w.w); }), weeks.map(function(w){ return w.flagged; }), weeks.map(function(w){ return w.resolved; }));
+  }
+  function renderAllLive(){ renderLiveKpis(); renderQueue(); renderDetail(); renderLiveRouting(); renderLiveTrend();
+    var sub = document.getElementById('dashQueueSub'); if(sub) sub.textContent = liveLoaded ? (exceptions.length + ' findings across ' + Object.keys(liveFindings.reduce(function(a, f){ a[f.weekStart] = 1; return a; }, {})).length + ' saved week(s) · live from SharePoint') : 'not loaded'; }
+  async function dashRefresh(){
+    if(liveBusy || typeof upaeFetchFindings !== 'function') return;
+    liveBusy = true; liveStale = false;
+    var sub = document.getElementById('dashQueueSub'); if(sub) sub.textContent = 'refreshing…';
+    try{ liveFindings = await upaeFetchFindings(); liveError = null; liveLoaded = true; exceptions = buildExceptions(liveFindings); }
+    catch(err){ console.warn('UPAE: dashboard findings', err); liveError = err.message || String(err); liveLoaded = false; }
+    liveHistory = null; liveHistError = null;
+    if(liveLoaded && typeof upaeFetchHistory === 'function'){ try{ liveHistory = await upaeFetchHistory(); } catch(err){ liveHistError = 'not set up yet'; } }
+    liveStamp = Date.now(); liveBusy = false;
+    renderAllLive();
+  }
+  window.upaeDashRefresh = dashRefresh;
+  window.upaeDashInvalidate = function(){ liveStale = true; window.__dashStale = true; };
+  renderAllLive();
+  var refreshBtn = document.getElementById('dashRefreshBtn'); if(refreshBtn) refreshBtn.addEventListener('click', dashRefresh);
 
   // ---- filter chips ----
   (function initFilters(){
@@ -2033,6 +1963,7 @@
         var target = link.getAttribute('data-view');
         navLinks.forEach(function(l){ l.classList.toggle('active', l.getAttribute('data-view') === target); });
         Object.keys(views).forEach(function(key){ views[key].hidden = (key !== target); });
+        if(target === 'dashboard' && typeof window.upaeDashRefresh === 'function' && (Date.now() - (window.__dashStamp || 0) > 120000 || window.__dashStale)){ window.__dashStamp = Date.now(); window.__dashStale = false; window.upaeDashRefresh(); }
         if(views[target]) views[target].scrollIntoView({block:'start'});
       });
     });
@@ -2208,19 +2139,18 @@
   })();
 
   // ---- trend chart ----
-  (function drawChart(){
+  function drawTrend(periods, ruleData, aiData){
     var svg = document.getElementById('trendChart');
-    var periods = ['08/04','08/11','08/18','08/25','09/01','09/08'];
-    var ruleData = [11, 9, 13, 8, 10, 9];
-    var aiData   = [2, 3, 2, 4, 3, 5];
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    if(!periods.length){ var t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.setAttribute('x', 280); t.setAttribute('y', 100); t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', 12); t.setAttribute('fill', 'var(--ink-faint)'); t.textContent = 'No saved weeks yet'; svg.appendChild(t); return; }
 
     var W = 560, H = 200;
     var padL = 30, padR = 12, padT = 14, padB = 26;
     var plotW = W - padL - padR, plotH = H - padT - padB;
-    var maxV = 14;
+    var maxV = Math.max(4, Math.ceil(Math.max.apply(null, ruleData.concat(aiData)) / 4) * 4);
     var n = periods.length;
 
-    function x(i){ return padL + (plotW / (n - 1)) * i; }
+    function x(i){ return n === 1 ? padL + plotW / 2 : padL + (plotW / (n - 1)) * i; }
     function y(v){ return padT + plotH - (v / maxV) * plotH; }
 
     var ns = 'http://www.w3.org/2000/svg';
@@ -2231,11 +2161,11 @@
     }
 
     // gridlines + y labels
-    [0, 4, 8, 12].forEach(function(v){
+    [0, maxV / 4, maxV / 2, maxV * 3 / 4, maxV].forEach(function(v){
       var gl = el('line', {x1:padL, x2:W-padR, y1:y(v), y2:y(v), stroke:'var(--line-soft)', 'stroke-width':1});
       svg.appendChild(gl);
       var lab = el('text', {x:padL - 8, y:y(v)+3, 'text-anchor':'end', 'font-size':10, fill:'var(--ink-faint)', 'font-family':'IBM Plex Mono, monospace'});
-      lab.textContent = v;
+      lab.textContent = Math.round(v);
       svg.appendChild(lab);
     });
 
@@ -2274,7 +2204,7 @@
     var lastAi = el('text', {x:x(n-1)+7, y:y(aiData[n-1])+4, 'font-size':11, fill:'var(--ai-tag)', 'font-family':'IBM Plex Mono, monospace', 'font-weight':'600'});
     lastAi.textContent = aiData[n-1];
     svg.appendChild(lastAi);
-  })();
+  }
 
   // ---- insights: category / dollar-impact bar lists ----
   (function drawInsightBars(){
@@ -3836,21 +3766,65 @@
              aiEvidence: i.ai ? (i.ai.evidence || []).join(' | ') : '', aiConfidence: i.ai ? i.ai.confidence : '', aiModel: i.ai ? i.ai.model : '', aiDate: i.ai ? i.ai.date : '', aiFeedback: i.ai ? (i.ai.feedback || '') : '' };
   }
   // create or update the WeeklyFindings rows for these items
-  async function hrsPersistFindings(items, onProgress){
+  async function hrsPersistFindings(items, onProgress, opts){
+    opts = opts || {};
     if(!items.length) return { ok: 0, bad: [] };
     if(hrsFindError) return { ok: 0, bad: [{ error: 'WeeklyFindings list could not be read: ' + hrsFindError }] };
     if(typeof upaeBatchFindings !== 'function') return { ok: 0, bad: [{ error: 'SharePoint is not connected in this view.' }] };
+    var savedOf = function(i){ return i.spItemId ? (hrsFindSaved || []).filter(function(x){ return x.spItemId === i.spItemId; })[0] : null; };
+    var me = (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : '');
+    // 1. has somebody else changed these rows since this screen loaded them?
+    if(!opts.force && typeof upaeFetchFindingStamps === 'function'){
+      try{
+        var ids = items.filter(function(i){ return i.spItemId; }).map(function(i){ return i.spItemId; });
+        var stamps = ids.length ? await upaeFetchFindingStamps(ids) : {}, clash = [];
+        items.forEach(function(i){
+          var cur = savedOf(i), st = i.spItemId ? stamps[i.spItemId] : null;
+          if(!cur || !st || !st.modified || !cur.modified) return;
+          if(st.modified > cur.modified && String(st.modifiedBy).toLowerCase() !== String(me).toLowerCase()) clash.push({ item: i, by: st.modifiedBy || 'someone else', at: st.modified });
+        });
+        if(clash.length){
+          var lines = clash.slice(0, 3).map(function(c){ return '• ' + c.item.name + ' (' + (c.item.iso ? hrsPretty(c.item.iso) : 'record') + ') – changed by ' + c.by + ' on ' + new Date(c.at).toLocaleString(); }).join('\n');
+          var go = confirm(clash.length + ' record(s) were changed by someone else since you opened this week:\n\n' + lines + (clash.length > 3 ? '\n…' : '') + '\n\nOK = overwrite their change with yours.\nCancel = keep their change and reload the week.');
+          if(!go){
+            await hrsRefreshSaved();
+            return { ok: 0, bad: [{ error: 'Cancelled – someone else changed these records, so the latest version was reloaded.' }], cancelled: true };
+          }
+        }
+      } catch(err){ console.warn('UPAE: could not check for concurrent edits', err); }
+    }
+    var before = items.map(function(i){ var c = savedOf(i); return c ? { status: c.status, sentTo: c.sentTo } : null; });
     var ops = items.map(function(i){ var r = hrsFindingRow(i); return i.spItemId ? { kind: 'update', row: r, spItemId: i.spItemId } : { kind: 'create', row: r }; });
-    var res = await upaeBatchFindings(ops, onProgress), ok = 0, bad = [];
+    var res = await upaeBatchFindings(ops, onProgress), ok = 0, bad = [], hist = [], today = new Date().toISOString();
     res.forEach(function(r, k){
       if(r && r.ok){
         ok++;
-        var it = items[k];
-        if(!it.spItemId){ it.spItemId = r.spItemId; hrsFindSaved = hrsFindSaved || []; hrsFindSaved.push(Object.assign({}, ops[k].row, { spItemId: r.spItemId })); }
-        else { var cur = (hrsFindSaved || []).filter(function(x){ return x.spItemId === it.spItemId; })[0]; if(cur) Object.assign(cur, ops[k].row); }
+        var it = items[k], row = ops[k].row;
+        if(!it.spItemId){ it.spItemId = r.spItemId; hrsFindSaved = hrsFindSaved || []; hrsFindSaved.push(Object.assign({}, row, { spItemId: r.spItemId })); }
+        else { var cur = (hrsFindSaved || []).filter(function(x){ return x.spItemId === it.spItemId; })[0]; if(cur) Object.assign(cur, row); }
+        var prev = before[k] ? before[k].status : 'Open';
+        if(row.status !== prev){
+          var detail = row.status === STATUS_DONE ? [row.resReason, row.note].filter(Boolean).join(' – ') : row.status === STATUS_SENT ? ('Sent to ' + row.sentTo) : '';
+          hist.push({ key: row.key, weekStart: row.weekStart, id: row.id, name: row.name, from: prev, to: row.status, detail: detail, by: me });
+        }
       } else bad.push({ error: r && r.error });
     });
-    return { ok: ok, bad: bad };
+    // 2. remember the new modified stamps so our own saves are not mistaken for somebody else's
+    if(ok && typeof upaeFetchFindingStamps === 'function'){
+      try{
+        var ids2 = items.filter(function(i){ return i.spItemId; }).map(function(i){ return i.spItemId; }), st2 = await upaeFetchFindingStamps(ids2);
+        items.forEach(function(i){ var c = savedOf(i), s = st2[i.spItemId]; if(c && s && s.modified){ c.modified = s.modified; c.modifiedBy = s.modifiedBy; } });
+      } catch(err){ console.warn('UPAE: could not refresh modified stamps', err); }
+    }
+    // 3. change history (never blocks the save)
+    var histErr = '';
+    if(hist.length && typeof upaeLogHistory === 'function'){
+      try{ var hr = await upaeLogHistory(hist); var hb = hr.filter(function(x){ return !x.ok; }); if(hb.length) histErr = hb[0].error || 'unknown error'; }
+      catch(err){ histErr = err.message || String(err); }
+      if(histErr) console.warn('UPAE: FindingHistory not written:', histErr);
+    }
+    if(typeof window.upaeDashInvalidate === 'function') window.upaeDashInvalidate();
+    return { ok: ok, bad: bad, histErr: histErr };
   }
 
   // ---------------- saved weeks ----------------
@@ -4074,7 +4048,7 @@
     renderHoursFindings(); renderHoursDash();
     var r = await hrsPersistFindings(items);
     var st = document.getElementById('hrsActionStatus');
-    if(st) st.textContent = r.bad.length ? 'Updated on screen, but not saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : 'Marked ' + items.length + ' finding(s) as ' + status + '.';
+    if(st) st.textContent = r.cancelled ? r.bad[0].error : r.bad.length ? 'Updated on screen, but not saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : 'Marked ' + items.length + ' finding(s) as ' + status + '.';
     if(st && r.bad.length) st.className = 'emp-status err';
   }
   function hrsDownloadCsv(){
@@ -4199,7 +4173,7 @@
     renderHoursFindings(); renderHoursDash();
     var r = await hrsPersistFindings(items);
     var st2 = document.getElementById('hrsActionStatus');
-    if(st2){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = r.bad.length ? 'Marked on screen, but not saved to SharePoint: ' + (r.bad[0].error || 'unknown error') + ' (the WeeklyFindings list needs the ResolutionReason, ResolvedBy and ResolvedDate columns).' : 'Resolved ' + items.length + ' finding(s): ' + reason + '.'; }
+    if(st2){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = r.cancelled ? r.bad[0].error : r.bad.length ? 'Marked on screen, but not saved to SharePoint: ' + (r.bad[0].error || 'unknown error') + ' (the WeeklyFindings list needs the ResolutionReason, ResolvedBy and ResolvedDate columns).' : 'Resolved ' + items.length + ' finding(s): ' + reason + '.'; }
   }
   document.getElementById('hrsResApply').addEventListener('click', applyResolve);
   document.getElementById('hrsResCancel').addEventListener('click', closeResolveModal);
@@ -4353,6 +4327,7 @@
 
   // ---------------- email the project managers ----------------
   window.hrsGetPMs = function(){ return hrsPMs; };
+  window.hrsOpenWeek = async function(start){ if(!hrsLoadedOnce) await hrsRefreshSaved(); hrsOpenSaved(start); };
   var mailOverlay = document.getElementById('hrsMailOverlay');
   var mailGroups = [], mailBusy = false, mailSkipped = [];
   function pmOptions(selected){
@@ -4491,7 +4466,7 @@
     if(!failed.length){ mailOverlay.hidden = true; }
     else { st.className = 'emp-status err'; st.textContent = (okEmails.length ? okEmails.length + ' sent. ' : '') + 'Not sent — ' + failed.join(' | ') + (/Mail\.Send|permission|consent/i.test(failed.join()) ? ' If this is a permission message, an administrator needs to add the Mail.Send permission to the app registration.' : ''); }
     renderHoursFindings(); renderHoursDash();
-    var r = okItems.length ? await hrsPersistFindings(okItems) : { bad: [] };
+    var r = okItems.length ? await hrsPersistFindings(okItems, null, { force: true }) : { bad: [] };
     var st2 = document.getElementById('hrsActionStatus');
     if(st2 && okItems.length){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = okEmails.length + ' email' + (okEmails.length === 1 ? '' : 's') + ' sent for ' + okItems.length + ' record(s)' + (remembered ? '; remembered the PM for ' + remembered + ' employee(s)' : '') + '.' + (r.bad.length ? ' Status could not be saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : ' Status saved.'); }
     updateMailSummary();
