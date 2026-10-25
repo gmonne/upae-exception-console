@@ -630,6 +630,8 @@
   .ai-warn{color:var(--warn); font-weight:600;} .ai-ev{font-size:12px; color:var(--ink-soft); padding:2px 0; border-top:1px solid #d8cdee;}
   .ai-card details summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--ai-tag);}
   .ai-fb{margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px;} .ai-fb .btn{font-size:11.5px; padding:2px 9px;}
+  .ai-collapsed{display:flex; align-items:center; gap:8px; padding:5px 10px;} .ai-collapsed .btn{margin-left:auto; font-size:11.5px; padding:2px 9px;}
+  .ai-hide{margin-left:auto; font-size:11.5px !important; padding:2px 9px !important;}
   .ai-note{font-size:11px; color:var(--ink-faint); margin-top:6px;}
   #view-employees{display:flex; flex-direction:column; gap:18px;}
   .emp-import{display:flex; align-items:center; gap:12px; padding:14px 18px; flex-wrap:wrap;}
@@ -3706,7 +3708,7 @@
           i.ai = { explanation: sv.aiExplanation, likelyCause: sv.aiLikelyCause, suggestedAction: sv.aiSuggestedAction, evidence: sv.aiEvidence ? sv.aiEvidence.split(' | ') : [],
                    confidence: sv.aiConfidence || 'low', model: sv.aiModel, date: sv.aiDate, feedback: sv.aiFeedback || '' };
           if(!hrsAi[i.key] || hrsAi[i.key].state !== 'loading')
-            hrsAi[i.key] = Object.assign({}, hrsAi[i.key], { state: 'done', saved: true, feedback: sv.aiFeedback || (hrsAi[i.key] && hrsAi[i.key].feedback) || '',
+            hrsAi[i.key] = Object.assign({}, hrsAi[i.key], { state: 'done', saved: true, collapsed: (hrsAi[i.key] && hrsAi[i.key].collapsed != null) ? hrsAi[i.key].collapsed : true, feedback: sv.aiFeedback || (hrsAi[i.key] && hrsAi[i.key].feedback) || '',
               data: { stub: false, model: sv.aiModel, confidence: i.ai.confidence, explanation: i.ai.explanation, likelyCause: i.ai.likelyCause, suggestedAction: i.ai.suggestedAction, evidence: i.ai.evidence, needsMoreInfo: false } });
         }
       }
@@ -3934,6 +3936,7 @@
       '<button class="btn primary" type="button" id="hrsMailBtn"' + (sel.length ? '' : ' disabled') + '>Email PM&hellip;</button>' +
       '<button class="btn" type="button" id="hrsDoneBtn"' + (sel.length ? '' : ' disabled') + '>Mark resolved</button>' +
       '<button class="btn ghost" type="button" id="hrsReopenBtn"' + (sel.length ? '' : ' disabled') + '>Reopen</button>' +
+      '<button class="btn ghost" type="button" id="hrsAiShowAll">Show AI</button><button class="btn ghost" type="button" id="hrsAiHideAll">Hide AI</button>' +
       '<button class="btn ghost" type="button" id="hrsCsvBtn" style="margin-left:auto;">Download CSV</button></div>' +
       '<div class="emp-status" id="hrsActionStatus"></div>';
     if(!list.length) html += '<div class="emp-status">' + (f.items.length ? 'Nothing in this filter.' : 'No findings. Every checked day matches its rule.') + '</div>';
@@ -3966,6 +3969,9 @@
     Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-ai]'), function(b){ b.addEventListener('click', function(){ hrsExplain(b.getAttribute('data-hrs-ai')); }); });
     wireAiBoxes(el);
     var more = document.getElementById('hrsMoreBtn'); if(more) more.addEventListener('click', function(){ hrsShown += 150; renderHoursFindings(); });
+    function setAllAi(c){ Object.keys(hrsAi).forEach(function(k){ if(hrsAi[k].state === 'done') hrsAi[k].collapsed = c; }); renderHoursFindings(); }
+    document.getElementById('hrsAiShowAll').addEventListener('click', function(){ setAllAi(false); });
+    document.getElementById('hrsAiHideAll').addEventListener('click', function(){ setAllAi(true); });
     document.getElementById('hrsCsvBtn').addEventListener('click', hrsDownloadCsv);
     document.getElementById('hrsMailBtn').addEventListener('click', openMailModal);
     document.getElementById('hrsDoneBtn').addEventListener('click', function(){ hrsSetStatus(STATUS_DONE); });
@@ -4006,8 +4012,9 @@
     if(a.state === 'loading') return '<div class="ai-card"><span class="ai-tag">AI</span> Thinking&hellip;</div>';
     if(a.state === 'error') return '<div class="ai-card err"><span class="ai-tag">AI</span> ' + escapeHtml(a.err) + '</div>';
     var d = a.data;
+    if(a.collapsed) return '<div class="ai-card ai-collapsed"><span class="ai-tag">AI</span><span class="ai-conf">AI explanation &middot; confidence: ' + escapeHtml(d.confidence) + '</span><button class="btn ghost" type="button" data-hrs-ai-toggle="' + escapeHtml(key) + '">Show</button></div>';
     return '<div class="ai-card"><div class="ai-head"><span class="ai-tag">AI</span><span class="ai-conf">Confidence: ' + escapeHtml(d.confidence) + '</span>' +
-      (d.stub ? '<span class="ai-stub">Sample answer &mdash; the AI key is not set up yet</span>' : '') + '</div>' +
+      (d.stub ? '<span class="ai-stub">Sample answer &mdash; the AI key is not set up yet</span>' : '') + '<button class="btn ghost ai-hide" type="button" data-hrs-ai-toggle="' + escapeHtml(key) + '">Hide</button></div>' +
       '<p><b>What happened.</b> ' + escapeHtml(d.explanation) + '</p>' +
       '<p><b>Likely cause.</b> ' + escapeHtml(d.likelyCause) + '</p>' +
       '<p><b>Suggested action.</b> ' + escapeHtml(d.suggestedAction) + '</p>' +
@@ -4018,6 +4025,9 @@
       '<div class="ai-note">AI-generated from the rule text and this record. The rule check above is the source of truth.' + (a.saveNote ? ' ' + escapeHtml(a.saveNote) : '') + (d.model && d.model !== 'stub' ? ' Model: ' + escapeHtml(d.model) + '.' : '') + '</div></div>';
   }
   function wireAiBoxes(root){
+    Array.prototype.forEach.call(root.querySelectorAll('[data-hrs-ai-toggle]'), function(b){
+      b.addEventListener('click', function(){ var k = b.getAttribute('data-hrs-ai-toggle'); if(hrsAi[k]){ hrsAi[k].collapsed = !hrsAi[k].collapsed; refreshAiBox(k); } });
+    });
     Array.prototype.forEach.call(root.querySelectorAll('[data-hrs-ai-fb]'), function(b){
       b.addEventListener('click', function(){ hrsAiFeedback(b.getAttribute('data-key'), b.getAttribute('data-hrs-ai-fb') === 'up' ? 'Helpful' : 'Not helpful'); });
     });

@@ -769,25 +769,33 @@ async function upaeGetIdToken() {
 }
 async function upaeAiExplain(payload) {
   const idToken = await upaeGetIdToken();
-  let res;
-  try {
-    res = await fetch("/api/ai/explain", {
-      method: "POST",
-      // Static Web Apps rewrites the standard Authorization header on /api calls, so the sign-in token travels in its own header.
-      headers: { "X-UPAE-Token": "Bearer " + idToken, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (err) {
-    throw new Error("Could not reach the AI service. It may not be deployed yet.");
+  let lastErr = null;
+  // One quiet retry: a bare 5xx from Azure (cold start, worker restart) usually clears on the second try.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let res;
+    try {
+      res = await fetch("/api/ai/explain", {
+        method: "POST",
+        // Static Web Apps rewrites the standard Authorization header on /api calls, so the sign-in token travels in its own header.
+        headers: { "X-UPAE-Token": "Bearer " + idToken, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      lastErr = new Error("Could not reach the AI service. It may not be deployed yet.");
+      if (attempt === 0) { await new Promise((r) => setTimeout(r, 1500)); continue; }
+      throw lastErr;
+    }
+    const text = await res.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch (e) { /* not JSON */ }
+    if (res.ok && body) return body;
+    const serverMsg = body && body.error;
+    lastErr = new Error(serverMsg || (res.status === 404 ? "The AI service is not deployed yet (404)." : res.status >= 500 ? "The AI service had a temporary problem (" + res.status + "). Please try again." : "The AI service returned " + res.status + "."));
+    // retry only bare server errors (no message from our own code)
+    if (attempt === 0 && res.status >= 500 && !serverMsg) { await new Promise((r) => setTimeout(r, 1500)); continue; }
+    throw lastErr;
   }
-  const text = await res.text();
-  let body = null;
-  try { body = JSON.parse(text); } catch (e) { /* not JSON */ }
-  if (!res.ok) {
-    throw new Error((body && body.error) || (res.status === 404 ? "The AI service is not deployed yet (404)." : "The AI service returned " + res.status + "."));
-  }
-  if (!body) throw new Error("The AI service returned an unreadable answer.");
-  return body;
+  throw lastErr || new Error("The AI request failed.");
 }
 // AILog: audit trail of every AI answer, plus the reviewer's feedback (the learning signal for later phases)
 async function upaeCreateAILog(r) {
