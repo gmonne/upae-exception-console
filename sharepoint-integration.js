@@ -42,6 +42,7 @@ const UPAE_CONFIG = {
     weeklyHours: "WeeklyHours",
     weeklyFindings: "WeeklyFindings",
     projectManagers: "ProjectManagers",
+    aiLog: "AILog",
   },
 };
 
@@ -736,6 +737,64 @@ async function upaeSendMail(toList, ccList, subject, htmlBody) {
     const t = await res.text().catch(() => "");
     throw new Error("Email was not sent: " + res.status + " " + t.slice(0, 300));
   }
+}
+
+// ---- AI environment: calls the Azure Function in this Static Web App (/api/ai/*) ----
+async function upaeGetIdToken() {
+  const account = msalInstance.getActiveAccount() || msalInstance.getAllAccounts()[0];
+  if (!account) { await upaeSignIn(); return upaeGetIdToken(); }
+  let result;
+  try { result = await msalInstance.acquireTokenSilent({ scopes: graphScopes, account }); }
+  catch (err) { result = await msalInstance.acquireTokenPopup({ scopes: graphScopes }); }
+  return result.idToken;
+}
+async function upaeAiExplain(payload) {
+  const idToken = await upaeGetIdToken();
+  let res;
+  try {
+    res = await fetch("/api/ai/explain", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + idToken, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    throw new Error("Could not reach the AI service. It may not be deployed yet.");
+  }
+  const text = await res.text();
+  let body = null;
+  try { body = JSON.parse(text); } catch (e) { /* not JSON */ }
+  if (!res.ok) {
+    throw new Error((body && body.error) || (res.status === 404 ? "The AI service is not deployed yet (404)." : "The AI service returned " + res.status + "."));
+  }
+  if (!body) throw new Error("The AI service returned an unreadable answer.");
+  return body;
+}
+// AILog: audit trail of every AI answer, plus the reviewer's feedback (the learning signal for later phases)
+async function upaeCreateAILog(r) {
+  const url = await upaeListItemsUrl("aiLog");
+  return upaeGraphFetch(url, {
+    method: "POST",
+    body: JSON.stringify({ fields: {
+      Title: (r.purpose || "explain") + " " + (r.findingKey || ""),
+      Purpose: r.purpose || "explain",
+      FindingKey: r.findingKey || "",
+      WeekStart: r.weekStart || "",
+      UserEmail: r.userEmail || "",
+      Model: r.model || "",
+      PromptVersion: r.promptVersion || "",
+      Confidence: r.confidence || "",
+      Output: r.output || "",
+      Feedback: "",
+    } }),
+  });
+}
+async function upaeUpdateAILogFeedback(spItemId, feedback) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.aiLog}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ Feedback: feedback }) });
+}
+function upaeCurrentUserEmail() {
+  const a = msalInstance.getActiveAccount() || msalInstance.getAllAccounts()[0];
+  return a ? (a.username || "") : "";
 }
 
 /* Wires the #upaeSignInBtn button (added in upae-mockup.html's <body>) to the

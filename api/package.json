@@ -1,0 +1,8 @@
+{
+  "name": "upae-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UPAE AI environment: Azure Functions behind the Static Web App. No runtime dependencies.",
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node test/run.js" }
+}

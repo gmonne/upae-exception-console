@@ -618,6 +618,19 @@
   .progress{display:flex; height:16px; border-radius:6px; overflow:hidden; background:var(--line-soft);} .progress i{display:block;}
   .p-open{background:var(--warn);} .p-sent{background:var(--accent);} .p-done{background:var(--good);}
   @media (max-width:900px){ .dash-grid{grid-template-columns:1fr;} .hrs-row{grid-template-columns:26px minmax(0,1fr) !important;} }
+
+  .hrs-ai-wrap{margin-top:6px;}
+  .hrs-ai-btn{font-size:12px !important; padding:3px 9px !important; color:var(--ai-tag) !important; border-color:var(--ai-tag-soft) !important;}
+  .hrs-ai-box:empty{display:none;}
+  .ai-card{margin-top:8px; background:var(--ai-tag-soft); border:1px solid #d8cdee; border-radius:8px; padding:9px 12px; font-size:12.5px; line-height:1.5; color:var(--ink);}
+  .ai-card p{margin:5px 0;} .ai-card.err{background:var(--crit-soft); border-color:#e6c4c0; color:var(--crit);}
+  .ai-head{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:2px;}
+  .ai-tag{display:inline-block; background:var(--ai-tag); color:#fff; font-size:10.5px; font-weight:700; letter-spacing:0.06em; padding:1px 7px; border-radius:999px; margin-right:6px;}
+  .ai-conf{font-size:11.5px; font-weight:600; color:var(--ai-tag);} .ai-stub{font-size:11.5px; color:var(--warn); font-weight:600;}
+  .ai-warn{color:var(--warn); font-weight:600;} .ai-ev{font-size:12px; color:var(--ink-soft); padding:2px 0; border-top:1px solid #d8cdee;}
+  .ai-card details summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--ai-tag);}
+  .ai-fb{margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px;} .ai-fb .btn{font-size:11.5px; padding:2px 9px;}
+  .ai-note{font-size:11px; color:var(--ink-faint); margin-top:6px;}
   #view-employees{display:flex; flex-direction:column; gap:18px;}
   .emp-import{display:flex; align-items:center; gap:12px; padding:14px 18px; flex-wrap:wrap;}
   .emp-banner{padding:12px 16px; border-radius:8px; font-size:13px; line-height:1.5; background:var(--warn-soft); color:var(--warn); border:1px solid #e6d3a8;}
@@ -1146,6 +1159,13 @@
             <tr><th>Column</th><th>Type</th></tr>
             <tr><td>Title</td><td>Single line of text (the PM&rsquo;s name)</td></tr>
             <tr><td>Email</td><td>Single line of text</td></tr>
+          </table>
+          <p><b>AILog</b> &mdash; one row for each AI explanation (audit trail and feedback)</p>
+          <table>
+            <tr><th>Column</th><th>Type</th></tr>
+            <tr><td>Title</td><td>Single line of text (already there)</td></tr>
+            <tr><td>Purpose, FindingKey, WeekStart, UserEmail, Model, PromptVersion, Confidence, Feedback</td><td>Single line of text (8 columns)</td></tr>
+            <tr><td>Output</td><td>Multiple lines of text (plain text)</td></tr>
           </table>
           <p>Sending email needs the <b>Mail.Send</b> delegated permission on the app registration (an administrator may need to grant consent).</p>
         </div>
@@ -3593,6 +3613,7 @@
   var hrsStatusFilter = 'all';
   var hrsLoadedOnce = false;
   var hrsPmEdit = null;
+  var hrsAi = {};   // finding key -> { state:'loading'|'done'|'error', data, err, logId, feedback }
   var STATUS_OPEN = 'Open', STATUS_SENT = 'Sent to PM', STATUS_DONE = 'Resolved';
 
   function parTxt(x){ x = empClean(x); return x ? ' (' + x + ')' : ''; }
@@ -3911,7 +3932,9 @@
           '<div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
           '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div>' +
           '<div class="h-msg"><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleId + ' · ' + i.ruleName) + '</b>' + (i.cba ? ' <span class="e-sub" style="display:inline;">' + escapeHtml(i.cba) + '</span>' : '') +
-          '<div>' + escapeHtml(i.broken.join(' ')) + '</div><div class="h-stat ' + (i.status === STATUS_DONE ? 'done' : i.status === STATUS_SENT ? 'sent' : '') + '">' + escapeHtml(itemLine(i)) + '</div></div></div>';
+          '<div>' + escapeHtml(i.broken.join(' ')) + '</div><div class="h-stat ' + (i.status === STATUS_DONE ? 'done' : i.status === STATUS_SENT ? 'sent' : '') + '">' + escapeHtml(itemLine(i)) + '</div>' +
+          '<div class="hrs-ai-wrap"><button class="btn ghost hrs-ai-btn" type="button" data-hrs-ai="' + escapeHtml(i.key) + '"' + (hrsAi[i.key] && hrsAi[i.key].state === 'loading' ? ' disabled' : '') + '>' + (hrsAi[i.key] && hrsAi[i.key].state === 'done' ? 'Explain again' : 'Explain with AI') + '</button></div>' +
+          '<div class="hrs-ai-box" data-hrs-ai-box="' + escapeHtml(i.key) + '">' + aiBoxHtml(i.key) + '</div></div></div>';
       });
       if(list.length > hrsShown) html += '<div class="emp-actions"><button class="btn" type="button" id="hrsMoreBtn">Show ' + Math.min(150, list.length - hrsShown) + ' more (' + (list.length - hrsShown) + ' left)</button></div>';
     }
@@ -3928,6 +3951,8 @@
     var all = document.getElementById('hrsSelAll');
     all.checked = list.length > 0 && list.every(function(i){ return hrsSel[i.key]; });
     all.addEventListener('change', function(){ list.forEach(function(i){ if(all.checked) hrsSel[i.key] = true; else delete hrsSel[i.key]; }); renderHoursFindings(); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-ai]'), function(b){ b.addEventListener('click', function(){ hrsExplain(b.getAttribute('data-hrs-ai')); }); });
+    wireAiBoxes(el);
     var more = document.getElementById('hrsMoreBtn'); if(more) more.addEventListener('click', function(){ hrsShown += 150; renderHoursFindings(); });
     document.getElementById('hrsCsvBtn').addEventListener('click', hrsDownloadCsv);
     document.getElementById('hrsMailBtn').addEventListener('click', openMailModal);
@@ -3960,6 +3985,76 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = 'UPAE_week_' + (hrsWeek.weekNo || 'x') + '_findings.csv';
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+
+  // ---------------- AI: explain a finding (Phase 1) ----------------
+  function aiBoxHtml(key){
+    var a = hrsAi[key]; if(!a) return '';
+    if(a.state === 'loading') return '<div class="ai-card"><span class="ai-tag">AI</span> Thinking&hellip;</div>';
+    if(a.state === 'error') return '<div class="ai-card err"><span class="ai-tag">AI</span> ' + escapeHtml(a.err) + '</div>';
+    var d = a.data;
+    return '<div class="ai-card"><div class="ai-head"><span class="ai-tag">AI</span><span class="ai-conf">Confidence: ' + escapeHtml(d.confidence) + '</span>' +
+      (d.stub ? '<span class="ai-stub">Sample answer &mdash; the AI key is not set up yet</span>' : '') + '</div>' +
+      '<p><b>What happened.</b> ' + escapeHtml(d.explanation) + '</p>' +
+      '<p><b>Likely cause.</b> ' + escapeHtml(d.likelyCause) + '</p>' +
+      '<p><b>Suggested action.</b> ' + escapeHtml(d.suggestedAction) + '</p>' +
+      (d.needsMoreInfo ? '<p class="ai-warn">The AI says it needs more information to be sure.</p>' : '') +
+      (d.evidence && d.evidence.length ? '<details><summary>Rule text it relied on</summary>' + d.evidence.map(function(x){ return '<div class="ai-ev">' + escapeHtml(x) + '</div>'; }).join('') + '</details>' : '') +
+      '<div class="ai-fb">Was this helpful? <button class="btn ghost" type="button" data-hrs-ai-fb="up" data-key="' + escapeHtml(key) + '"' + (a.feedback ? ' disabled' : '') + '>' + (a.feedback === 'Helpful' ? 'Helpful (thanks)' : 'Helpful') + '</button> ' +
+      '<button class="btn ghost" type="button" data-hrs-ai-fb="down" data-key="' + escapeHtml(key) + '"' + (a.feedback ? ' disabled' : '') + '>' + (a.feedback === 'Not helpful' ? 'Not helpful (noted)' : 'Not helpful') + '</button></div>' +
+      '<div class="ai-note">AI-generated from the rule text and this record. The rule check above is the source of truth.</div></div>';
+  }
+  function wireAiBoxes(root){
+    Array.prototype.forEach.call(root.querySelectorAll('[data-hrs-ai-fb]'), function(b){
+      b.addEventListener('click', function(){ hrsAiFeedback(b.getAttribute('data-key'), b.getAttribute('data-hrs-ai-fb') === 'up' ? 'Helpful' : 'Not helpful'); });
+    });
+  }
+  function refreshAiBox(key){
+    var box = null;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-hrs-ai-box]'), function(b){ if(b.getAttribute('data-hrs-ai-box') === key) box = b; });
+    if(!box) return;
+    box.innerHTML = aiBoxHtml(key); wireAiBoxes(box);
+    var btn = null;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-hrs-ai]'), function(b){ if(b.getAttribute('data-hrs-ai') === key) btn = b; });
+    if(btn){ var a = hrsAi[key]; btn.disabled = !!(a && a.state === 'loading'); btn.textContent = a && a.state === 'done' ? 'Explain again' : 'Explain with AI'; }
+  }
+  async function hrsExplain(key){
+    var item = hrsFindings && hrsFindings.items.filter(function(i){ return i.key === key; })[0];
+    if(!item || (hrsAi[key] && hrsAi[key].state === 'loading')) return;
+    var rule = item.kind === 'mismatch' ? hrsFindRule(item.union) : null;
+    var rec = hrsWeek.records.filter(function(r){ return empKey(r.id) === empKey(item.id); })[0];
+    var pattern = rec ? Object.keys(rec.days).sort().map(function(iso){ var h = rec.days[iso]; return { day: hrsPretty(iso), rt: h.rt, ot: h.ot, dt: h.dt }; }) : [];
+    var payload = {
+      week: { weekNo: hrsWeek.weekNo, start: hrsWeek.start, end: hrsWeek.end },
+      finding: { kind: item.kind, id: item.id, name: item.name, union: item.union, iso: item.iso || '', dayName: item.iso ? hrsPretty(item.iso).split(' ')[0] : '',
+                 reported: item.rep ? hrsFmt(item.rep) : '', expected: item.exp ? hrsFmt(item.exp) : '', msg: item.msg, broken: item.broken },
+      rule: rule ? { id: rule.id, name: rule.name, cba: rule.cba, fields: rule.fields } : null,
+      weekPattern: pattern
+    };
+    hrsAi[key] = { state: 'loading' }; refreshAiBox(key);
+    try{
+      if(typeof upaeAiExplain !== 'function') throw new Error('The AI service is not available in this view.');
+      var data = await upaeAiExplain(payload);
+      hrsAi[key] = { state: 'done', data: data };
+      refreshAiBox(key);
+      if(typeof upaeCreateAILog === 'function'){
+        upaeCreateAILog({ purpose: 'explain', findingKey: key, weekStart: hrsWeek.start, userEmail: (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''),
+                          model: data.model, promptVersion: data.promptVersion, confidence: data.confidence,
+                          output: JSON.stringify({ explanation: data.explanation, likelyCause: data.likelyCause, suggestedAction: data.suggestedAction, evidence: data.evidence, needsMoreInfo: data.needsMoreInfo, stub: !!data.stub }) })
+          .then(function(it){ if(hrsAi[key]) hrsAi[key].logId = it && it.id; })
+          .catch(function(err){ console.warn('UPAE: could not write AILog', err); });
+      }
+    } catch(err){
+      console.error('UPAE: explain failed', err);
+      hrsAi[key] = { state: 'error', err: err.message || String(err) }; refreshAiBox(key);
+    }
+  }
+  async function hrsAiFeedback(key, value){
+    var a = hrsAi[key]; if(!a || a.feedback) return;
+    a.feedback = value; refreshAiBox(key);
+    try{ if(a.logId && typeof upaeUpdateAILogFeedback === 'function') await upaeUpdateAILogFeedback(a.logId, value); }
+    catch(err){ console.warn('UPAE: could not save AI feedback', err); }
   }
 
   // ---------------- dashboard ----------------
