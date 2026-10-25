@@ -655,6 +655,12 @@
   .emp-details .emp-detail-body div:first-child{border-top:none;}
   .emp-details .mono{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink);}
   .emp-actions{display:flex; gap:8px; padding:6px 18px 16px; align-items:center; flex-wrap:wrap;}
+  .mail-group{border:1px solid var(--line-soft); border-radius:8px; padding:8px 10px; margin-bottom:8px;}
+  .mail-group .mg-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px;}
+  .mail-group select{flex:1; min-width:200px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px;}
+  .mail-group .mg-tag{font-size:11px; padding:1px 7px; border-radius:10px; background:#e8f1ea; color:#2d6a3e;}
+  .mail-group .mg-tag.warn{background:#fff0d6; color:#8a5a00;}
+  .mail-group details{margin-top:6px; font-size:12px;}
   .emp-status{font-size:12.5px; color:var(--ink-soft); padding:0 18px 14px;}
   .emp-status.err{color:var(--crit);}
   .emp-toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:0 18px 12px;}
@@ -1250,6 +1256,7 @@
             <tr><td>DefaultLaborCode</td><td>e.g. L005</td><td>Drives the union shown on this screen.</td></tr>
             <tr><td>DefaultLaborName</td><td>e.g. 1010 Laborers Forman</td><td></td></tr>
             <tr><td>Role</td><td>e.g. Field Employee, Foreman</td><td></td></tr>
+            <tr><td>PMEmail</td><td>Single line of text</td><td>Optional. The usual project manager's email for the employee (filled in automatically as you send).</td></tr>
             <tr><td>UnionOverride</td><td>Union name (optional)</td><td>Single line of text. Add it when you want to set a union for one person by hand.</td></tr>
           </table>
           <p>The union is normally worked out from the labor type; UnionOverride only takes over when it is filled in. Once the list exists, reload this page and sign in again.</p>
@@ -1699,16 +1706,16 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hrsMailTitle" style="max-width:760px;">
     <div class="modal-head">
       <div>
-        <h2 id="hrsMailTitle">Email the project manager</h2>
+        <h2 id="hrsMailTitle">Email the project managers</h2>
         <p id="hrsMailCount"></p>
       </div>
       <button class="modal-close" type="button" id="hrsMailClose" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="field-group">
-        <span class="field-label">To</span>
-        <select id="hrsMailPm" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
-      </div>
+      <div class="emp-status" id="hrsMailSkipped" hidden style="padding:8px 10px; background:#fff6e5; border:1px solid #ecd9a8; border-radius:8px; margin-bottom:10px;"><span></span>
+        <label style="display:block; margin-top:4px;"><input type="checkbox" id="hrsMailIncludeSent"> Include them anyway</label></div>
+      <div id="hrsMailSummary" class="emp-status" style="padding:0 0 10px; color:var(--ink);"></div>
+      <div id="hrsMailGroups" style="max-height:230px; overflow:auto; margin-bottom:10px;"></div>
       <div class="field-group">
         <span class="field-label">Cc (optional, separate with commas)</span>
         <input type="text" id="hrsMailCc" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;">
@@ -1721,13 +1728,14 @@
         <span class="field-label">Message</span>
         <textarea id="hrsMailNote" rows="6" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></textarea>
       </div>
-      <div class="field-group">
-        <span class="field-label">The records table that will follow the message</span>
-        <div id="hrsMailPreview" style="max-height:200px; overflow:auto; border:1px solid var(--line-soft); border-radius:8px; padding:8px; background:#fff;"></div>
+      <div class="field-group" style="display:flex; gap:18px; flex-wrap:wrap; font-size:13px;">
+        <label><input type="checkbox" id="hrsMailCopyMe"> Send me a copy</label>
+        <label><input type="checkbox" id="hrsMailRemember" checked> Remember each employee's PM for next time</label>
       </div>
       <div class="emp-status" id="hrsMailStatus" style="padding:0 0 10px;"></div>
       <div class="emp-actions" style="padding:0; justify-content:flex-end;">
         <button class="btn ghost" type="button" id="hrsMailCancel">Cancel</button>
+        <button class="btn ghost" type="button" id="hrsMailTest">Send test to me</button>
         <button class="btn primary" type="button" id="hrsMailSend">Send email</button>
       </div>
     </div>
@@ -1767,6 +1775,11 @@
         <span class="field-label">Default labor type</span>
         <select id="em_labor" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
         <div class="code-picked-summary" id="em_unionHint"></div>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Usual project manager (optional)</span>
+        <select id="em_pm" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
+        <div class="code-picked-summary">Weekly Hours emails for this person go to this PM by default. It is also learned automatically each time you send.</div>
       </div>
       <div class="field-group">
         <span class="field-label">Union override (optional)</span>
@@ -3398,6 +3411,13 @@
       (selectedOverride && !unions.some(function(u){ return u.name === selectedOverride; }) ? '<option value="' + escapeHtml(selectedOverride) + '" selected>' + escapeHtml(selectedOverride) + ' (not in union list)</option>' : '');
     emUnionHint();
   }
+  async function emFillPM(cur){
+    var sel = document.getElementById('em_pm'), list = (typeof window.hrsGetPMs === 'function') ? window.hrsGetPMs() : [];
+    if(!list.length && typeof upaeFetchProjectManagers === 'function'){ try{ list = await upaeFetchProjectManagers(); }catch(e){ list = []; } }
+    var h = '<option value="">— None —</option>' + list.slice().sort(function(a, b){ return a.name.localeCompare(b.name); }).map(function(p){ return '<option value="' + escapeHtml(p.email) + '"' + (cur && cur.toLowerCase() === p.email.toLowerCase() ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'; }).join('');
+    if(cur && !list.some(function(p){ return p.email.toLowerCase() === cur.toLowerCase(); })) h += '<option value="' + escapeHtml(cur) + '" selected>' + escapeHtml(cur) + '</option>';
+    sel.innerHTML = h;
+  }
   function emUnionHint(){
     var code = document.getElementById('em_labor').value;
     var info = employeeUnionInfo({ laborCode: code });
@@ -3418,6 +3438,7 @@
     document.getElementById('em_bu').value = e ? e.businessUnit : '';
     document.getElementById('em_role').value = e ? e.role : '';
     emFill(e ? e.laborCode : '', e ? e.unionOverride : '');
+    emFillPM(e ? e.pmEmail : '');
     emOverlay.hidden = false;
     (e ? document.getElementById('em_last') : idInput).focus();
   }
@@ -3442,8 +3463,10 @@
       laborCode: code,
       laborName: lt ? lt.name : (String(code).toUpperCase() === 'EMPLOYEE' ? 'Employee' : (existing && existing.laborCode === code ? existing.laborName : '')),
       role: empClean(document.getElementById('em_role').value),
-      unionOverride: document.getElementById('em_unionOverride').value
+      unionOverride: document.getElementById('em_unionOverride').value,
+      pmEmail: document.getElementById('em_pm').value
     };
+    if(existing && existing.pmEmail && !rec.pmEmail) rec.clearPm = true;
     if(existing && existing.unionOverride && !rec.unionOverride) rec.clearOverride = true;
     if(!existing){
       var dup = employees.filter(function(x){ return empKey(x.id) === empKey(id); })[0];
@@ -3454,7 +3477,7 @@
       if(existing){
         if(typeof upaeUpdateEmployee === 'function' && existing.spItemId) await upaeUpdateEmployee(existing.spItemId, rec);
         EMP_FIELDS.forEach(function(f){ existing[f[0]] = rec[f[0]]; });
-        existing.unionOverride = rec.unionOverride;
+        existing.unionOverride = rec.unionOverride; existing.pmEmail = rec.pmEmail;
       } else {
         var created = (typeof upaeCreateEmployee === 'function') ? await upaeCreateEmployee(rec) : null;
         employees.push(Object.assign({}, rec, { spItemId: created && created.id ? created.id : null }));
@@ -4327,11 +4350,13 @@
     }
   }
 
-  // ---------------- email the PM ----------------
+  // ---------------- email the project managers ----------------
+  window.hrsGetPMs = function(){ return hrsPMs; };
   var mailOverlay = document.getElementById('hrsMailOverlay');
-  function pmOptions(){
+  var mailGroups = [], mailBusy = false, mailSkipped = [];
+  function pmOptions(selected){
     return '<option value="">— choose a project manager —</option>' + hrsPMs.slice().sort(function(a, b){ return a.name.localeCompare(b.name); })
-      .map(function(p){ return '<option value="' + escapeHtml(p.email) + '" data-name="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + ' &lt;' + escapeHtml(p.email) + '&gt;</option>'; }).join('');
+      .map(function(p){ return '<option value="' + escapeHtml(p.email) + '"' + (selected && selected.toLowerCase() === p.email.toLowerCase() ? ' selected' : '') + '>' + escapeHtml(p.name) + ' &lt;' + escapeHtml(p.email) + '&gt;</option>'; }).join('');
   }
   function mailTable(items){
     var th = 'style="text-align:left;padding:5px 8px;border:1px solid #ccc;background:#f0f0f0;font-size:12px;"', td = 'style="padding:5px 8px;border:1px solid #ccc;font-size:12px;vertical-align:top;"';
@@ -4341,55 +4366,142 @@
           '</td><td ' + td + '>' + (i.exp ? hrsFmt(i.exp) : '—') + '</td><td ' + td + '><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleName) + '</b><br>' + escapeHtml(i.broken.join(' ')) + '</td></tr>';
       }).join('') + '</table>';
   }
-  function mailSubject(items){ return 'Payroll review needed – Week ' + (hrsWeek.weekNo || '') + ' (' + fmtMD(hrsWeek.start) + '–' + fmtMD(hrsWeek.end) + '): ' + items.length + ' record' + (items.length === 1 ? '' : 's'); }
-  function mailIntro(pmName){
-    return 'Hi ' + (pmName ? pmName.split(/[ ,]+/)[0] : '') + ',\n\nThe weekly payroll check flagged the records below for week ' + (hrsWeek.weekNo || '') + '. Job numbers are not on this report, so please look at the ones for employees on your jobs and let me know what needs to be corrected in B2W.\n\nThank you.';
+
+  function pmByEmail(email){ return hrsPMs.filter(function(p){ return p.email.toLowerCase() === String(email || '').toLowerCase(); })[0] || null; }
+  function empOf(id){ return employees.filter(function(e){ return empKey(e.id) === empKey(id); })[0] || null; }
+  function mailSubjectBase(){ return 'Payroll review needed – Week ' + (hrsWeek.weekNo || '') + ' (' + fmtMD(hrsWeek.start) + '–' + fmtMD(hrsWeek.end) + ')'; }
+  function mailIntro(){
+    return 'The weekly payroll check flagged the records below for week ' + (hrsWeek.weekNo || '') + '. Job numbers are not on this report, so please look at the ones for employees on your jobs and let me know what needs to be corrected in B2W.\n\nThank you.';
+  }
+  function buildMailGroups(items){
+    var by = {};
+    items.forEach(function(i){ var e = empOf(i.id), k = e && e.pmEmail ? e.pmEmail.toLowerCase() : ''; (by[k] = by[k] || []).push(i); });
+    return Object.keys(by).sort(function(a, b){ return (a === '') - (b === '') || a.localeCompare(b); }).map(function(k){ return { suggested: k, pm: k && pmByEmail(k) ? k : '', items: by[k] }; });
+  }
+  function mailPlan(){
+    // merge groups that were pointed at the same person
+    var byPm = {}, missing = 0;
+    mailGroups.forEach(function(g){ if(!g.pm){ missing += g.items.length; return; } var o = byPm[g.pm.toLowerCase()] = byPm[g.pm.toLowerCase()] || { pm: g.pm, items: [] }; o.items = o.items.concat(g.items); });
+    return { byPm: byPm, emails: Object.keys(byPm).map(function(k){ return byPm[k]; }), missing: missing };
+  }
+  function renderMailGroups(){
+    var el = document.getElementById('hrsMailGroups');
+    el.innerHTML = mailGroups.map(function(g, gi){
+      return '<div class="mail-group"><div class="mg-head"><b>' + g.items.length + ' record' + (g.items.length === 1 ? '' : 's') + '</b>' +
+        (g.suggested ? '<span class="mg-tag">usual PM</span>' : '<span class="mg-tag warn">no usual PM yet</span>') +
+        '<select data-mg-pm="' + gi + '">' + pmOptions(g.pm) + '</select></div>' +
+        '<details><summary>Records in this email</summary>' + mailTable(g.items.slice(0, 15)) + (g.items.length > 15 ? '<div class="emp-status">&hellip; and ' + (g.items.length - 15) + ' more rows in the email.</div>' : '') + '</details></div>';
+    }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('[data-mg-pm]'), function(s){
+      s.addEventListener('change', function(){ mailGroups[parseInt(s.getAttribute('data-mg-pm'), 10)].pm = s.value; updateMailSummary(); });
+    });
+    updateMailSummary();
+  }
+  function updateMailSummary(){
+    var plan = mailPlan(), n = plan.emails.reduce(function(s, e){ return s + e.items.length; }, 0);
+    var copyMe = document.getElementById('hrsMailCopyMe').checked;
+    var sum = document.getElementById('hrsMailSummary');
+    sum.innerHTML = plan.emails.length
+      ? '<b>Will send ' + plan.emails.length + ' email' + (plan.emails.length === 1 ? '' : 's') + '</b> covering ' + n + ' record' + (n === 1 ? '' : 's') + ': ' + plan.emails.map(function(e){ var p = pmByEmail(e.pm); return escapeHtml(p ? p.name : e.pm) + ' (' + e.items.length + ')'; }).join(', ') + (copyMe ? '. A copy goes to you.' : '.')
+      : 'Choose a project manager for each group below.';
+    if(plan.missing) sum.innerHTML += ' <span style="color:var(--warn);font-weight:600;">' + plan.missing + ' record(s) still need a project manager and will not be sent.</span>';
+    document.getElementById('hrsMailSend').textContent = plan.emails.length ? 'Send ' + plan.emails.length + ' email' + (plan.emails.length === 1 ? '' : 's') : 'Send email';
+    document.getElementById('hrsMailSend').disabled = mailBusy || !plan.emails.length;
+    document.getElementById('hrsMailTest').disabled = mailBusy || !plan.emails.length;
   }
   function openMailModal(){
-    var items = selectedItems(); if(!items.length) return;
-    document.getElementById('hrsMailPm').innerHTML = pmOptions();
+    var sel = selectedItems(); if(!sel.length) return;
+    // safeguard: findings already sent to a PM are left out unless the user asks for them
+    mailSkipped = sel.filter(function(i){ return i.status === STATUS_SENT; });
+    var items = sel.filter(function(i){ return i.status !== STATUS_SENT; });
+    document.getElementById('hrsMailIncludeSent').checked = false;
+    var sk = document.getElementById('hrsMailSkipped');
+    sk.hidden = !mailSkipped.length;
+    sk.querySelector('span').textContent = mailSkipped.length + ' selected record' + (mailSkipped.length === 1 ? ' was' : 's were') + ' already sent to a project manager (' + mailSkipped.slice(0, 3).map(function(i){ return i.name + ' on ' + (i.sentDate || '?'); }).join('; ') + (mailSkipped.length > 3 ? '…' : '') + ') and ' + (mailSkipped.length === 1 ? 'is' : 'are') + ' left out.';
+    mailGroups = buildMailGroups(items);
     document.getElementById('hrsMailCc').value = '';
-    document.getElementById('hrsMailSubject').value = mailSubject(items);
-    document.getElementById('hrsMailNote').value = mailIntro('');
-    document.getElementById('hrsMailCount').textContent = items.length + ' record' + (items.length === 1 ? '' : 's') + ' will be listed in the email.';
-    document.getElementById('hrsMailPreview').innerHTML = mailTable(items.slice(0, 15)) + (items.length > 15 ? '<div class="emp-status">&hellip; and ' + (items.length - 15) + ' more rows in the email.</div>' : '');
+    document.getElementById('hrsMailCopyMe').checked = false;
+    document.getElementById('hrsMailRemember').checked = true;
+    document.getElementById('hrsMailSubject').value = mailSubjectBase();
+    document.getElementById('hrsMailNote').value = mailIntro();
+    document.getElementById('hrsMailCount').textContent = sel.length + ' record' + (sel.length === 1 ? '' : 's') + ' selected.';
     var s = document.getElementById('hrsMailStatus'); s.textContent = hrsPMs.length ? '' : (hrsPMError ? 'The ProjectManagers list could not be read (' + hrsPMError + ').' : 'No project managers yet — add them under "Project managers" first.'); s.className = 'emp-status' + (hrsPMs.length ? '' : ' err');
-    document.getElementById('hrsMailSend').disabled = false;
+    renderMailGroups();
     mailOverlay.hidden = false;
   }
-  function closeMailModal(){ mailOverlay.hidden = true; }
-  async function sendMail(){
-    var items = selectedItems(), pmSel = document.getElementById('hrsMailPm'), to = pmSel.value;
-    var st = document.getElementById('hrsMailStatus');
-    if(!to){ st.className = 'emp-status err'; st.textContent = 'Choose a project manager.'; return; }
-    var cc = document.getElementById('hrsMailCc').value.split(/[;,\s]+/).filter(function(x){ return /@/.test(x); });
-    var pmName = pmSel.options[pmSel.selectedIndex].getAttribute('data-name') || to;
+  function closeMailModal(){ if(mailBusy) return; mailOverlay.hidden = true; }
+  function mailBody(pmName, items){
     var note = document.getElementById('hrsMailNote').value.split('\n').map(function(l){ return l.trim() ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">' + escapeHtml(l) + '</p>' : ''; }).join('');
-    var body = note + mailTable(items) + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
-    document.getElementById('hrsMailSend').disabled = true; st.className = 'emp-status'; st.textContent = 'Sending…';
-    try{
-      if(typeof upaeSendMail !== 'function') throw new Error('Sending is not available in this view.');
-      await upaeSendMail([to], cc, document.getElementById('hrsMailSubject').value, body);
-    } catch(err){
-      console.error('UPAE: send mail failed', err);
-      st.className = 'emp-status err'; st.textContent = (err.message || String(err)) + ' If this is a permission message, an administrator needs to add the Mail.Send permission to the app registration.';
-      document.getElementById('hrsMailSend').disabled = false; return;
-    }
-    var today = hrsIso(new Date());
-    items.forEach(function(i){ i.status = STATUS_SENT; i.sentTo = pmName + ' <' + to + '>'; i.sentDate = today; });
-    hrsSel = {};
-    closeMailModal();
-    renderHoursFindings(); renderHoursDash();
-    var r = await hrsPersistFindings(items);
-    var st2 = document.getElementById('hrsActionStatus');
-    if(st2){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = 'Email sent to ' + pmName + ' for ' + items.length + ' record(s).' + (r.bad.length ? ' Status could not be saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : ' Status saved.'); }
+    var first = pmName ? pmName.split(/[ ,]+/)[0] : '';
+    return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + mailTable(items) + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
   }
-  document.getElementById('hrsMailSend').addEventListener('click', sendMail);
+  async function sendMails(testOnly){
+    if(mailBusy) return;
+    var plan = mailPlan(), st = document.getElementById('hrsMailStatus');
+    if(!plan.emails.length) return;
+    if(typeof upaeSendMail !== 'function'){ st.className = 'emp-status err'; st.textContent = 'Sending is not available in this view.'; return; }
+    var me = (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : '');
+    if(testOnly && !me){ st.className = 'emp-status err'; st.textContent = 'Your own email address is not known, so a test copy cannot be sent.'; return; }
+    var cc = document.getElementById('hrsMailCc').value.split(/[;,\s]+/).filter(function(x){ return /@/.test(x); });
+    if(!testOnly && document.getElementById('hrsMailCopyMe').checked && me) cc.push(me);
+    var base = document.getElementById('hrsMailSubject').value || mailSubjectBase();
+    mailBusy = true; updateMailSummary();
+    st.className = 'emp-status'; var sent = [], failed = [], today = hrsIso(new Date());
+    for(var k = 0; k < plan.emails.length; k++){
+      var e = plan.emails[k], p = pmByEmail(e.pm), nm = p ? p.name : e.pm;
+      st.textContent = (testOnly ? 'Sending test ' : 'Sending ') + (k + 1) + ' of ' + plan.emails.length + ' (' + nm + ')…';
+      var subject = (testOnly ? '[TEST – not sent to the PM] ' : '') + base + ': ' + e.items.length + ' record' + (e.items.length === 1 ? '' : 's');
+      try{
+        await upaeSendMail(testOnly ? [me] : [e.pm], testOnly ? [] : cc, subject, (testOnly ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#a33a34;">This is a test copy. It would go to ' + escapeHtml(nm) + ' &lt;' + escapeHtml(e.pm) + '&gt;.</p>' : '') + mailBody(nm, e.items));
+        if(testOnly) { sent.push(nm); break; }   // one sample is enough for a test
+        sent.push(nm);
+        e.items.forEach(function(i){ i.status = STATUS_SENT; i.sentTo = nm + ' <' + e.pm + '>'; i.sentDate = today; });
+        e.ok = true;
+      } catch(err){
+        console.error('UPAE: send mail failed', err);
+        failed.push(nm + ': ' + (err.message || String(err)));
+        if(/Mail\.Send|permission|consent|401|403/i.test(String(err.message))) break;   // no point trying the rest
+      }
+    }
+    mailBusy = false;
+    if(testOnly){
+      st.className = 'emp-status' + (failed.length ? ' err' : ''); st.textContent = failed.length ? 'Test failed: ' + failed[0] : 'Test copy sent to ' + me + '. Nothing was marked as sent.';
+      updateMailSummary(); return;
+    }
+    var okEmails = plan.emails.filter(function(e){ return e.ok; });
+    var okItems = okEmails.reduce(function(a, e){ return a.concat(e.items); }, []);
+    // remember who usually handles each employee
+    var remembered = 0;
+    if(document.getElementById('hrsMailRemember').checked){
+      okEmails.forEach(function(e){
+        var seen = {};
+        e.items.forEach(function(i){
+          var emp = empOf(i.id); if(!emp || seen[empKey(i.id)] || String(emp.pmEmail || '').toLowerCase() === e.pm.toLowerCase()) return;
+          seen[empKey(i.id)] = true; emp.pmEmail = e.pm; remembered++;
+          if(typeof upaeSetEmployeePM === 'function' && emp.spItemId) upaeSetEmployeePM(emp.spItemId, e.pm).catch(function(err){ console.warn('UPAE: could not remember PM', err); });
+        });
+      });
+    }
+    if(okItems.length) hrsSel = {};
+    if(!failed.length){ mailOverlay.hidden = true; }
+    else { st.className = 'emp-status err'; st.textContent = (okEmails.length ? okEmails.length + ' sent. ' : '') + 'Not sent — ' + failed.join(' | ') + (/Mail\.Send|permission|consent/i.test(failed.join()) ? ' If this is a permission message, an administrator needs to add the Mail.Send permission to the app registration.' : ''); }
+    renderHoursFindings(); renderHoursDash();
+    var r = okItems.length ? await hrsPersistFindings(okItems) : { bad: [] };
+    var st2 = document.getElementById('hrsActionStatus');
+    if(st2 && okItems.length){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = okEmails.length + ' email' + (okEmails.length === 1 ? '' : 's') + ' sent for ' + okItems.length + ' record(s)' + (remembered ? '; remembered the PM for ' + remembered + ' employee(s)' : '') + '.' + (r.bad.length ? ' Status could not be saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : ' Status saved.'); }
+    updateMailSummary();
+  }
+  document.getElementById('hrsMailSend').addEventListener('click', function(){ sendMails(false); });
+  document.getElementById('hrsMailTest').addEventListener('click', function(){ sendMails(true); });
   document.getElementById('hrsMailCancel').addEventListener('click', closeMailModal);
   document.getElementById('hrsMailClose').addEventListener('click', closeMailModal);
-  document.getElementById('hrsMailPm').addEventListener('change', function(){
-    var o = this.options[this.selectedIndex];
-    document.getElementById('hrsMailNote').value = mailIntro(o && o.getAttribute('data-name') || '');
+  document.getElementById('hrsMailCopyMe').addEventListener('change', updateMailSummary);
+  document.getElementById('hrsMailIncludeSent').addEventListener('change', function(){
+    var inc = this.checked, sel = selectedItems().filter(function(i){ return inc || i.status !== STATUS_SENT; });
+    var keep = {}; mailGroups.forEach(function(g){ g.items.forEach(function(i){ keep[i.key] = g.pm; }); });
+    mailGroups = buildMailGroups(sel);
+    mailGroups.forEach(function(g){ g.items.forEach(function(i){ if(keep[i.key]) g.pm = keep[i.key]; }); });
+    renderMailGroups();
   });
 
   // ---------------- project managers ----------------
@@ -4482,7 +4594,6 @@
     a.addEventListener('click', function(){ if(!hrsLoadedOnce) hrsRefreshSaved().then(renderPMs); });
   });
   renderHoursKpis(); renderHoursSaved(); renderHoursDash(); renderPMs();
-
   renderUnionAdminList();
   renderLaborAdminList();
   populateLaborUnionSelect();

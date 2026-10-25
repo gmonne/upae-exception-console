@@ -420,6 +420,7 @@ function upaeEmployeeFromItem(item) {
     laborName: f.DefaultLaborName || "",
     role: f.Role || "",
     unionOverride: f.UnionOverride || "",
+    pmEmail: f.PMEmail || "",
   };
 }
 
@@ -435,6 +436,7 @@ function upaeEmployeeToFields(e) {
     Role: e.role || "",
     // only sent when set (or being cleared), so saving works before the UnionOverride column exists
     ...(e.unionOverride || e.clearOverride ? { UnionOverride: e.unionOverride || "" } : {}),
+    ...(e.pmEmail || e.clearPm ? { PMEmail: e.pmEmail || "" } : {}),
   };
 }
 
@@ -470,6 +472,11 @@ async function upaeUpdateEmployee(spItemId, e) {
   });
 }
 
+// Remember (or clear) an employee's usual project manager without touching any other column
+async function upaeSetEmployeePM(spItemId, email) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.employees}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ PMEmail: email || "" }) });
+}
 async function upaeDeleteEmployee(spItemId) {
   const siteId = await upaeGetSiteId();
   await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.employees}/items/${spItemId}`, {
