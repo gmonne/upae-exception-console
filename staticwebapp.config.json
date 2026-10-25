@@ -1,7 +1,40 @@
 {
-  "platform": { "apiRuntime": "node:18" },
+  "platform": {
+    "apiRuntime": "node:18"
+  },
   "routes": [
-    { "route": "/api/*", "allowedRoles": ["anonymous"] }
+    {
+      "route": "/api/*",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/js/*",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "route": "/css/*",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "route": "/sharepoint-integration.js",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    }
   ],
-  "globalHeaders": { "X-Content-Type-Options": "nosniff" }
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff"
+  }
 }
