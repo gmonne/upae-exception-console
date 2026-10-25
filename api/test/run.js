@@ -42,7 +42,7 @@ const rej = async (promise, re, label) => { try { await promise; } catch (e) { a
   assert.throws(() => ex.parseOutput(JSON.stringify(Object.assign({}, good, { confidence: "certain" }))), /confidence/);
 
   let calls = 0;
-  const mk = (replies) => async (url, o) => { const r = replies[calls++]; const sent = JSON.parse(o.body); assert.strictEqual(sent.temperature, 0); assert(sent.system.includes("Never guess") || sent.system.includes("never guess") || sent.system.includes("Never")); return { ok: r.ok !== false, status: r.status || 200, json: async () => r.body }; };
+  const mk = (replies) => async (url, o) => { const r = replies[calls++]; const sent = JSON.parse(o.body); assert(sent.system.includes("Never guess") || sent.system.includes("never guess") || sent.system.includes("Never")); return { ok: r.ok !== false, status: r.status || 200, json: async () => r.body }; };
   const reply = (txt) => ({ body: { content: [{ type: "text", text: txt }] } });
   let r = await ex.callClaude(inp, { apiKey: "k", model: "m", fetch: mk([reply(JSON.stringify(good))]) });
   assert.strictEqual(calls, 1); assert.strictEqual(r.explanation, "e");
