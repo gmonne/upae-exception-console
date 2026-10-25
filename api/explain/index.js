@@ -13,7 +13,7 @@ function limited(user) {
 module.exports = async function (context, req) {
   const send = (status, body) => { context.res = { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body }; };
   try {
-    const user = await verifyToken(req.headers["authorization"] || req.headers["Authorization"]);
+    const user = await verifyToken(req.headers["x-upae-token"] || req.headers["authorization"]);
     const allow = (process.env.UPAE_AI_ALLOWED_USERS || "").toLowerCase().split(/[;,\s]+/).filter(Boolean);
     if (allow.length && !allow.includes(user.email)) return send(403, { error: "You are not on the list of people who can use the AI features." });
     if (limited(user.email || user.oid)) return send(429, { error: "Too many AI requests in a short time. Please wait a few minutes." });

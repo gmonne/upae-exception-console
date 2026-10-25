@@ -754,7 +754,8 @@ async function upaeAiExplain(payload) {
   try {
     res = await fetch("/api/ai/explain", {
       method: "POST",
-      headers: { Authorization: "Bearer " + idToken, "Content-Type": "application/json" },
+      // Static Web Apps rewrites the standard Authorization header on /api calls, so the sign-in token travels in its own header.
+      headers: { "X-UPAE-Token": "Bearer " + idToken, "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
   } catch (err) {

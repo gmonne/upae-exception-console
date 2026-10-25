@@ -12,7 +12,8 @@ const run = async (headers, body) => { const ctx = { log: Object.assign(() => {}
 (async () => {
   const body = { finding: { kind: "mismatch", id: "A1", msg: "Reported 8 RT + 2 OT" }, rule: { name: "R" } };
   assert.strictEqual((await run({}, body)).status, 401);
-  let r = await run({ authorization: "Bearer " + tok("a@b.com") }, body);
+  assert.strictEqual((await run({ authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.e30.x" }, body)).status, 401);
+  let r = await run({ "x-upae-token": "Bearer " + tok("a@b.com"), authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.e30.x" }, body);
   assert.strictEqual(r.status, 200); assert.strictEqual(r.body.stub, true); assert(r.body.explanation.includes("Sample"));
   assert.strictEqual((await run({ authorization: "Bearer " + tok("a@b.com") }, {})).status, 400);
   process.env.UPAE_AI_ALLOWED_USERS = "x@y.com";

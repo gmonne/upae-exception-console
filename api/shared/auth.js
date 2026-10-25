@@ -31,7 +31,7 @@ async function verifyToken(authHeader, opts) {
     header = JSON.parse(b64urlToBuf(parts[0]).toString("utf8"));
     payload = JSON.parse(b64urlToBuf(parts[1]).toString("utf8"));
   } catch (e) { throw fail("Malformed token."); }
-  if (header.alg !== "RS256") throw fail("Unsupported token algorithm.");
+  if (header.alg !== "RS256") throw fail("Unsupported token algorithm (" + header.alg + ").");
 
   let keys = await o.getKeys(false);
   let jwk = keys.find((k) => k.kid === header.kid);
