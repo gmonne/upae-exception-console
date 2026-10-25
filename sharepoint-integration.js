@@ -652,6 +652,14 @@ function upaeFindingFromItem(item) {
     sentTo: f.SentTo || "",
     sentDate: f.SentDate || "",
     note: f.Note || "",
+    aiExplanation: f.AIExplanation || "",
+    aiLikelyCause: f.AILikelyCause || "",
+    aiSuggestedAction: f.AISuggestedAction || "",
+    aiEvidence: f.AIEvidence || "",
+    aiConfidence: f.AIConfidence || "",
+    aiModel: f.AIModel || "",
+    aiDate: f.AIDate || "",
+    aiFeedback: f.AIFeedback || "",
   };
 }
 function upaeFindingToFields(r) {
@@ -674,6 +682,17 @@ function upaeFindingToFields(r) {
     SentTo: r.sentTo || "",
     SentDate: r.sentDate || "",
     Note: r.note || "",
+    // AI columns are only sent once an explanation exists, so saving still works before those columns are added
+    ...(r.aiExplanation ? {
+      AIExplanation: r.aiExplanation,
+      AILikelyCause: r.aiLikelyCause || "",
+      AISuggestedAction: r.aiSuggestedAction || "",
+      AIEvidence: r.aiEvidence || "",
+      AIConfidence: r.aiConfidence || "",
+      AIModel: r.aiModel || "",
+      AIDate: r.aiDate || "",
+      AIFeedback: r.aiFeedback || "",
+    } : {}),
   };
 }
 async function upaeFetchFindings() {

@@ -1152,6 +1152,8 @@
             <tr><td>Title</td><td>Single line of text (already there)</td></tr>
             <tr><td>FindingKey, WeekStart, EmployeeID, EmployeeName, UnionName, WorkDate, Kind, RuleID, RuleName, Reported, Expected, Status, SentTo, SentDate</td><td>Single line of text (14 columns)</td></tr>
             <tr><td>RuleBroken, Note</td><td>Multiple lines of text (plain text)</td></tr>
+            <tr><td>AIExplanation, AILikelyCause, AISuggestedAction, AIEvidence</td><td>Multiple lines of text (plain text) &mdash; the AI&rsquo;s answer, saved with the finding</td></tr>
+            <tr><td>AIConfidence, AIModel, AIDate, AIFeedback</td><td>Single line of text</td></tr>
             <tr><td>WeekNo</td><td>Number (0 decimals)</td></tr>
           </table>
           <p><b>ProjectManagers</b></p>
@@ -3699,7 +3701,15 @@
     var seen = {};
     f.items.forEach(function(i){
       var sv = by[i.key]; seen[i.key] = true;
-      if(sv){ i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId; }
+      if(sv){ i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId;
+        if(sv.aiExplanation){
+          i.ai = { explanation: sv.aiExplanation, likelyCause: sv.aiLikelyCause, suggestedAction: sv.aiSuggestedAction, evidence: sv.aiEvidence ? sv.aiEvidence.split(' | ') : [],
+                   confidence: sv.aiConfidence || 'low', model: sv.aiModel, date: sv.aiDate, feedback: sv.aiFeedback || '' };
+          if(!hrsAi[i.key] || hrsAi[i.key].state !== 'loading')
+            hrsAi[i.key] = Object.assign({}, hrsAi[i.key], { state: 'done', saved: true, feedback: sv.aiFeedback || (hrsAi[i.key] && hrsAi[i.key].feedback) || '',
+              data: { stub: false, model: sv.aiModel, confidence: i.ai.confidence, explanation: i.ai.explanation, likelyCause: i.ai.likelyCause, suggestedAction: i.ai.suggestedAction, evidence: i.ai.evidence, needsMoreInfo: false } });
+        }
+      }
     });
     f.stale = (hrsFindSaved || []).filter(function(r){ return hrsWeek && r.weekStart === hrsWeek.start && !seen[r.key]; }).length;
   }
@@ -3734,7 +3744,9 @@
   function hrsFindingRow(i){
     return { key: i.key, weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, id: i.id, name: i.name, union: i.union, iso: i.iso || '', kind: i.kind,
              ruleId: i.ruleId, ruleName: i.ruleName, broken: (i.broken || []).join(' | '), reported: i.rep ? hrsFmt(i.rep) : '', expected: i.exp ? hrsFmt(i.exp) : '',
-             status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note };
+             status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note,
+             aiExplanation: i.ai ? i.ai.explanation : '', aiLikelyCause: i.ai ? i.ai.likelyCause : '', aiSuggestedAction: i.ai ? i.ai.suggestedAction : '',
+             aiEvidence: i.ai ? (i.ai.evidence || []).join(' | ') : '', aiConfidence: i.ai ? i.ai.confidence : '', aiModel: i.ai ? i.ai.model : '', aiDate: i.ai ? i.ai.date : '', aiFeedback: i.ai ? (i.ai.feedback || '') : '' };
   }
   // create or update the WeeklyFindings rows for these items
   async function hrsPersistFindings(items, onProgress){
@@ -4003,7 +4015,7 @@
       (d.evidence && d.evidence.length ? '<details><summary>Rule text it relied on</summary>' + d.evidence.map(function(x){ return '<div class="ai-ev">' + escapeHtml(x) + '</div>'; }).join('') + '</details>' : '') +
       '<div class="ai-fb">Was this helpful? <button class="btn ghost" type="button" data-hrs-ai-fb="up" data-key="' + escapeHtml(key) + '"' + (a.feedback ? ' disabled' : '') + '>' + (a.feedback === 'Helpful' ? 'Helpful (thanks)' : 'Helpful') + '</button> ' +
       '<button class="btn ghost" type="button" data-hrs-ai-fb="down" data-key="' + escapeHtml(key) + '"' + (a.feedback ? ' disabled' : '') + '>' + (a.feedback === 'Not helpful' ? 'Not helpful (noted)' : 'Not helpful') + '</button></div>' +
-      '<div class="ai-note">AI-generated from the rule text and this record. The rule check above is the source of truth.</div></div>';
+      '<div class="ai-note">AI-generated from the rule text and this record. The rule check above is the source of truth.' + (a.saveNote ? ' ' + escapeHtml(a.saveNote) : '') + (d.model && d.model !== 'stub' ? ' Model: ' + escapeHtml(d.model) + '.' : '') + '</div></div>';
   }
   function wireAiBoxes(root){
     Array.prototype.forEach.call(root.querySelectorAll('[data-hrs-ai-fb]'), function(b){
@@ -4038,6 +4050,14 @@
       var data = await upaeAiExplain(payload);
       hrsAi[key] = { state: 'done', data: data };
       refreshAiBox(key);
+      if(!data.stub){
+        item.ai = { explanation: data.explanation, likelyCause: data.likelyCause, suggestedAction: data.suggestedAction, evidence: data.evidence || [],
+                    confidence: data.confidence, model: data.model, date: hrsIso(new Date()), feedback: '' };
+        hrsPersistFindings([item]).then(function(r){
+          if(r.bad.length && hrsAi[key]) { hrsAi[key].saveNote = 'Explanation not saved to the finding: ' + (r.bad[0].error || 'unknown error'); refreshAiBox(key); }
+          else if(hrsAi[key]) { hrsAi[key].saveNote = 'Saved with the finding.'; refreshAiBox(key); }
+        });
+      }
       if(typeof upaeCreateAILog === 'function'){
         upaeCreateAILog({ purpose: 'explain', findingKey: key, weekStart: hrsWeek.start, userEmail: (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''),
                           model: data.model, promptVersion: data.promptVersion, confidence: data.confidence,
@@ -4053,6 +4073,8 @@
   async function hrsAiFeedback(key, value){
     var a = hrsAi[key]; if(!a || a.feedback) return;
     a.feedback = value; refreshAiBox(key);
+    var it = hrsFindings && hrsFindings.items.filter(function(i){ return i.key === key; })[0];
+    if(it && it.ai){ it.ai.feedback = value; hrsPersistFindings([it]).catch(function(err){ console.warn('UPAE: could not save AI feedback to the finding', err); }); }
     try{ if(a.logId && typeof upaeUpdateAILogFeedback === 'function') await upaeUpdateAILogFeedback(a.logId, value); }
     catch(err){ console.warn('UPAE: could not save AI feedback', err); }
   }
