@@ -632,6 +632,12 @@
   .ai-fb{margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px;} .ai-fb .btn{font-size:11.5px; padding:2px 9px;}
   .ai-collapsed{display:flex; align-items:center; gap:8px; padding:5px 10px;} .ai-collapsed .btn{margin-left:auto; font-size:11.5px; padding:2px 9px;}
   .ai-hide{margin-left:auto; font-size:11.5px !important; padding:2px 9px !important;}
+  .cov-row{display:grid; grid-template-columns:minmax(0,1.5fr) 80px minmax(0,1.1fr) 150px minmax(0,2.4fr); gap:10px; align-items:center; padding:8px 18px; border-top:1px solid var(--line-soft); font-size:13px;}
+  .cov-row.head{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); font-weight:700; background:var(--bg); border-top:none;}
+  .cov-pill{font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .cov-pill.ok{background:var(--good-soft); color:var(--good);} .cov-pill.draft{background:var(--warn-soft); color:var(--warn);}
+  .cov-pill.unreadable{background:var(--crit-soft); color:var(--crit);} .cov-pill.norule{background:var(--line-soft); color:var(--ink-soft);}
+  @media (max-width:900px){ .cov-row{grid-template-columns:minmax(0,1fr) 120px;} .cov-row.head{display:none;} .cov-row > div:nth-child(2), .cov-row > div:nth-child(3), .cov-row > div:nth-child(5){display:none;} }
   .ai-note{font-size:11px; color:var(--ink-faint); margin-top:6px;}
   #view-employees{display:flex; flex-direction:column; gap:18px;}
   .emp-import{display:flex; align-items:center; gap:12px; padding:14px 18px; flex-wrap:wrap;}
@@ -1124,6 +1130,14 @@
         <div id="hoursFindings"></div>
       </div>
 
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Rule coverage</h2>
+          <span class="panel-sub">Which unions the check can and cannot cover yet</span>
+        </div>
+        <div id="hoursCoverage"></div>
+      </div>
+
       <details class="emp-setup">
         <summary>Project managers (<span id="hrsPmCount">0</span>) &mdash; who the review emails go to</summary>
         <div class="emp-setup-body">
@@ -1156,6 +1170,7 @@
             <tr><td>RuleBroken, Note</td><td>Multiple lines of text (plain text)</td></tr>
             <tr><td>AIExplanation, AILikelyCause, AISuggestedAction, AIEvidence</td><td>Multiple lines of text (plain text) &mdash; the AI&rsquo;s answer, saved with the finding</td></tr>
             <tr><td>AIConfidence, AIModel, AIDate, AIFeedback</td><td>Single line of text</td></tr>
+            <tr><td>ResolutionReason, ResolvedBy, ResolvedDate</td><td>Single line of text &mdash; why a finding was resolved, by whom, and when</td></tr>
             <tr><td>WeekNo</td><td>Number (0 decimals)</td></tr>
           </table>
           <p><b>ProjectManagers</b></p>
@@ -1235,8 +1250,9 @@
             <tr><td>DefaultLaborCode</td><td>e.g. L005</td><td>Drives the union shown on this screen.</td></tr>
             <tr><td>DefaultLaborName</td><td>e.g. 1010 Laborers Forman</td><td></td></tr>
             <tr><td>Role</td><td>e.g. Field Employee, Foreman</td><td></td></tr>
+            <tr><td>UnionOverride</td><td>Union name (optional)</td><td>Single line of text. Add it when you want to set a union for one person by hand.</td></tr>
           </table>
-          <p>No union column is needed &mdash; it is worked out from the labor type. Once the list exists, reload this page and sign in again.</p>
+          <p>The union is normally worked out from the labor type; UnionOverride only takes over when it is filled in. Once the list exists, reload this page and sign in again.</p>
         </div>
       </details>
 
@@ -1652,6 +1668,33 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="hrsResOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hrsResTitle" style="max-width:520px;">
+    <div class="modal-head">
+      <div>
+        <h2 id="hrsResTitle">Resolve findings</h2>
+        <p id="hrsResCount"></p>
+      </div>
+      <button class="modal-close" type="button" id="hrsResClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <span class="field-label">Reason</span>
+        <select id="hrsResReason" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Note (optional; required for Other)</span>
+        <textarea id="hrsResNote" rows="3" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></textarea>
+      </div>
+      <div class="emp-status" id="hrsResStatus" style="padding:0 0 10px;"></div>
+      <div class="emp-actions" style="padding:0; justify-content:flex-end;">
+        <button class="btn ghost" type="button" id="hrsResCancel">Cancel</button>
+        <button class="btn primary" type="button" id="hrsResApply">Mark resolved</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="hrsMailOverlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hrsMailTitle" style="max-width:760px;">
     <div class="modal-head">
@@ -1724,6 +1767,11 @@
         <span class="field-label">Default labor type</span>
         <select id="em_labor" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
         <div class="code-picked-summary" id="em_unionHint"></div>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Union override (optional)</span>
+        <select id="em_unionOverride" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
+        <div class="code-picked-summary">Use only when the labor type does not give the right union, such as task-code labor types or an operator paid under another local. It takes priority over the labor type.</div>
       </div>
       <div class="field-group">
         <span class="field-label">Role</span>
@@ -2887,7 +2935,14 @@
     if(!r) return false;
     return EMP_REGULAR_ROLES.some(function(x){ return r.indexOf(x) !== -1; });
   }
+  function empUnionName(e){
+    if(e.unionOverride) return e.unionOverride;
+    if(!e.laborCode) return '';
+    var lt = laborTypes.filter(function(x){ return String(x.code).toUpperCase() === String(e.laborCode).toUpperCase(); })[0];
+    return lt && lt.unionName ? lt.unionName : '';
+  }
   function employeeUnionInfo(e){
+    if(e.unionOverride) return { label: e.unionOverride + ' (override)', cls: 'ok', kind: 'union' };
     if(String(e.laborCode || '').toUpperCase() === 'EMPLOYEE' || (!e.laborCode && !e.laborName && empRegularRole(e.role)))
       return { label: 'Employee (regular, no union)', cls: 'muted', kind: 'regular' };
     if(!e.laborCode) return { label: 'No default labor type', cls: 'warn', kind: 'nolabor' };
@@ -3316,7 +3371,7 @@
   // ---- add / edit / delete one employee ----
   var emOverlay = document.getElementById('employeeModalOverlay');
   var emEditIdx = null;
-  function emFill(selectedCode){
+  function emFill(selectedCode, selectedOverride){
     var sel = document.getElementById('em_labor');
     var sorted = laborTypes.slice().sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); });
     var html = '<option value="">— None —</option>';
@@ -3337,6 +3392,10 @@
     var bus = {};
     employees.forEach(function(e){ if(e.businessUnit) bus[e.businessUnit] = true; });
     document.getElementById('em_buOptions').innerHTML = Object.keys(bus).sort().map(function(b){ return '<option value="' + escapeHtml(b) + '">'; }).join('');
+    var uo = document.getElementById('em_unionOverride');
+    uo.innerHTML = '<option value="">— Use the labor type —</option>' + unions.slice().sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); })
+      .map(function(u){ return '<option value="' + escapeHtml(u.name) + '"' + (selectedOverride && selectedOverride === u.name ? ' selected' : '') + '>' + escapeHtml(u.name) + '</option>'; }).join('') +
+      (selectedOverride && !unions.some(function(u){ return u.name === selectedOverride; }) ? '<option value="' + escapeHtml(selectedOverride) + '" selected>' + escapeHtml(selectedOverride) + ' (not in union list)</option>' : '');
     emUnionHint();
   }
   function emUnionHint(){
@@ -3358,7 +3417,7 @@
     document.getElementById('em_first').value = e ? e.first : '';
     document.getElementById('em_bu').value = e ? e.businessUnit : '';
     document.getElementById('em_role').value = e ? e.role : '';
-    emFill(e ? e.laborCode : '');
+    emFill(e ? e.laborCode : '', e ? e.unionOverride : '');
     emOverlay.hidden = false;
     (e ? document.getElementById('em_last') : idInput).focus();
   }
@@ -3382,8 +3441,10 @@
       businessUnit: empClean(document.getElementById('em_bu').value),
       laborCode: code,
       laborName: lt ? lt.name : (String(code).toUpperCase() === 'EMPLOYEE' ? 'Employee' : (existing && existing.laborCode === code ? existing.laborName : '')),
-      role: empClean(document.getElementById('em_role').value)
+      role: empClean(document.getElementById('em_role').value),
+      unionOverride: document.getElementById('em_unionOverride').value
     };
+    if(existing && existing.unionOverride && !rec.unionOverride) rec.clearOverride = true;
     if(!existing){
       var dup = employees.filter(function(x){ return empKey(x.id) === empKey(id); })[0];
       if(dup){ alert('Employee ID ' + id + ' is already on file (' + empName(dup) + '). Use Edit on that row instead.'); return; }
@@ -3393,6 +3454,7 @@
       if(existing){
         if(typeof upaeUpdateEmployee === 'function' && existing.spItemId) await upaeUpdateEmployee(existing.spItemId, rec);
         EMP_FIELDS.forEach(function(f){ existing[f[0]] = rec[f[0]]; });
+        existing.unionOverride = rec.unionOverride;
       } else {
         var created = (typeof upaeCreateEmployee === 'function') ? await upaeCreateEmployee(rec) : null;
         employees.push(Object.assign({}, rec, { spItemId: created && created.id ? created.id : null }));
@@ -3645,7 +3707,7 @@
     function add(base, extra){
       var it = Object.assign({}, base, extra);
       it.key = wk.start + '|' + empKey(it.id) + '|' + (it.iso || '-') + '|' + it.kind;
-      it.status = STATUS_OPEN; it.sentTo = ''; it.sentDate = ''; it.note = '';
+      it.status = STATUS_OPEN; it.sentTo = ''; it.sentDate = ''; it.note = ''; it.resReason = ''; it.resolvedBy = ''; it.resolvedDate = '';
       out.items.push(it);
     }
     wk.records.forEach(function(rec){
@@ -3664,8 +3726,7 @@
       if(info.kind === 'regular'){ out.emp.regular++; return; }
       if(info.kind === 'nolabor'){ out.emp.noLabor.push(rec); add(base, { kind: 'nolabor', sev: 'warn', iso: '', msg: 'No default labor type on the Employees list, so no union rule could be applied.', broken: ['Data check: employees need a default labor type (or the Employee type) so their union can be found.'] }); return; }
       if(info.kind !== 'union'){ out.emp.noUnion.push(rec); return; }
-      var lt = laborTypes.filter(function(x){ return String(x.code).toUpperCase() === String(e.laborCode).toUpperCase(); })[0];
-      var unionName = lt ? lt.unionName : '';
+      var unionName = empUnionName(e);
       if(!(unionName in compCache)) compCache[unionName] = hrsCompileRule(hrsFindRule(unionName)) || { usable: false, why: 'No rule exists yet for ' + unionName + '.' };
       var comp = compCache[unionName];
       if(!comp.usable){
@@ -3703,7 +3764,7 @@
     var seen = {};
     f.items.forEach(function(i){
       var sv = by[i.key]; seen[i.key] = true;
-      if(sv){ i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId;
+      if(sv){ i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId; i.resReason = sv.resReason || ''; i.resolvedBy = sv.resolvedBy || ''; i.resolvedDate = sv.resolvedDate || '';
         if(sv.aiExplanation){
           i.ai = { explanation: sv.aiExplanation, likelyCause: sv.aiLikelyCause, suggestedAction: sv.aiSuggestedAction, evidence: sv.aiEvidence ? sv.aiEvidence.split(' | ') : [],
                    confidence: sv.aiConfidence || 'low', model: sv.aiModel, date: sv.aiDate, feedback: sv.aiFeedback || '' };
@@ -3746,7 +3807,7 @@
   function hrsFindingRow(i){
     return { key: i.key, weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, id: i.id, name: i.name, union: i.union, iso: i.iso || '', kind: i.kind,
              ruleId: i.ruleId, ruleName: i.ruleName, broken: (i.broken || []).join(' | '), reported: i.rep ? hrsFmt(i.rep) : '', expected: i.exp ? hrsFmt(i.exp) : '',
-             status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note,
+             status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note, resReason: i.resReason || '', resolvedBy: i.resolvedBy || '', resolvedDate: i.resolvedDate || '',
              aiExplanation: i.ai ? i.ai.explanation : '', aiLikelyCause: i.ai ? i.ai.likelyCause : '', aiSuggestedAction: i.ai ? i.ai.suggestedAction : '',
              aiEvidence: i.ai ? (i.ai.evidence || []).join(' | ') : '', aiConfidence: i.ai ? i.ai.confidence : '', aiModel: i.ai ? i.ai.model : '', aiDate: i.ai ? i.ai.date : '', aiFeedback: i.ai ? (i.ai.feedback || '') : '' };
   }
@@ -3894,7 +3955,7 @@
     renderHoursDash();
   }
 
-  function itemLine(i){ return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') : i.status; }
+  function itemLine(i){ if(i.status === STATUS_DONE && i.resReason) return 'Resolved · ' + i.resReason + (i.resolvedBy ? ' · ' + i.resolvedBy : '') + (i.resolvedDate ? ' · ' + i.resolvedDate : '') + (i.note ? ' — ' + i.note : ''); return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') : i.status; }
   function visibleFindings(){
     var f = hrsFindings; if(!f) return [];
     return f.items.filter(function(i){ return (hrsFilter === 'all' || i.kind === hrsFilter) && (hrsStatusFilter === 'all' || i.status === hrsStatusFilter); })
@@ -3974,7 +4035,7 @@
     document.getElementById('hrsAiHideAll').addEventListener('click', function(){ setAllAi(true); });
     document.getElementById('hrsCsvBtn').addEventListener('click', hrsDownloadCsv);
     document.getElementById('hrsMailBtn').addEventListener('click', openMailModal);
-    document.getElementById('hrsDoneBtn').addEventListener('click', function(){ hrsSetStatus(STATUS_DONE); });
+    document.getElementById('hrsDoneBtn').addEventListener('click', openResolveModal);
     document.getElementById('hrsReopenBtn').addEventListener('click', function(){ hrsSetStatus(STATUS_OPEN); });
   }
   function refreshSelBar(){
@@ -3984,7 +4045,7 @@
   }
   async function hrsSetStatus(status){
     var items = selectedItems(); if(!items.length) return;
-    items.forEach(function(i){ i.status = status; if(status === STATUS_OPEN){ i.sentTo = ''; i.sentDate = ''; } });
+    items.forEach(function(i){ i.status = status; if(status === STATUS_OPEN){ i.sentTo = ''; i.sentDate = ''; i.resReason = ''; i.resolvedBy = ''; i.resolvedDate = ''; } });
     hrsSel = {};
     renderHoursFindings(); renderHoursDash();
     var r = await hrsPersistFindings(items);
@@ -3995,9 +4056,9 @@
   function hrsDownloadCsv(){
     var f = hrsFindings; if(!f) return;
     function q(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-    var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Rule', 'Rule broken', 'Status', 'Sent to', 'Sent date'].join(',')];
+    var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Rule', 'Rule broken', 'Status', 'Sent to', 'Sent date', 'Resolution reason', 'Note', 'Resolved by', 'Resolved date'].join(',')];
     f.items.forEach(function(i){
-      lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.ruleName, i.broken.join(' '), i.status, i.sentTo, i.sentDate].map(q).join(','));
+      lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.ruleName, i.broken.join(' '), i.status, i.sentTo, i.sentDate, i.resReason || '', i.note || '', i.resolvedBy || '', i.resolvedDate || ''].map(q).join(','));
     });
     var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -4089,6 +4150,76 @@
     catch(err){ console.warn('UPAE: could not save AI feedback', err); }
   }
 
+
+  // ---------------- resolve with a reason and note ----------------
+  var HRS_REASONS = ['Keying error', 'Approved overtime', 'Wrong day or date', 'Wrong labor type', 'Rule disagrees with practice', 'Duplicate entry', 'Other'];
+  var resOverlay = document.getElementById('hrsResOverlay');
+  function openResolveModal(){
+    var items = selectedItems(); if(!items.length) return;
+    document.getElementById('hrsResReason').innerHTML = '<option value="">— choose a reason —</option>' + HRS_REASONS.map(function(r){ return '<option>' + r + '</option>'; }).join('');
+    document.getElementById('hrsResNote').value = '';
+    document.getElementById('hrsResCount').textContent = items.length + ' finding' + (items.length === 1 ? '' : 's') + ' will be marked Resolved.';
+    var st = document.getElementById('hrsResStatus'); st.textContent = ''; st.className = 'emp-status';
+    resOverlay.hidden = false;
+  }
+  function closeResolveModal(){ resOverlay.hidden = true; }
+  async function applyResolve(){
+    var reason = document.getElementById('hrsResReason').value, note = empClean(document.getElementById('hrsResNote').value);
+    var st = document.getElementById('hrsResStatus');
+    if(!reason){ st.className = 'emp-status err'; st.textContent = 'Choose a reason.'; return; }
+    if(reason === 'Other' && !note){ st.className = 'emp-status err'; st.textContent = 'Add a short note when the reason is Other.'; return; }
+    var items = selectedItems(), who = (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''), today = hrsIso(new Date());
+    items.forEach(function(i){ i.status = STATUS_DONE; i.resReason = reason; i.note = note || i.note || ''; i.resolvedBy = who; i.resolvedDate = today; });
+    hrsSel = {};
+    closeResolveModal();
+    renderHoursFindings(); renderHoursDash();
+    var r = await hrsPersistFindings(items);
+    var st2 = document.getElementById('hrsActionStatus');
+    if(st2){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = r.bad.length ? 'Marked on screen, but not saved to SharePoint: ' + (r.bad[0].error || 'unknown error') + ' (the WeeklyFindings list needs the ResolutionReason, ResolvedBy and ResolvedDate columns).' : 'Resolved ' + items.length + ' finding(s): ' + reason + '.'; }
+  }
+  document.getElementById('hrsResApply').addEventListener('click', applyResolve);
+  document.getElementById('hrsResCancel').addEventListener('click', closeResolveModal);
+  document.getElementById('hrsResClose').addEventListener('click', closeResolveModal);
+
+  // ---------------- rule coverage ----------------
+  function hrsCoverageRows(){
+    var onFile = {}, week = {}, weekHours = {}, noUnionHours = 0, totalHours = 0;
+    var byId = {}; employees.forEach(function(e){ byId[empKey(e.id)] = e; var u = empUnionName(e); if(u) onFile[u] = (onFile[u] || 0) + 1; });
+    if(hrsWeek) hrsWeek.records.forEach(function(r){
+      var h = 0; Object.keys(r.days).forEach(function(i){ var d = r.days[i]; h += d.rt + d.ot + d.dt; });
+      if(!h) return;
+      totalHours += h;
+      var e = byId[empKey(r.id)], u = e ? empUnionName(e) : '';
+      if(u){ week[u] = (week[u] || 0) + 1; weekHours[u] = (weekHours[u] || 0) + h; } else noUnionHours += h;
+    });
+    var names = {}; unions.forEach(function(u){ names[u.name] = true; }); Object.keys(onFile).forEach(function(n){ names[n] = true; });
+    var rows = Object.keys(names).map(function(n){
+      var rule = hrsFindRule(n), comp = hrsCompileRule(rule);
+      var status, why;
+      if(!rule){ status = 'norule'; why = 'No rule in the Rule Library is named "' + n + '".'; }
+      else if(comp.usable){ status = 'ok'; why = 'Rule ' + rule.id + ' is usable.'; }
+      else { status = /not marked Structured|not structured/i.test(comp.why) ? 'draft' : 'unreadable'; why = comp.why; }
+      return { union: n, onFile: onFile[n] || 0, week: week[n] || 0, hours: weekHours[n] || 0, status: status, why: why };
+    });
+    rows.sort(function(a, b){ return (b.week - a.week) || (b.onFile - a.onFile) || a.union.localeCompare(b.union); });
+    var unionHours = 0, checkedHours = 0; rows.forEach(function(r){ unionHours += r.hours; if(r.status === 'ok') checkedHours += r.hours; });
+    return { rows: rows, unionHours: unionHours, checkedHours: checkedHours, totalHours: totalHours, noUnionHours: noUnionHours };
+  }
+  var COV_LABEL = { ok: 'Usable', draft: 'Not Structured yet', unreadable: 'Cannot read rule', norule: 'No rule' };
+  function renderHoursCoverage(){
+    var el = document.getElementById('hoursCoverage'); if(!el) return;
+    var c = hrsCoverageRows(), usable = c.rows.filter(function(r){ return r.status === 'ok'; }).length;
+    var html = '<div class="emp-sum"><span class="emp-pill new"><b>' + usable + '</b>of ' + c.rows.length + ' unions have a usable rule</span>' +
+      (hrsWeek ? '<span class="emp-pill' + (c.unionHours && c.checkedHours < c.unionHours ? ' chg' : '') + '"><b>' + (c.unionHours ? Math.round(c.checkedHours / c.unionHours * 100) : 0) + '%</b>of this week&rsquo;s union hours can be checked</span>' +
+        '<span class="emp-pill"><b>' + Math.round(c.noUnionHours).toLocaleString() + '</b>hrs with no union (regular or unassigned)</span>' : '<span class="emp-pill">Load a week to see hours covered</span>') + '</div>';
+    html += '<div class="cov-row head"><div>Union</div><div>Employees</div><div>This week</div><div>Rule status</div><div>What is needed</div></div>';
+    c.rows.forEach(function(r){
+      html += '<div class="cov-row"><div class="e-name">' + escapeHtml(r.union) + '</div><div>' + r.onFile + '</div><div>' + (hrsWeek ? r.week + ' emp · ' + Math.round(r.hours).toLocaleString() + ' hrs' : '—') + '</div>' +
+        '<div><span class="cov-pill ' + r.status + '">' + COV_LABEL[r.status] + '</span></div><div class="h-msg">' + (r.status === 'ok' ? '—' : escapeHtml(r.why)) + '</div></div>';
+    });
+    el.innerHTML = html;
+  }
+
   // ---------------- dashboard ----------------
   function hbars(rows, cls){
     var max = Math.max.apply(null, rows.map(function(r){ return r.v; }).concat([1]));
@@ -4097,6 +4228,7 @@
     }).join('');
   }
   function renderHoursDash(){
+    renderHoursCoverage();
     var el = document.getElementById('hoursDash'); if(!el) return;
     var wk = hrsWeek, f = hrsFindings;
     if(!wk){
@@ -4134,6 +4266,9 @@
       var tt = open + sent + done || 1;
       html += '<div class="dash-card"><h3>Review progress</h3><div class="progress"><i class="p-open" style="width:' + open / tt * 100 + '%"></i><i class="p-sent" style="width:' + sent / tt * 100 + '%"></i><i class="p-done" style="width:' + done / tt * 100 + '%"></i></div>' +
         '<div class="legend"><span><i class="p-open"></i>Open ' + open + '</span><span><i class="p-sent"></i>Sent to PM ' + sent + '</span><span><i class="p-done"></i>Resolved ' + done + '</span></div></div>';
+      var rr = {}; f.items.forEach(function(i){ if(i.resReason) rr[i.resReason] = (rr[i.resReason] || 0) + 1; });
+      var rrRows = Object.keys(rr).map(function(k){ return { l: k, v: rr[k], cls: 'good' }; }).sort(function(a, b){ return b.v - a.v; });
+      if(rrRows.length) html += '<div class="dash-card"><h3>Why findings were resolved</h3>' + hbars(rrRows) + '</div>';
     } else html += '<div class="dash-card"><h3>Rule results</h3><div class="emp-status">Run the rule check to fill in the rest of the dashboard.</div></div>';
     html += '</div>' + dashTrend();
     el.innerHTML = html;

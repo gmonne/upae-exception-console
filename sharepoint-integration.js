@@ -419,6 +419,7 @@ function upaeEmployeeFromItem(item) {
     laborCode: f.DefaultLaborCode || "",
     laborName: f.DefaultLaborName || "",
     role: f.Role || "",
+    unionOverride: f.UnionOverride || "",
   };
 }
 
@@ -432,6 +433,8 @@ function upaeEmployeeToFields(e) {
     DefaultLaborCode: e.laborCode || "",
     DefaultLaborName: e.laborName || "",
     Role: e.role || "",
+    // only sent when set (or being cleared), so saving works before the UnionOverride column exists
+    ...(e.unionOverride || e.clearOverride ? { UnionOverride: e.unionOverride || "" } : {}),
   };
 }
 
@@ -660,6 +663,9 @@ function upaeFindingFromItem(item) {
     aiModel: f.AIModel || "",
     aiDate: f.AIDate || "",
     aiFeedback: f.AIFeedback || "",
+    resReason: f.ResolutionReason || "",
+    resolvedBy: f.ResolvedBy || "",
+    resolvedDate: f.ResolvedDate || "",
   };
 }
 function upaeFindingToFields(r) {
@@ -693,6 +699,8 @@ function upaeFindingToFields(r) {
       AIDate: r.aiDate || "",
       AIFeedback: r.aiFeedback || "",
     } : {}),
+    // resolution fields are only sent once a reason exists
+    ...(r.resReason ? { ResolutionReason: r.resReason, ResolvedBy: r.resolvedBy || "", ResolvedDate: r.resolvedDate || "" } : {}),
   };
 }
 async function upaeFetchFindings() {
