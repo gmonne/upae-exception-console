@@ -42,6 +42,7 @@ const UPAE_CONFIG = {
     weeklyHours: "WeeklyHours",
     weeklyFindings: "WeeklyFindings",
     projectManagers: "ProjectManagers",
+    jobAssignments: "JobAssignments",
     aiLog: "AILog",
     findingHistory: "FindingHistory",
     weeklySummaries: "WeeklySummaries",
@@ -801,6 +802,29 @@ async function upaeUpdateProjectManager(spItemId, pm) {
 async function upaeDeleteProjectManager(spItemId) {
   const siteId = await upaeGetSiteId();
   await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.projectManagers}/items/${spItemId}`, { method: "DELETE" });
+}
+
+// ---- Job assignments: which project manager owns which job (one row per job) ----
+async function upaeFetchJobAssignments() {
+  let url = await upaeListItemsUrl("jobAssignments", "?expand=fields&$top=500");
+  const out = [];
+  while (url) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => {
+      const f = item.fields || {};
+      out.push({ spItemId: item.id, job: f.Title || "", jobName: f.JobName || "", pmEmail: f.PMEmail || "", pmName: f.PMName || "", active: f.Active !== false });
+    });
+    url = data["@odata.nextLink"] || null;
+  }
+  return out;
+}
+async function upaeCreateJobAssignment(a) {
+  const url = await upaeListItemsUrl("jobAssignments");
+  return upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields: { Title: a.job, JobName: a.jobName || "", PMEmail: a.pmEmail || "", PMName: a.pmName || "", Active: true } }) });
+}
+async function upaeUpdateJobAssignment(spItemId, a) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.jobAssignments}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ JobName: a.jobName || "", PMEmail: a.pmEmail || "", PMName: a.pmName || "" }) });
 }
 
 // ---- Send an email as the signed-in user (needs the Mail.Send delegated permission) ----

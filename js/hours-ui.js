@@ -1,5 +1,6 @@
 // ---------------- the check ----------------
 var hrsFindSaved = null, hrsFindError = null;   // WeeklyFindings rows already in SharePoint
+var hrsJobPMs = {}, hrsJobsError = null;           // job base number -> { spItemId, jobName, pmEmail, pmName }
 var hrsPMs = [], hrsPMError = null;             // Project managers (name + email)
 var hrsSel = {};                                // selected finding keys
 var hrsStatusFilter = 'all';
@@ -236,6 +237,10 @@ async function hrsRefreshSaved(){
     try{ hrsSaved = await upaeFetchWeeklyHours(); } catch(err){ console.warn('UPAE: WeeklyHours', err); hrsSavedError = err.message || String(err); }
     try{ hrsFindSaved = await upaeFetchFindings(); } catch(err){ console.warn('UPAE: WeeklyFindings', err); hrsFindError = err.message || String(err); }
     try{ hrsPMs = await upaeFetchProjectManagers(); } catch(err){ console.warn('UPAE: ProjectManagers', err); hrsPMError = err.message || String(err); }
+    hrsJobsError = null; hrsJobPMs = {};
+    try{
+      (typeof upaeFetchJobAssignments === 'function' ? await upaeFetchJobAssignments() : []).forEach(function(a){ if(a.active && a.job && a.pmEmail) hrsJobPMs[hrsJobBase(a.job)] = a; });
+    } catch(err){ console.warn('UPAE: JobAssignments', err); hrsJobsError = err.message || String(err); }
     hrsSums = null; hrsSumsError = null;
     try{ hrsSums = typeof upaeFetchSummaries === 'function' ? await upaeFetchSummaries() : []; } catch(err){ console.warn('UPAE: WeeklySummaries', err); hrsSumsError = err.message || String(err); hrsSums = []; }
   }
@@ -877,22 +882,54 @@ function mailSubjectBase(){ return 'Payroll review needed – Week ' + (hrsWeek.
 function mailIntro(){
   return 'The weekly payroll check flagged the records below for week ' + (hrsWeek.weekNo || '') + '. ' + (hrsWeek.source === 'detail' ? 'The job each day was logged on is shown under the day, so please look at the ones on your jobs and let me know' : 'Job numbers are not on this report, so please look at the ones for employees on your jobs and let me know') + ' what needs to be corrected in B2W.\n\nThank you.';
 }
+function itemJobBases(i){
+  var out = [], seen = {};
+  String(i.jobs || '').split('; ').forEach(function(x){ var j = x.replace(/ \(.*$/, '').trim(); if(!j || j === '(no job)') return; var b = hrsJobBase(j); if(!seen[b]){ seen[b] = 1; out.push(b); } });
+  return out;
+}
+function jobTitleOf(b){ var a = hrsJobPMs[b]; return (a && a.jobName) || (hrsWeek && hrsWeek.jobTitles && hrsWeek.jobTitles[b]) || ''; }
+function jobLabel(b){ return 'Job ' + b + (jobTitleOf(b) ? ' · ' + jobTitleOf(b) : ''); }
+// A record goes to the PM who owns its job. A day on two jobs goes to both PMs. Jobs nobody owns yet get their own group to assign.
 function buildMailGroups(items){
-  var by = {};
-  items.forEach(function(i){ var e = empOf(i.id), k = e && e.pmEmail ? e.pmEmail.toLowerCase() : ''; (by[k] = by[k] || []).push(i); });
-  return Object.keys(by).sort(function(a, b){ return (a === '') - (b === '') || a.localeCompare(b); }).map(function(k){ return { suggested: k, pm: k && pmByEmail(k) ? k : '', items: by[k] }; });
+  var groups = {}, order = [];
+  function put(id, o, i){
+    var g = groups[id];
+    if(!g){ g = groups[id] = Object.assign({ id: id, items: [], seen: {}, pm: '', suggested: '', jobKey: '', jobs: [] }, o); order.push(id); }
+    if(!g.seen[i.key]){ g.seen[i.key] = 1; g.items.push(i); }
+    return g;
+  }
+  items.forEach(function(i){
+    var bases = itemJobBases(i), e = empOf(i.id), ePm = e && e.pmEmail ? e.pmEmail.toLowerCase() : '';
+    if(!bases.length){ put('emp:' + ePm, { suggested: ePm, pm: ePm && pmByEmail(ePm) ? ePm : '' }, i); return; }
+    bases.forEach(function(b){
+      var jp = hrsJobPMs[b], pe = jp ? jp.pmEmail.toLowerCase() : '';
+      if(pe){ var g = put('pm:' + pe, { suggested: pe, pm: pmByEmail(pe) ? pe : '', fromJob: true }, i); if(g.jobs.indexOf(b) < 0) g.jobs.push(b); }
+      else put('job:' + b, { jobKey: b }, i);
+    });
+  });
+  var rank = function(g){ return g.pm ? 0 : g.fromJob ? 1 : g.jobKey ? 2 : 3; };
+  return order.map(function(k){ return groups[k]; }).sort(function(a, b){ return rank(a) - rank(b) || a.id.localeCompare(b.id); });
 }
 function mailPlan(){
   // merge groups that were pointed at the same person
-  var byPm = {}, missing = 0;
-  mailGroups.forEach(function(g){ if(!g.pm){ missing += g.items.length; return; } var o = byPm[g.pm.toLowerCase()] = byPm[g.pm.toLowerCase()] || { pm: g.pm, items: [] }; o.items = o.items.concat(g.items); });
+  var byPm = {}, missing = 0, miss = {};
+  mailGroups.forEach(function(g){
+    if(!g.pm){ g.items.forEach(function(i){ miss[i.key] = 1; }); return; }
+    var o = byPm[g.pm.toLowerCase()] = byPm[g.pm.toLowerCase()] || { pm: g.pm, items: [], seen: {}, jobs: [], learn: [] };
+    g.items.forEach(function(i){ if(!o.seen[i.key]){ o.seen[i.key] = 1; o.items.push(i); } });
+    (g.jobs || []).forEach(function(b){ if(o.jobs.indexOf(b) < 0) o.jobs.push(b); });
+    if(g.jobKey){ if(o.jobs.indexOf(g.jobKey) < 0) o.jobs.push(g.jobKey); o.learn.push(g.jobKey); }
+  });
+  missing = Object.keys(miss).length;
   return { byPm: byPm, emails: Object.keys(byPm).map(function(k){ return byPm[k]; }), missing: missing };
 }
 function renderMailGroups(){
   var el = document.getElementById('hrsMailGroups');
   el.innerHTML = mailGroups.map(function(g, gi){
-    return '<div class="mail-group"><div class="mg-head"><b>' + g.items.length + ' record' + (g.items.length === 1 ? '' : 's') + '</b>' +
-      (g.suggested ? '<span class="mg-tag">usual PM</span>' : '<span class="mg-tag warn">no usual PM yet</span>') +
+    var tag = g.jobKey ? '<span class="mg-tag warn">job has no PM yet</span>' : g.fromJob ? (g.pm ? '<span class="mg-tag">PM of the job</span>' : '<span class="mg-tag warn">PM of the job is not in the Project managers list</span>') : g.suggested ? '<span class="mg-tag">employee\'s usual PM</span>' : '<span class="mg-tag warn">no job or PM known</span>';
+    var what = g.jobKey ? escapeHtml(jobLabel(g.jobKey)) : g.fromJob ? 'Jobs: ' + escapeHtml(g.jobs.sort().join(', ')) : '';
+    return '<div class="mail-group"><div class="mg-head"><b>' + g.items.length + ' record' + (g.items.length === 1 ? '' : 's') + '</b>' + tag +
+      (what ? '<span class="e-sub" style="display:inline;">' + what + '</span>' : '') +
       '<select data-mg-pm="' + gi + '">' + pmOptions(g.pm) + '</select></div>' +
       '<details><summary>Records in this email</summary>' + mailTable(g.items.slice(0, 15), document.getElementById('hrsMailAi').checked) + (g.items.length > 15 ? '<div class="emp-status">&hellip; and ' + (g.items.length - 15) + ' more rows in the email.</div>' : '') + '</details></div>';
   }).join('');
@@ -902,7 +939,7 @@ function renderMailGroups(){
   updateMailSummary();
 }
 function updateMailSummary(){
-  var plan = mailPlan(), n = plan.emails.reduce(function(s, e){ return s + e.items.length; }, 0);
+  var plan = mailPlan(), uq = {}; plan.emails.forEach(function(e){ e.items.forEach(function(i){ uq[i.key] = 1; }); }); var n = Object.keys(uq).length;
   var copyMe = document.getElementById('hrsMailCopyMe').checked;
   var sum = document.getElementById('hrsMailSummary');
   sum.innerHTML = plan.emails.length
@@ -937,10 +974,20 @@ function openMailModal(){
   mailOverlay.hidden = false;
 }
 function closeMailModal(){ if(mailBusy) return; mailOverlay.hidden = true; }
-function mailBody(pmName, items){
+function mailBody(pmName, e){
+  var items = e.items;
   var note = document.getElementById('hrsMailNote').value.split('\n').map(function(l){ return l.trim() ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">' + escapeHtml(l) + '</p>' : ''; }).join('');
   var first = pmName ? pmName.split(/[ ,]+/)[0] : '';
-  return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + mailTable(items, document.getElementById('hrsMailAi').checked) + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
+  var withAi = document.getElementById('hrsMailAi').checked, owned = (e.jobs || []).slice().sort(), body = '', used = {};
+  owned.forEach(function(b){
+    var its = items.filter(function(i){ return itemJobBases(i).indexOf(b) >= 0; });
+    if(!its.length) return;
+    its.forEach(function(i){ used[i.key] = 1; });
+    body += '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:12px 0 4px;"><b>' + escapeHtml(jobLabel(b)) + '</b> &middot; ' + its.length + ' record' + (its.length === 1 ? '' : 's') + '</p>' + mailTable(its, withAi);
+  });
+  var rest = items.filter(function(i){ return !used[i.key]; });
+  if(rest.length) body += (body ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:12px 0 4px;"><b>Other records</b> (no job on the report)</p>' : '') + mailTable(rest, withAi);
+  return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + body + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
 }
 async function sendMails(testOnly){
   if(mailBusy) return;
@@ -959,7 +1006,7 @@ async function sendMails(testOnly){
     st.textContent = (testOnly ? 'Sending test ' : 'Sending ') + (k + 1) + ' of ' + plan.emails.length + ' (' + nm + ')…';
     var subject = (testOnly ? '[TEST – not sent to the PM] ' : '') + base + ': ' + e.items.length + ' record' + (e.items.length === 1 ? '' : 's');
     try{
-      await upaeSendMail(testOnly ? [me] : [e.pm], testOnly ? [] : cc, subject, (testOnly ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#a33a34;">This is a test copy. It would go to ' + escapeHtml(nm) + ' &lt;' + escapeHtml(e.pm) + '&gt;.</p>' : '') + mailBody(nm, e.items));
+      await upaeSendMail(testOnly ? [me] : [e.pm], testOnly ? [] : cc, subject, (testOnly ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#a33a34;">This is a test copy. It would go to ' + escapeHtml(nm) + ' &lt;' + escapeHtml(e.pm) + '&gt;.</p>' : '') + mailBody(nm, e));
       if(testOnly) { sent.push(nm); break; }   // one sample is enough for a test
       sent.push(nm);
       e.items.forEach(function(i){ i.status = STATUS_SENT; i.sentTo = nm + ' <' + e.pm + '>'; i.sentDate = today; });
@@ -976,11 +1023,19 @@ async function sendMails(testOnly){
     updateMailSummary(); return;
   }
   var okEmails = plan.emails.filter(function(e){ return e.ok; });
-  var okItems = okEmails.reduce(function(a, e){ return a.concat(e.items); }, []);
+  var okItems = [], okSeen = {};
+  okEmails.forEach(function(e){ e.items.forEach(function(i){ if(!okSeen[i.key]){ okSeen[i.key] = 1; okItems.push(i); } }); });
   // remember who usually handles each employee
-  var remembered = 0;
+  var remembered = 0, jobsLearned = 0;
   if(document.getElementById('hrsMailRemember').checked){
     okEmails.forEach(function(e){
+      (e.learn || []).forEach(function(b){
+        var pmo = pmByEmail(e.pm); if(hrsJobPMs[b]) return;
+        var rec = { job: b, jobName: jobTitleOf(b), pmEmail: e.pm, pmName: pmo ? pmo.name : '' };
+        hrsJobPMs[b] = Object.assign({ spItemId: '' }, rec); jobsLearned++;
+        if(typeof upaeCreateJobAssignment === 'function') upaeCreateJobAssignment(rec).then(function(r){ if(r && r.id) hrsJobPMs[b].spItemId = r.id; }).catch(function(err){ console.warn('UPAE: could not remember the job PM', err); });
+      });
+      if(e.jobs && e.jobs.length) return;   // routed by job: the employee's usual PM is not changed by it
       var seen = {};
       e.items.forEach(function(i){
         var emp = empOf(i.id); if(!emp || seen[empKey(i.id)] || String(emp.pmEmail || '').toLowerCase() === e.pm.toLowerCase()) return;
@@ -995,7 +1050,7 @@ async function sendMails(testOnly){
   renderHoursFindings(); renderHoursDash();
   var r = okItems.length ? await hrsPersistFindings(okItems, null, { force: true }) : { bad: [] };
   var st2 = document.getElementById('hrsActionStatus');
-  if(st2 && okItems.length){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = okEmails.length + ' email' + (okEmails.length === 1 ? '' : 's') + ' sent for ' + okItems.length + ' record(s)' + (remembered ? '; remembered the PM for ' + remembered + ' employee(s)' : '') + '.' + (r.bad.length ? ' Status could not be saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : ' Status saved.'); }
+  if(st2 && okItems.length){ st2.className = 'emp-status' + (r.bad.length ? ' err' : ''); st2.textContent = okEmails.length + ' email' + (okEmails.length === 1 ? '' : 's') + ' sent for ' + okItems.length + ' record(s)' + (jobsLearned ? '; remembered the PM for ' + jobsLearned + ' job(s)' : '') + (remembered ? '; remembered the PM for ' + remembered + ' employee(s)' : '') + '.' + (r.bad.length ? ' Status could not be saved to SharePoint: ' + (r.bad[0].error || 'unknown error') : ' Status saved.'); }
   updateMailSummary();
 }
 document.getElementById('hrsMailSend').addEventListener('click', function(){ sendMails(false); });
@@ -1006,9 +1061,9 @@ document.getElementById('hrsMailCopyMe').addEventListener('change', updateMailSu
 document.getElementById('hrsMailAi').addEventListener('change', function(){ renderMailGroups(); });
 document.getElementById('hrsMailIncludeSent').addEventListener('change', function(){
   var inc = this.checked, sel = selectedItems().filter(function(i){ return inc || i.status !== STATUS_SENT; });
-  var keep = {}; mailGroups.forEach(function(g){ g.items.forEach(function(i){ keep[i.key] = g.pm; }); });
+  var keep = {}; mailGroups.forEach(function(g){ if(g.pm) keep[g.id] = g.pm; });
   mailGroups = buildMailGroups(sel);
-  mailGroups.forEach(function(g){ g.items.forEach(function(i){ if(keep[i.key]) g.pm = keep[i.key]; }); });
+  mailGroups.forEach(function(g){ if(keep[g.id]) g.pm = keep[g.id]; });
   renderMailGroups();
 });
 

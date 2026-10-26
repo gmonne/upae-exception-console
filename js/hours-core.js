@@ -120,7 +120,7 @@ function hrsParseDetail(rows, fileName){
   var filters = '';
   for(var f = 0; f < hi; f++) (rows[f] || []).forEach(function(c){ filters += ' ' + String(c || ''); });
   var sm = filters.match(/Start Date\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/i), em = filters.match(/End Date\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
-  var recs = {}, order = [], lines = 0, minD = null, maxD = null, bad = 0;
+  var recs = {}, order = [], lines = 0, minD = null, maxD = null, bad = 0, jobTitles = {};
   function num(v){ var x = parseFloat(empClean(v)); return isNaN(x) ? 0 : x; }
   for(var j = hi + 1; j < rows.length; j++){
     var row = rows[j] || [];
@@ -136,6 +136,7 @@ function hrsParseDetail(rows, fileName){
     var h = rec.days[iso] || (rec.days[iso] = { rt: 0, ot: 0, dt: 0 });
     h.rt += rt; h.ot += ot; h.dt += d2;
     var job = empClean(row[col['job number']]), trk = empClean(row[col['tracking id']]), lab = empClean(row[col['labor type']]);
+    if(job && !jobTitles[hrsJobBase(job)]) jobTitles[hrsJobBase(job)] = empClean(row[col['title']]);
     var list = rec.jobs[iso] || (rec.jobs[iso] = []), hit = null;
     list.forEach(function(x){ if(x.job === job && x.tracking === trk && x.laborType === lab && x.start === dt.time) hit = x; });
     if(!hit){ hit = { job: job, title: empClean(row[col['title']]), tracking: trk, laborType: lab, start: dt.time, rt: 0, ot: 0, dt: 0 }; list.push(hit); }
@@ -152,8 +153,10 @@ function hrsParseDetail(rows, fileName){
     return rec;
   });
   return { fileName: fileName, source: 'detail', start: hrsIso(start), end: hrsIso(end), weekNo: hrsIsoWeek(mon > end ? start : mon),
-           days: days, records: records, dupIds: [], hadRange: !!(sm && em), lines: lines, skippedLines: bad };
+           days: days, records: records, dupIds: [], hadRange: !!(sm && em), jobTitles: jobTitles, lines: lines, skippedLines: bad };
 }
+// 23-430~0328 and 25-615-0103 belong to jobs 23-430 and 25-615
+function hrsJobBase(j){ j = empClean(j); var m = j.match(/^(\d{2}-\d{3})(?:[~-].*)?$/); return m ? m[1] : j; }
 // "24-110 (8 RT + 1 OT); 23-604~0099 (13.5 OT)" for one employee-day
 function hrsJobText(rec, iso){
   var list = rec && rec.jobs && rec.jobs[iso]; if(!list || !list.length) return '';
