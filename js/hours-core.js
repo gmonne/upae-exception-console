@@ -85,6 +85,87 @@ function hrsParseSummary(rows, fileName){
            days: dayCols.map(function(d){ return d.iso; }), records: records, dupIds: dupIds, hadRange: !!rng };
 }
 
+// The B2W "Employee Hours Detail" report: one line per job per employee per day.
+// Columns are found by their header names, so a moved or added column does not break the import.
+function hrsIsDetail(rows){
+  for(var r = 0; r < Math.min(rows.length, 30); r++){
+    var cells = (rows[r] || []).map(function(c){ return empClean(c).toLowerCase(); });
+    if(cells.indexOf('employee id') !== -1 && cells.indexOf('job number') !== -1 && cells.indexOf('work start') !== -1) return true;
+  }
+  return false;
+}
+function hrsDateTimeFromCell(c){
+  var s = empClean(c);
+  if(!s) return null;
+  if(/^\d{5}(\.\d+)?$/.test(s)){
+    var n = parseFloat(s), frac = n - Math.floor(n), mins = Math.round(frac * 1440);
+    return { date: hrsSerialToDate(Math.floor(n)), time: ('0' + Math.floor(mins / 60) % 24).slice(-2) + ':' + ('0' + mins % 60).slice(-2) };
+  }
+  var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(m) return { date: new Date(+m[3], +m[1] - 1, +m[2]), time: m[4] ? ('0' + m[4]).slice(-2) + ':' + m[5] : '' };
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+  if(m) return { date: new Date(+m[1], +m[2] - 1, +m[3]), time: m[4] ? m[4] + ':' + m[5] : '' };
+  return null;
+}
+function hrsParseDetail(rows, fileName){
+  var hi = -1, col = {};
+  for(var r = 0; r < Math.min(rows.length, 30); r++){
+    var cells = (rows[r] || []).map(function(c){ return empClean(c).toLowerCase(); });
+    if(cells.indexOf('employee id') !== -1 && cells.indexOf('job number') !== -1){ hi = r; cells.forEach(function(c, i){ if(c && !(c in col)) col[c] = i; }); break; }
+  }
+  if(hi === -1) throw new Error('Could not find the header row of the Employee Hours Detail report.');
+  ['employee id', 'work start', 'rt hours', 'ot hours', 'dt hours'].forEach(function(k){
+    if(!(k in col)) throw new Error('The detail report needs a "' + k.replace(/\b\w/g, function(c){ return c.toUpperCase(); }) + '" column.');
+  });
+  var filters = '';
+  for(var f = 0; f < hi; f++) (rows[f] || []).forEach(function(c){ filters += ' ' + String(c || ''); });
+  var sm = filters.match(/Start Date\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/i), em = filters.match(/End Date\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  var recs = {}, order = [], lines = 0, minD = null, maxD = null, bad = 0;
+  function num(v){ var x = parseFloat(empClean(v)); return isNaN(x) ? 0 : x; }
+  for(var j = hi + 1; j < rows.length; j++){
+    var row = rows[j] || [];
+    var id = empClean(row[col['employee id']]);
+    if(!id) continue;                                  // blank rows, "Employee: X" subtotals and the grand total have no ID
+    var dt = hrsDateTimeFromCell(row[col['work start']]);
+    if(!dt){ bad++; continue; }
+    var iso = hrsIso(dt.date);
+    if(!minD || iso < minD) minD = iso; if(!maxD || iso > maxD) maxD = iso;
+    var key = empKey(id), rec = recs[key];
+    if(!rec){ rec = recs[key] = { id: id, name: empClean(row[col['name']]), days: {}, jobs: {} }; order.push(key); }
+    var rt = num(row[col['rt hours']]), ot = num(row[col['ot hours']]), d2 = num(row[col['dt hours']]);
+    var h = rec.days[iso] || (rec.days[iso] = { rt: 0, ot: 0, dt: 0 });
+    h.rt += rt; h.ot += ot; h.dt += d2;
+    var job = empClean(row[col['job number']]), trk = empClean(row[col['tracking id']]), lab = empClean(row[col['labor type']]);
+    var list = rec.jobs[iso] || (rec.jobs[iso] = []), hit = null;
+    list.forEach(function(x){ if(x.job === job && x.tracking === trk && x.laborType === lab && x.start === dt.time) hit = x; });
+    if(!hit){ hit = { job: job, title: empClean(row[col['title']]), tracking: trk, laborType: lab, start: dt.time, rt: 0, ot: 0, dt: 0 }; list.push(hit); }
+    hit.rt += rt; hit.ot += ot; hit.dt += d2; lines++;
+  }
+  if(!order.length) throw new Error('No hour lines were found in the detail report.');
+  var start = sm ? hrsDateFromHeader(sm[1]) : hrsFromIso(minD), end = em ? hrsDateFromHeader(em[1]) : hrsFromIso(maxD);
+  var days = [], d = new Date(start);
+  for(var g = 0; d <= end && g < 40; g++){ days.push(hrsIso(d)); d.setDate(d.getDate() + 1); }
+  var mon = new Date(start); while(mon.getDay() !== 1 && mon <= end) mon.setDate(mon.getDate() + 1);
+  var records = order.map(function(k){
+    var rec = recs[k];
+    Object.keys(rec.days).forEach(function(i){ var x = rec.days[i]; x.rt = hrsRound(x.rt); x.ot = hrsRound(x.ot); x.dt = hrsRound(x.dt); if(!(x.rt || x.ot || x.dt)) delete rec.days[i]; });
+    return rec;
+  });
+  return { fileName: fileName, source: 'detail', start: hrsIso(start), end: hrsIso(end), weekNo: hrsIsoWeek(mon > end ? start : mon),
+           days: days, records: records, dupIds: [], hadRange: !!(sm && em), lines: lines, skippedLines: bad };
+}
+// "24-110 (8 RT + 1 OT); 23-604~0099 (13.5 OT)" for one employee-day
+function hrsJobText(rec, iso){
+  var list = rec && rec.jobs && rec.jobs[iso]; if(!list || !list.length) return '';
+  var by = {}, order = [];
+  list.forEach(function(x){ var o = by[x.job] || (by[x.job] = { job: x.job, rt: 0, ot: 0, dt: 0 }); if(order.indexOf(x.job) < 0) order.push(x.job); o.rt += x.rt; o.ot += x.ot; o.dt += x.dt; });
+  return order.map(function(j){ var o = by[j]; return (o.job || '(no job)') + ' (' + hrsFmt(o) + ')'; }).join('; ');
+}
+function hrsJobCount(rec, iso){
+  var list = rec && rec.jobs && rec.jobs[iso]; if(!list) return 0;
+  var seen = {}; list.forEach(function(x){ seen[x.job] = 1; }); return Object.keys(seen).length;
+}
+
 // ---------------- turning a rule into something that can be calculated ----------------
 function hrsDayIndex(tok){ return DOW.indexOf(String(tok || '').slice(0, 3).toLowerCase()); }
 function hrsExpandDays(a, b){

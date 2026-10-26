@@ -673,6 +673,7 @@ function upaeFindingFromItem(item) {
     aiModel: f.AIModel || "",
     aiDate: f.AIDate || "",
     aiFeedback: f.AIFeedback || "",
+    jobs: f.Jobs || "",
     resReason: f.ResolutionReason || "",
     resolvedBy: f.ResolvedBy || "",
     resolvedDate: f.ResolvedDate || "",
@@ -711,6 +712,8 @@ function upaeFindingToFields(r) {
       AIDate: r.aiDate || "",
       AIFeedback: r.aiFeedback || "",
     } : {}),
+    // the Jobs column is only written once a job is known
+    ...(r.jobs ? { Jobs: r.jobs } : {}),
     // resolution fields are only sent once a reason exists
     ...(r.resReason ? { ResolutionReason: r.resReason, ResolvedBy: r.resolvedBy || "", ResolvedDate: r.resolvedDate || "" } : {}),
   };

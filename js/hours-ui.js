@@ -28,22 +28,24 @@ function hrsBroken(comp, rep, exp, iso){
 function hrsRunCheck(){
   var wk = hrsWeek; if(!wk) return null;
   var empByKey = {}; employees.forEach(function(e){ empByKey[empKey(e.id)] = e; });
-  var compCache = {};
+  var compCache = {}, curRec = null;
   var out = { items: [], emp: { checked: 0, regular: 0, notListed: [], noLabor: [], noUnion: [], noRule: {}, hours: 0 }, rowsChecked: 0, matched: 0, byUnion: {} };
   function add(base, extra){
     var it = Object.assign({}, base, extra);
+    if(it.iso && curRec){ it.jobs = hrsJobText(curRec, it.iso); it.jobCount = hrsJobCount(curRec, it.iso); }
     it.key = wk.start + '|' + empKey(it.id) + '|' + (it.iso || '-') + '|' + it.kind;
     it.status = STATUS_OPEN; it.sentTo = ''; it.sentDate = ''; it.note = ''; it.resReason = ''; it.resolvedBy = ''; it.resolvedDate = '';
     out.items.push(it);
   }
   wk.records.forEach(function(rec){
+    curRec = rec;
     var total = 0; Object.keys(rec.days).forEach(function(i){ var h = rec.days[i]; total += h.rt + h.ot + h.dt; });
     out.emp.hours += total;
     var e = empByKey[empKey(rec.id)];
     var base = { id: rec.id, name: rec.name, union: '', ruleId: 'Data check', ruleName: 'Data check', cba: '' };
     Object.keys(rec.days).forEach(function(iso){
       var h = rec.days[iso], t = hrsRound(h.rt + h.ot + h.dt);
-      if(t > HRS_EXCESSIVE) add(base, { kind: 'excessive', sev: 'warn', iso: iso, rep: h, msg: t + ' hours logged in one day (over ' + HRS_EXCESSIVE + ').', broken: ['Data check: a single day above ' + HRS_EXCESSIVE + ' hours is flagged for confirmation (not a union rule).'] });
+      if(t > HRS_EXCESSIVE) add(base, { kind: 'excessive', sev: 'warn', iso: iso, rep: h, msg: t + ' hours logged in one day (over ' + HRS_EXCESSIVE + ')' + (hrsJobCount(rec, iso) > 1 ? ' across ' + hrsJobCount(rec, iso) + ' jobs: possible second shift, verify.' : '.'), broken: ['Data check: a single day above ' + HRS_EXCESSIVE + ' hours is flagged for confirmation (not a union rule).'] });
       if(h.rt < 0 || h.ot < 0 || h.dt < 0) add(base, { kind: 'negative', sev: 'crit', iso: iso, rep: h, msg: 'Negative hours in the file.', broken: ['Data check: hours cannot be negative.'] });
     });
     if(!total) return;
@@ -90,7 +92,7 @@ function hrsMergeSaved(f){
   var seen = {};
   f.items.forEach(function(i){
     var sv = by[i.key]; seen[i.key] = true;
-    if(sv){ i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId; i.resReason = sv.resReason || ''; i.resolvedBy = sv.resolvedBy || ''; i.resolvedDate = sv.resolvedDate || '';
+    if(sv){ if(!i.jobs && sv.jobs) i.jobs = sv.jobs; i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId; i.resReason = sv.resReason || ''; i.resolvedBy = sv.resolvedBy || ''; i.resolvedDate = sv.resolvedDate || '';
       if(sv.aiExplanation){
         i.ai = { explanation: sv.aiExplanation, likelyCause: sv.aiLikelyCause, suggestedAction: sv.aiSuggestedAction, evidence: sv.aiEvidence ? sv.aiEvidence.split(' | ') : [],
                  confidence: sv.aiConfidence || 'low', model: sv.aiModel, date: sv.aiDate, feedback: sv.aiFeedback || '' };
@@ -133,7 +135,7 @@ function hrsPlanSave(){
 function hrsFindingRow(i){
   return { key: i.key, weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, id: i.id, name: i.name, union: i.union, iso: i.iso || '', kind: i.kind,
            ruleId: i.ruleId, ruleName: i.ruleName, broken: (i.broken || []).join(' | '), reported: i.rep ? hrsFmt(i.rep) : '', expected: i.exp ? hrsFmt(i.exp) : '',
-           status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note, resReason: i.resReason || '', resolvedBy: i.resolvedBy || '', resolvedDate: i.resolvedDate || '',
+           jobs: i.jobs || '', status: i.status, sentTo: i.sentTo, sentDate: i.sentDate, note: i.note, resReason: i.resReason || '', resolvedBy: i.resolvedBy || '', resolvedDate: i.resolvedDate || '',
            aiExplanation: i.ai ? i.ai.explanation : '', aiLikelyCause: i.ai ? i.ai.likelyCause : '', aiSuggestedAction: i.ai ? i.ai.suggestedAction : '',
            aiEvidence: i.ai ? (i.ai.evidence || []).join(' | ') : '', aiConfidence: i.ai ? i.ai.confidence : '', aiModel: i.ai ? i.ai.model : '', aiDate: i.ai ? i.ai.date : '', aiFeedback: i.ai ? (i.ai.feedback || '') : '' };
 }
@@ -379,7 +381,7 @@ function renderHoursFindings(){
     list.slice(0, hrsShown).forEach(function(i){
       html += '<div class="hrs-row ' + i.sev + '"><div><input type="checkbox" data-hrs-sel="' + escapeHtml(i.key) + '"' + (hrsSel[i.key] ? ' checked' : '') + '></div>' +
         '<div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
-        '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div>' +
+        '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + (i.jobs ? '<span class="e-sub">' + escapeHtml(i.jobs) + (i.jobCount > 1 ? ' · more than one job' : '') + '</span>' : '') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div>' +
         '<div class="h-msg"><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleId + ' · ' + i.ruleName) + '</b>' + (i.cba ? ' <span class="e-sub" style="display:inline;">' + escapeHtml(i.cba) + '</span>' : '') +
         '<div>' + escapeHtml(i.broken.join(' ')) + '</div><div class="h-stat ' + (i.status === STATUS_DONE ? 'done' : i.status === STATUS_SENT ? 'sent' : '') + '">' + escapeHtml(itemLine(i)) + '</div>' +
         '<div class="hrs-ai-wrap"><button class="btn ghost hrs-ai-btn" type="button" data-hrs-ai="' + escapeHtml(i.key) + '"' + (hrsAi[i.key] && hrsAi[i.key].state === 'loading' ? ' disabled' : '') + '>' + (hrsAi[i.key] && hrsAi[i.key].state === 'done' ? 'Explain again' : 'Explain with AI') + '</button></div>' +
@@ -429,9 +431,9 @@ async function hrsSetStatus(status){
 function hrsDownloadCsv(){
   var f = hrsFindings; if(!f) return;
   function q(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-  var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Rule', 'Rule broken', 'Status', 'Sent to', 'Sent date', 'Resolution reason', 'Note', 'Resolved by', 'Resolved date'].join(',')];
+  var lines = [['Week', 'Employee ID', 'Employee', 'Union', 'Day', 'Finding', 'Reported', 'Rule says', 'Rule', 'Rule broken', 'Status', 'Sent to', 'Sent date', 'Resolution reason', 'Note', 'Resolved by', 'Resolved date', 'Jobs'].join(',')];
   f.items.forEach(function(i){
-    lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.ruleName, i.broken.join(' '), i.status, i.sentTo, i.sentDate, i.resReason || '', i.note || '', i.resolvedBy || '', i.resolvedDate || ''].map(q).join(','));
+    lines.push([hrsWeek.weekNo, i.id, i.name, i.union, i.iso, HRS_KINDS[i.kind], i.rep ? hrsFmt(i.rep) : '', i.exp ? hrsFmt(i.exp) : '', i.ruleName, i.broken.join(' '), i.status, i.sentTo, i.sentDate, i.resReason || '', i.note || '', i.resolvedBy || '', i.resolvedDate || '', i.jobs || ''].map(q).join(','));
   });
   var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -484,7 +486,7 @@ async function hrsExplain(key){
   var payload = {
     week: { weekNo: hrsWeek.weekNo, start: hrsWeek.start, end: hrsWeek.end },
     finding: { kind: item.kind, id: item.id, name: item.name, union: item.union, iso: item.iso || '', dayName: item.iso ? hrsPretty(item.iso).split(' ')[0] : '',
-               reported: item.rep ? hrsFmt(item.rep) : '', expected: item.exp ? hrsFmt(item.exp) : '', msg: item.msg, broken: item.broken },
+               reported: item.rep ? hrsFmt(item.rep) : '', expected: item.exp ? hrsFmt(item.exp) : '', jobs: item.jobs || '', msg: item.msg, broken: item.broken },
     rule: rule ? { id: rule.id, name: rule.name, cba: rule.cba, fields: rule.fields } : null,
     weekPattern: pattern
   };
@@ -863,7 +865,7 @@ function mailTable(items, withAi){
   var th = 'style="text-align:left;padding:5px 8px;border:1px solid #ccc;background:#f0f0f0;font-size:12px;"', td = 'style="padding:5px 8px;border:1px solid #ccc;font-size:12px;vertical-align:top;"';
   return '<table style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif;"><tr><th ' + th + '>Employee</th><th ' + th + '>Day</th><th ' + th + '>Reported</th><th ' + th + '>Rule says</th><th ' + th + '>Rule broken</th></tr>' +
     items.map(function(i){
-      return '<tr><td ' + td + '>' + escapeHtml(i.name) + ' (' + escapeHtml(i.id) + ')' + (i.union ? '<br><span style="color:#666">' + escapeHtml(i.union) + '</span>' : '') + '</td><td ' + td + '>' + (i.iso ? hrsPretty(i.iso) : '—') + '</td><td ' + td + '>' + (i.rep ? hrsFmt(i.rep) : '—') +
+      return '<tr><td ' + td + '>' + escapeHtml(i.name) + ' (' + escapeHtml(i.id) + ')' + (i.union ? '<br><span style="color:#666">' + escapeHtml(i.union) + '</span>' : '') + '</td><td ' + td + '>' + (i.iso ? hrsPretty(i.iso) : '—') + (i.jobs ? '<br><span style="color:#666">Job: ' + escapeHtml(i.jobs) + '</span>' : '') + '</td><td ' + td + '>' + (i.rep ? hrsFmt(i.rep) : '—') +
         '</td><td ' + td + '>' + (i.exp ? hrsFmt(i.exp) : '—') + '</td><td ' + td + '><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleName) + '</b><br>' + escapeHtml(i.broken.join(' ')) +
         (withAi && i.ai && i.ai.explanation ? '<div style="margin-top:6px;padding:5px 7px;background:#f4f1fb;border-left:3px solid #7a5fc0;color:#333;"><b>AI note:</b> ' + escapeHtml(i.ai.explanation) + (i.ai.suggestedAction ? '<br><b>Suggested check:</b> ' + escapeHtml(i.ai.suggestedAction) : '') + '<br><span style="color:#777;font-size:11px;">AI-generated, ' + escapeHtml(i.ai.confidence || 'low') + ' confidence – please verify.</span></div>' : '') + '</td></tr>';
     }).join('') + '</table>';
@@ -873,7 +875,7 @@ function pmByEmail(email){ return hrsPMs.filter(function(p){ return p.email.toLo
 function empOf(id){ return employees.filter(function(e){ return empKey(e.id) === empKey(id); })[0] || null; }
 function mailSubjectBase(){ return 'Payroll review needed – Week ' + (hrsWeek.weekNo || '') + ' (' + fmtMD(hrsWeek.start) + '–' + fmtMD(hrsWeek.end) + ')'; }
 function mailIntro(){
-  return 'The weekly payroll check flagged the records below for week ' + (hrsWeek.weekNo || '') + '. Job numbers are not on this report, so please look at the ones for employees on your jobs and let me know what needs to be corrected in B2W.\n\nThank you.';
+  return 'The weekly payroll check flagged the records below for week ' + (hrsWeek.weekNo || '') + '. ' + (hrsWeek.source === 'detail' ? 'The job each day was logged on is shown under the day, so please look at the ones on your jobs and let me know' : 'Job numbers are not on this report, so please look at the ones for employees on your jobs and let me know') + ' what needs to be corrected in B2W.\n\nThank you.';
 }
 function buildMailGroups(items){
   var by = {};
@@ -1083,7 +1085,7 @@ if(hrsFileInput){
       if(head[0] === 0x50 && head[1] === 0x4B) rows = await empParseXlsx(buf);
       else if(/\.xls$/i.test(file.name)) throw new Error('Old .xls files are not supported. Please save it as .xlsx and try again.');
       else rows = empParseCsv(new TextDecoder().decode(buf));
-      hrsWeek = hrsParseSummary(rows, file.name);
+      hrsWeek = hrsIsDetail(rows) ? hrsParseDetail(rows, file.name) : hrsParseSummary(rows, file.name);
       if(!hrsWeek.records.length) throw new Error('No employee rows were found under the header.');
       el.innerHTML = '<div class="emp-status">Checking what is already saved in SharePoint…</div>';
       await hrsRefreshSaved();

@@ -1,5 +1,5 @@
 // Prompt, input trimming, output validation and the Claude call for "Explain a finding" (Phase 1).
-const PROMPT_VERSION = "explain-v1";
+const PROMPT_VERSION = "explain-v2";
 
 const SYSTEM = [
   "You are the explanation assistant inside UPAE, a payroll accuracy tool for a construction company.",
@@ -13,6 +13,7 @@ const SYSTEM = [
   "4. The engine's expected split is correct by definition; do not argue with it. If it looks inconsistent with the rule text, say so under needsMoreInfo.",
   "5. Do not mention pay rates or dollar amounts. Do not give legal advice.",
   "6. Keep every field short and concrete. Evidence must quote or closely paraphrase lines of the supplied rule text.",
+  "7. If a finding includes jobs, they are the job numbers (with the hours on each) that the day was logged on. A day on more than one job may be a second shift or a move between jobs: say it needs verifying, never that it is an error, and do not guess the cause.",
   "",
   "Reply with a single JSON object and nothing else, with exactly these keys:",
   '{"explanation": string (1-3 sentences), "likelyCause": string (1-2 sentences), "suggestedAction": string (1-2 sentences, what the reviewer or project manager should check or correct), "confidence": "low"|"medium"|"high", "evidence": string[] (1-4 items drawn from the rule text), "needsMoreInfo": boolean}',
@@ -32,7 +33,7 @@ function trimInput(body) {
     week: { weekNo: body.week && body.week.weekNo || null, start: s(body.week && body.week.start, 10), end: s(body.week && body.week.end, 10) },
     finding: {
       kind: s(f.kind, 30), employeeId: s(f.id, 20), employeeName: s(f.name, 80), union: s(f.union, 80), day: s(f.iso, 10), dayName: s(f.dayName, 12),
-      reported: s(f.reported, 60), engineExpected: s(f.expected, 60), engineMessage: s(f.msg, 400), engineReasons: (Array.isArray(f.broken) ? f.broken : []).slice(0, 6).map((x) => s(x, 400)),
+      reported: s(f.reported, 60), engineExpected: s(f.expected, 60), jobs: s(f.jobs, 300), engineMessage: s(f.msg, 400), engineReasons: (Array.isArray(f.broken) ? f.broken : []).slice(0, 6).map((x) => s(x, 400)),
     },
     rule: r ? { id: s(r.id, 20), name: s(r.name, 100), cba: s(r.cba, 150), fields } : null,
     weekPattern: (Array.isArray(body.weekPattern) ? body.weekPattern : []).slice(0, 7).map((d) => ({ day: s(d.day, 12), rt: +d.rt || 0, ot: +d.ot || 0, dt: +d.dt || 0 })),
