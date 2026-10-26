@@ -94,6 +94,7 @@ function hrsMergeSaved(f){
   f.items.forEach(function(i){
     var sv = by[i.key]; seen[i.key] = true;
     if(sv){ if(!i.jobs && sv.jobs) i.jobs = sv.jobs; i.status = sv.status || STATUS_OPEN; i.sentTo = sv.sentTo || ''; i.sentDate = sv.sentDate || ''; i.note = sv.note || ''; i.spItemId = sv.spItemId; i.resReason = sv.resReason || ''; i.resolvedBy = sv.resolvedBy || ''; i.resolvedDate = sv.resolvedDate || '';
+      i.pmResponse = sv.pmResponse || ''; i.pmNote = sv.pmNote || ''; i.pmBy = sv.pmBy || ''; i.pmDate = sv.pmDate || '';
       if(sv.aiExplanation){
         i.ai = { explanation: sv.aiExplanation, likelyCause: sv.aiLikelyCause, suggestedAction: sv.aiSuggestedAction, evidence: sv.aiEvidence ? sv.aiEvidence.split(' | ') : [],
                  confidence: sv.aiConfidence || 'low', model: sv.aiModel, date: sv.aiDate, feedback: sv.aiFeedback || '' };
@@ -335,10 +336,10 @@ function renderHoursPanel(){
   renderHoursSummary();
 }
 
-function itemLine(i){ if(i.status === STATUS_DONE && i.resReason) return 'Resolved · ' + i.resReason + (i.resolvedBy ? ' · ' + i.resolvedBy : '') + (i.resolvedDate ? ' · ' + i.resolvedDate : '') + (i.note ? ' — ' + i.note : ''); return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') : i.status; }
+function itemLine(i){ if(i.status === STATUS_DONE && i.resReason) return 'Resolved · ' + i.resReason + (i.resolvedBy ? ' · ' + i.resolvedBy : '') + (i.resolvedDate ? ' · ' + i.resolvedDate : '') + (i.note ? ' — ' + i.note : ''); return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') + (i.pmResponse ? ' — PM answered: ' + i.pmResponse + (i.pmNote ? ' (' + i.pmNote + ')' : '') + (i.pmBy ? ' · ' + i.pmBy : '') : '') : i.status; }
 function visibleFindings(){
   var f = hrsFindings; if(!f) return [];
-  return f.items.filter(function(i){ return (hrsFilter === 'all' || i.kind === hrsFilter) && (hrsStatusFilter === 'all' || i.status === hrsStatusFilter); })
+  return f.items.filter(function(i){ return (hrsFilter === 'all' || i.kind === hrsFilter) && (hrsStatusFilter === 'all' || (hrsStatusFilter === 'pm' ? (i.pmResponse && i.status !== STATUS_DONE) : i.status === hrsStatusFilter)); })
     .sort(function(a, b){ return (a.sev === b.sev ? 0 : a.sev === 'crit' ? -1 : 1) || a.id.localeCompare(b.id) || (a.iso || '').localeCompare(b.iso || ''); });
 }
 function selectedItems(){ return hrsFindings ? hrsFindings.items.filter(function(i){ return hrsSel[i.key]; }) : []; }
@@ -348,7 +349,7 @@ function renderHoursFindings(){
   var f = hrsFindings;
   if(!f){ el.innerHTML = hrsWeek ? '<div class="emp-status">Press <b>Run rule check</b> to compare each union employee&rsquo;s daily hours with their union&rsquo;s rule.</div>' : '<div class="emp-status">Load a week above to see findings.</div>'; return; }
   var counts = {}; f.items.forEach(function(i){ counts[i.kind] = (counts[i.kind] || 0) + 1; });
-  var sc = {}; f.items.forEach(function(i){ sc[i.status] = (sc[i.status] || 0) + 1; });
+  var sc = {}; f.items.forEach(function(i){ sc[i.status] = (sc[i.status] || 0) + 1; if(i.pmResponse && i.status !== STATUS_DONE) sc.pm = (sc.pm || 0) + 1; });
   var e = f.emp;
   var html = '<div class="emp-sum">' +
     '<span class="emp-pill new"><b>' + e.checked + '</b>employees checked against a rule</span>' +
@@ -367,8 +368,8 @@ function renderHoursFindings(){
       return '<button class="chip-filter' + (hrsFilter === k ? ' active' : '') + '" type="button" data-hrs-filter="' + k + '">' + HRS_KINDS[k] + ' (' + counts[k] + ')</button>';
     }).join('') + '</div>' +
     '<div class="filters" style="padding:0 18px 10px;">' +
-    ['all', STATUS_OPEN, STATUS_SENT, STATUS_DONE].map(function(s){
-      return '<button class="chip-filter' + (hrsStatusFilter === s ? ' active' : '') + '" type="button" data-hrs-status="' + s + '">' + (s === 'all' ? 'Any status' : s + ' (' + (sc[s] || 0) + ')') + '</button>';
+    ['all', STATUS_OPEN, STATUS_SENT, 'pm', STATUS_DONE].map(function(s){
+      return '<button class="chip-filter' + (hrsStatusFilter === s ? ' active' : '') + '" type="button" data-hrs-status="' + s + '">' + (s === 'all' ? 'Any status' : (s === 'pm' ? 'PM answered' : s) + ' (' + (sc[s] || 0) + ')') + '</button>';
     }).join('') + '</div>';
   var list = visibleFindings();
   var sel = selectedItems();
@@ -974,6 +975,12 @@ function openMailModal(){
   mailOverlay.hidden = false;
 }
 function closeMailModal(){ if(mailBusy) return; mailOverlay.hidden = true; }
+function reviewLinkHtml(){
+  var on = document.getElementById('hrsMailLink');
+  if(!on || !on.checked) return '';
+  var url = location.origin + '/review.html';
+  return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:10px 0;"><a href="' + url + '" style="background:#235870;color:#fff;padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:600;">Open the review page</a><br><span style="color:#666;font-size:12px;">Sign in with your company account. Mark each record Correct as reported, Needs correction or Question, and add a note. Payroll sees your answer straight away, so there is no need to reply by email.</span></p>';
+}
 function mailBody(pmName, e){
   var items = e.items;
   var note = document.getElementById('hrsMailNote').value.split('\n').map(function(l){ return l.trim() ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">' + escapeHtml(l) + '</p>' : ''; }).join('');
@@ -987,7 +994,7 @@ function mailBody(pmName, e){
   });
   var rest = items.filter(function(i){ return !used[i.key]; });
   if(rest.length) body += (body ? '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:12px 0 4px;"><b>Other records</b> (no job on the report)</p>' : '') + mailTable(rest, withAi);
-  return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + body + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
+  return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:0 0 8px;">Hi ' + escapeHtml(first) + ',</p>' + note + reviewLinkHtml() + body + '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#777;">Sent from the UPAE Exception Console.</p>';
 }
 async function sendMails(testOnly){
   if(mailBusy) return;

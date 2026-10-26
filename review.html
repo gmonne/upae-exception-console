@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>UPAE Payroll Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="msal-browser.min.js"></script>
+<style>
+  :root{
+    --bg:#f3f1ec; --bg-raised:#fdfcf9; --ink:#1c2530; --ink-soft:#5a6472; --ink-faint:#8b93a0; --line:#dcd8cd; --line-soft:#e9e6dd;
+    --accent:#235870; --accent-ink:#fff; --accent-soft:#dfe9ec; --good:#2f6d46; --good-soft:#e1efe4; --warn:#a2660f; --warn-soft:#f6ead2;
+    --crit:#a33a34; --crit-soft:#f5e1de; --ai:#5d4a8a; --ai-soft:#eae4f5; --shadow:0 1px 2px rgba(28,37,48,.06),0 8px 24px -12px rgba(28,37,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#161b22; --bg-raised:#1d232c; --ink:#eceef1; --ink-soft:#a7afba; --ink-faint:#74808d; --line:#313a45; --line-soft:#262e38;
+      --accent:#5b9db8; --accent-ink:#0e1a20; --accent-soft:#22343b; --good:#6fbb8a; --good-soft:#1e3324; --warn:#d9a34b; --warn-soft:#3a2e17;
+      --crit:#e08a83; --crit-soft:#3a2320; --ai:#b6a4e6; --ai-soft:#2a2440;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .mark{width:34px;height:34px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px}
+  h1{font-family:'Barlow Condensed',sans-serif;font-size:24px;margin:0;font-weight:700}
+  .who{margin-left:auto;color:var(--ink-soft);font-size:12.5px}
+  .btn{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg-raised);color:var(--ink);cursor:pointer}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  .btn:disabled{opacity:.5;cursor:default}
+  .panel{background:var(--bg-raised);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+  .intro{color:var(--ink-soft)}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .bar select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg-raised);color:var(--ink)}
+  .chip{font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--bg-raised);color:var(--ink);cursor:pointer}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .status{padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--ink)}
+  .status.err{background:var(--crit-soft);color:var(--crit)}
+  h2{font-family:'Barlow Condensed',sans-serif;font-size:19px;margin:18px 0 8px}
+  h2 small{font-family:'Public Sans',sans-serif;font-weight:400;color:var(--ink-soft);font-size:12.5px;margin-left:6px}
+  .card{background:var(--bg-raised);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:12px;margin-bottom:10px}
+  .card.answered{border-left-color:var(--good)}
+  .card.q{border-left-color:var(--accent)}
+  .top{display:flex;gap:8px;align-items:flex-start}
+  .top input{margin-top:4px}
+  .emp{font-weight:600}
+  .sub{color:var(--ink-soft);font-size:12.5px}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+  @media (max-width:640px){.grid{grid-template-columns:1fr 1fr}}
+  .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-faint)}
+  .why{margin:6px 0;color:var(--ink)}
+  .jobs{margin:6px 0;font-size:12.5px;color:var(--ink-soft)}
+  .jobs b{color:var(--ink)}
+  .ai{margin:6px 0;padding:7px 9px;border-left:3px solid var(--ai);background:var(--ai-soft);border-radius:0 8px 8px 0;font-size:12.5px}
+  .note{margin:6px 0;padding:6px 9px;background:var(--warn-soft);border-radius:8px;font-size:12.5px}
+  .resp{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .rb{font:inherit;font-size:13px;padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .rb.on{border-color:var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:600}
+  .rb.on.good{background:var(--good);border-color:var(--good);color:#fff}
+  textarea{width:100%;margin-top:6px;font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-height:54px;resize:vertical}
+  .saved{margin-top:8px;font-size:12.5px;color:var(--good)}
+  .errline{margin-top:6px;font-size:12.5px;color:var(--crit)}
+  .bulk{position:sticky;bottom:0;background:var(--bg-raised);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow);margin-top:10px}
+  #gate{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:50;padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="mark">U</div>
+  <h1>UPAE Payroll Review</h1>
+  <div id="gateMsg" class="intro" style="max-width:440px">Sign in with your company Microsoft account to see the payroll records for your jobs.</div>
+  <button id="signIn" class="btn primary">Sign in</button>
+</div>
+<div class="wrap">
+  <header>
+    <div class="mark">U</div><h1>Payroll review</h1>
+    <span class="who" id="who"></span>
+    <button class="btn" id="refresh" type="button">Refresh</button>
+  </header>
+  <div class="panel intro" id="intro">These are the payroll records the Payroll team asked you to look at. For each one, choose <b>Correct as reported</b> if the hours are right, <b>Needs correction</b> if they must be changed in B2W (say what is wrong), or <b>Question</b> if you need Payroll to explain. Payroll will see your answer straight away, so there is no need to reply by email.</div>
+  <div id="msg"></div>
+  <div class="bar" id="bar" hidden></div>
+  <div id="list"></div>
+  <div class="bulk" id="bulk" hidden><span id="bulkN"></span><button class="btn primary" id="bulkOk" type="button">Mark selected as Correct as reported</button><button class="btn" id="bulkClear" type="button">Clear selection</button></div>
+</div>
+<script>
+(function(){
+  var CONFIG = { clientId: 'b9e533a5-4da9-4999-80aa-7fc5bf2cd50a', tenantId: 'c62585ee-57f1-43a7-80b5-8efc4d57e464' };
+  var DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var params = new URLSearchParams(location.search), asEmail = (params.get('as') || '').trim();
+  var data = null, filter = 'waiting', jobSel = '', weekSel = '', sel = {}, drafts = {}, busy = false;
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+  function pretty(iso){ var p = String(iso || '').split('-'); if(p.length < 3) return iso || '—'; var d = new Date(+p[0], +p[1] - 1, +p[2]); return DOW[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate(); }
+  function $(id){ return document.getElementById(id); }
+  function setMsg(t, err){ $('msg').innerHTML = t ? '<div class="status' + (err ? ' err' : '') + '">' + esc(t) + '</div>' : ''; }
+
+  // ----- sign-in (same Microsoft account and app registration as the console; only the basic profile scope is needed) -----
+  var auth = window.upaeReviewAuth || (function(){
+    var app = new msal.PublicClientApplication({ auth: { clientId: CONFIG.clientId, authority: 'https://login.microsoftonline.com/' + CONFIG.tenantId, redirectUri: window.location.origin }, cache: { cacheLocation: 'sessionStorage' } });
+    var scopes = ['User.Read'];
+    function acct(){ return app.getActiveAccount() || app.getAllAccounts()[0]; }
+    return {
+      has: function(){ return !!acct(); },
+      email: function(){ var a = acct(); return a ? a.username : ''; },
+      signIn: async function(){ var r = await app.loginPopup({ scopes: scopes }); app.setActiveAccount(r.account); },
+      token: async function(){
+        var a = acct(); if(!a){ await this.signIn(); a = acct(); }
+        try{ return (await app.acquireTokenSilent({ scopes: scopes, account: a })).idToken; }
+        catch(e){ return (await app.acquireTokenPopup({ scopes: scopes })).idToken; }
+      }
+    };
+  })();
+
+  async function api(action, body){
+    var tok = await auth.token(), last = null;
+    for(var attempt = 0; attempt < 2; attempt++){
+      var res, text;
+      try{
+        res = await fetch('/api/review/' + action, { method: 'POST', headers: { 'X-UPAE-Token': 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, body || {}, asEmail ? { as: asEmail } : {})) });
+        text = await res.text();
+      } catch(e){ last = new Error('Could not reach the review service.'); if(attempt === 0){ await new Promise(function(r){ setTimeout(r, 1200); }); continue; } throw last; }
+      var j = null; try{ j = JSON.parse(text); }catch(e){}
+      if(res.ok && j) return j;
+      last = new Error((j && j.error) || (res.status === 404 ? 'The review service is not deployed yet.' : 'The review service returned ' + res.status + '.'));
+      if(attempt === 0 && res.status >= 500 && !(j && j.error)){ await new Promise(function(r){ setTimeout(r, 1200); }); continue; }
+      throw last;
+    }
+    throw last;
+  }
+
+  // ----- data -----
+  async function load(){
+    setMsg('Loading your records…');
+    try{
+      data = await api('list');
+      setMsg('');
+      $('who').textContent = data.actingAs ? 'Viewing as ' + data.actingAs : 'Signed in as ' + (auth.email ? auth.email() : data.pm);
+      render();
+    } catch(err){ data = null; setMsg(err.message || String(err), true); $('list').innerHTML = ''; $('bar').hidden = true; }
+  }
+  function items(){ return data ? data.items : []; }
+  function answered(i){ return !!i.pmResponse; }
+  function visible(){
+    return items().filter(function(i){
+      if(filter === 'waiting' && answered(i)) return false;
+      if(filter === 'answered' && !answered(i)) return false;
+      if(jobSel && i.myJobs.indexOf(jobSel) < 0) return false;
+      if(weekSel && i.weekStart !== weekSel) return false;
+      return true;
+    });
+  }
+  function jobName(b){ var j = (data.jobs || []).filter(function(x){ return x.job === b; })[0]; return j && j.jobName ? j.jobName : ''; }
+  function jobsHtml(i){
+    return String(i.jobs || '').split('; ').filter(Boolean).map(function(p){
+      var base = p.replace(/ \(.*$/, '').replace(/^(\d{2}-\d{3})[~-].*$/, '$1');
+      return i.myJobs.indexOf(base) >= 0 ? '<b>' + esc(p) + '</b> (yours)' : esc(p) + ' (another job)';
+    }).join(' · ');
+  }
+  function render(){
+    var all = items(), waiting = all.filter(function(i){ return !answered(i); }).length;
+    var bar = $('bar'); bar.hidden = false;
+    var weeks = {}; all.forEach(function(i){ weeks[i.weekStart] = i.weekNo; });
+    var jobs = {}; all.forEach(function(i){ i.myJobs.forEach(function(b){ jobs[b] = 1; }); });
+    bar.innerHTML = ['waiting','answered','all'].map(function(f){
+      var n = f === 'waiting' ? waiting : f === 'answered' ? all.length - waiting : all.length;
+      return '<button class="chip' + (filter === f ? ' active' : '') + '" data-f="' + f + '" type="button">' + (f === 'waiting' ? 'Waiting for you' : f === 'answered' ? 'Answered' : 'All') + ' (' + n + ')</button>';
+    }).join('') +
+      '<select id="jobSel" aria-label="Job"><option value="">All my jobs</option>' + Object.keys(jobs).sort().map(function(b){ return '<option value="' + esc(b) + '"' + (jobSel === b ? ' selected' : '') + '>' + esc(b + (jobName(b) ? ' · ' + jobName(b) : '')) + '</option>'; }).join('') + '</select>' +
+      '<select id="weekSel" aria-label="Week"><option value="">All weeks</option>' + Object.keys(weeks).sort().reverse().map(function(w){ return '<option value="' + esc(w) + '"' + (weekSel === w ? ' selected' : '') + '>Week ' + esc(weeks[w] || '?') + ' (from ' + esc(w) + ')</option>'; }).join('') + '</select>';
+    Array.prototype.forEach.call(bar.querySelectorAll('[data-f]'), function(b){ b.addEventListener('click', function(){ filter = b.getAttribute('data-f'); render(); }); });
+    $('jobSel').addEventListener('change', function(){ jobSel = this.value; render(); });
+    $('weekSel').addEventListener('change', function(){ weekSel = this.value; render(); });
+
+    var list = visible(), el = $('list');
+    if(!all.length){ el.innerHTML = '<div class="panel">Nothing is waiting for you right now. ' + ((data.jobs || []).length ? 'You are set up as the project manager for ' + (data.jobs || []).length + ' job(s).' : 'No jobs are assigned to your email address yet — ask Payroll to check the job list.') + '</div>'; $('bulk').hidden = true; return; }
+    if(!list.length){ el.innerHTML = '<div class="panel">Nothing in this view.</div>'; $('bulk').hidden = true; return; }
+    var groups = {}, order = [];
+    list.forEach(function(i){ var k = (i.myJobs[0] || '—'); if(!groups[k]){ groups[k] = []; order.push(k); } groups[k].push(i); });
+    order.sort();
+    el.innerHTML = order.map(function(k){
+      return '<h2>' + esc(k === '—' ? 'Other' : 'Job ' + k) + '<small>' + esc(jobName(k)) + ' · ' + groups[k].length + ' record' + (groups[k].length === 1 ? '' : 's') + '</small></h2>' + groups[k].map(card).join('');
+    }).join('');
+    wire(el);
+    updateBulk();
+  }
+  function card(i){
+    var d = drafts[i.id] || {}, cur = d.response != null ? d.response : i.pmResponse, note = d.note != null ? d.note : i.pmNote;
+    var btn = function(v, cls){ return '<button type="button" class="rb ' + (cls || '') + (cur === v ? ' on' : '') + '" data-resp="' + esc(i.id) + '" data-v="' + esc(v) + '">' + (v === 'Correct as reported' ? '✓ ' : v === 'Needs correction' ? '✎ ' : '? ') + esc(v) + '</button>'; };
+    var dirty = d.response != null || d.note != null;
+    return '<div class="card' + (answered(i) && !dirty ? ' answered' : '') + '" data-card="' + esc(i.id) + '"><div class="top"><input type="checkbox" data-sel="' + esc(i.id) + '"' + (sel[i.id] ? ' checked' : '') + ' aria-label="Select"><div style="flex:1">' +
+      '<div class="emp">' + esc(i.employeeName || i.employeeId) + ' <span class="sub">(' + esc(i.employeeId) + ')' + (i.union ? ' · ' + esc(i.union) : '') + '</span></div>' +
+      '<div class="grid"><div><div class="k">Day</div>' + esc(pretty(i.day)) + '</div><div><div class="k">Reported</div>' + esc(i.reported || '—') + '</div><div><div class="k">Rule says</div>' + esc(i.expected || '—') + '</div></div>' +
+      '<div class="why">' + esc(i.broken || '') + '</div>' +
+      (i.jobs ? '<div class="jobs">Jobs that day: ' + jobsHtml(i) + '</div>' : '') +
+      (i.ai ? '<div class="ai"><b>AI note:</b> ' + esc(i.ai.explanation) + (i.ai.suggestedAction ? '<br><b>Suggested check:</b> ' + esc(i.ai.suggestedAction) : '') + '<br><span class="sub">AI-generated, ' + esc(i.ai.confidence || 'low') + ' confidence – please verify.</span></div>' : '') +
+      (i.payrollNote ? '<div class="note"><b>Payroll note:</b> ' + esc(i.payrollNote) + '</div>' : '') +
+      '<div class="resp">' + btn('Correct as reported', 'good') + btn('Needs correction') + btn('Question') + '</div>' +
+      '<textarea data-note="' + esc(i.id) + '" placeholder="' + (cur === 'Needs correction' ? 'What needs to change? (required)' : cur === 'Question' ? 'What is your question? (required)' : 'Add a note (optional)') + '"' + (cur ? '' : ' hidden') + '>' + esc(note || '') + '</textarea>' +
+      (dirty ? '<div class="resp"><button type="button" class="btn primary" data-save="' + esc(i.id) + '">Save answer</button><button type="button" class="btn" data-undo="' + esc(i.id) + '">Cancel</button></div>' : '') +
+      (answered(i) && !dirty ? '<div class="saved">Answered: <b>' + esc(i.pmResponse) + '</b>' + (i.pmNote ? ' — ' + esc(i.pmNote) : '') + ' · ' + esc(i.pmBy) + ' · ' + esc(i.pmDate) + '</div>' : '') +
+      '<div class="errline" data-err="' + esc(i.id) + '"' + (d.err ? '' : ' hidden') + '>' + esc(d.err || '') + '</div></div></div></div>';
+  }
+  function find(id){ return items().filter(function(i){ return i.id === id; })[0]; }
+  function wire(el){
+    Array.prototype.forEach.call(el.querySelectorAll('[data-sel]'), function(c){ c.addEventListener('change', function(){ sel[c.getAttribute('data-sel')] = c.checked; updateBulk(); }); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-resp]'), function(b){ b.addEventListener('click', function(){
+      var id = b.getAttribute('data-resp'), i = find(id), d = drafts[id] = drafts[id] || {};
+      d.response = b.getAttribute('data-v'); if(d.note == null) d.note = i.pmNote || '';
+      if(d.response === i.pmResponse && (d.note || '') === (i.pmNote || '')) delete drafts[id];
+      keepScroll(render);
+    }); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-note]'), function(t){ t.addEventListener('input', function(){
+      var id = t.getAttribute('data-note'), i = find(id), d = drafts[id] = drafts[id] || { response: i.pmResponse };
+      d.note = t.value; var c = t.closest('.card'); if(!c.querySelector('[data-save]')){ var pos = t.selectionStart; render(); var nt = document.querySelector('[data-note="' + id + '"]'); if(nt){ nt.focus(); nt.setSelectionRange(pos, pos); } }
+    }); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-undo]'), function(b){ b.addEventListener('click', function(){ delete drafts[b.getAttribute('data-undo')]; keepScroll(render); }); });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-save]'), function(b){ b.addEventListener('click', function(){ saveOne(b.getAttribute('data-save')); }); });
+  }
+  function keepScroll(fn){ var y = window.scrollY; fn(); window.scrollTo(0, y); }
+  function updateBulk(){
+    var n = Object.keys(sel).filter(function(k){ return sel[k]; }).length;
+    $('bulk').hidden = !n; $('bulkN').textContent = n + ' selected';
+  }
+  function showErr(id, t){ var d = drafts[id] = drafts[id] || {}; d.err = t; var e = document.querySelector('[data-err="' + id + '"]'); if(e){ e.textContent = t; e.hidden = !t; } }
+  function applyResult(r){
+    var i = find(r.id); if(!i || !r.ok) return;
+    i.pmResponse = r.response; i.pmNote = r.note || ''; i.pmBy = r.by; i.pmDate = r.date; delete drafts[r.id]; delete sel[r.id];
+  }
+  async function saveOne(id){
+    var i = find(id), d = drafts[id]; if(!i || !d || busy) return;
+    var response = d.response, note = (d.note || '').trim();
+    if(!response){ showErr(id, 'Choose an answer first.'); return; }
+    if(response !== 'Correct as reported' && !note){ showErr(id, 'Please add a note for “' + response + '”.'); return; }
+    busy = true; showErr(id, '');
+    try{
+      var out = await api('respond', { id: id, response: response, note: note });
+      var r = out.results[0]; if(r.ok) applyResult(r); else showErr(id, r.error || 'Could not save.');
+    } catch(err){ showErr(id, err.message || String(err)); }
+    busy = false; keepScroll(render);
+  }
+  async function bulkOk(){
+    var ids = Object.keys(sel).filter(function(k){ return sel[k]; });
+    if(!ids.length || busy) return;
+    busy = true; $('bulkOk').disabled = true; setMsg('Saving ' + ids.length + ' answer(s)…');
+    try{
+      var out = await api('respond', { items: ids.map(function(id){ return { id: id, response: 'Correct as reported', note: '' }; }) });
+      var bad = 0; out.results.forEach(function(r){ if(r.ok) applyResult(r); else bad++; });
+      setMsg(out.results.length - bad + ' marked Correct as reported.' + (bad ? ' ' + bad + ' could not be saved (they may have been resolved by Payroll). Press Refresh.' : ''), !!bad);
+    } catch(err){ setMsg(err.message || String(err), true); }
+    busy = false; $('bulkOk').disabled = false; keepScroll(render);
+  }
+
+  $('bulkOk').addEventListener('click', bulkOk);
+  $('bulkClear').addEventListener('click', function(){ sel = {}; render(); });
+  $('refresh').addEventListener('click', function(){ if(Object.keys(drafts).length && !confirm('You have answers that are not saved. Refresh anyway?')) return; drafts = {}; sel = {}; load(); });
+  async function start(){
+    $('gate').style.display = 'none'; await load();
+  }
+  $('signIn').addEventListener('click', async function(){
+    var b = this; b.disabled = true; b.textContent = 'Signing in…';
+    try{ await auth.signIn(); await start(); }
+    catch(err){ $('gateMsg').textContent = 'Sign-in failed: ' + (err.message || err); b.disabled = false; b.textContent = 'Retry sign-in'; }
+  });
+  if(auth.has && auth.has()) start();
+})();
+</script>
+</body>
+</html>

@@ -128,6 +128,7 @@
             <button class="chip-filter" data-filter="crit">Critical</button>
             <button class="chip-filter" data-filter="needs-review">Not resolved</button>
             <button class="chip-filter" data-filter="rule">Sent to PM</button>
+            <button class="chip-filter" data-filter="pm">PM answered</button>
             <button class="chip-filter" data-filter="ai">Has AI note</button>
           </div>
           <div class="legend queue-legend">
@@ -1042,6 +1043,7 @@
       </div>
       <div class="field-group" style="display:flex; gap:18px; flex-wrap:wrap; font-size:13px;">
         <label><input type="checkbox" id="hrsMailCopyMe"> Send me a copy</label>
+        <label><input type="checkbox" id="hrsMailLink" checked> Include a link to the PM review page, so they can answer there instead of by email</label>
         <label><input type="checkbox" id="hrsMailAi"> <span id="hrsMailAiLbl">Include the AI explanation</span></label>
         <label><input type="checkbox" id="hrsMailRemember" checked> Remember the PM for each job (and employee) for next time</label>
       </div>

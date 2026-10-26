@@ -31,14 +31,15 @@
       case 'needs-review': return ex.status !== 'resolved';
       case 'rule': return ex.status === 'review';
       case 'ai': return ex.source === 'ai';
+      case 'pm': return !!ex.f.pmResponse && ex.status !== 'resolved';
       default: return true;
     }
   }
   var SHOW_MAX = 100;
   function renderChips(){
-    var c = { all: exceptions.length, crit: 0, nr: 0, sent: 0, ai: 0 };
-    exceptions.forEach(function(e){ if(e.severity === 'crit') c.crit++; if(e.status !== 'resolved') c.nr++; if(e.status === 'review') c.sent++; if(e.source === 'ai') c.ai++; });
-    var lab = { all: 'All · ' + c.all, crit: 'Critical · ' + c.crit, 'needs-review': 'Not resolved · ' + c.nr, rule: 'Sent to PM · ' + c.sent, ai: 'Has AI note · ' + c.ai };
+    var c = { all: exceptions.length, crit: 0, nr: 0, sent: 0, ai: 0, pm: 0 };
+    exceptions.forEach(function(e){ if(e.severity === 'crit') c.crit++; if(e.status !== 'resolved') c.nr++; if(e.status === 'review') c.sent++; if(e.source === 'ai') c.ai++; if(e.f.pmResponse && e.status !== 'resolved') c.pm++; });
+    var lab = { all: 'All · ' + c.all, crit: 'Critical · ' + c.crit, 'needs-review': 'Not resolved · ' + c.nr, rule: 'Sent to PM · ' + c.sent, ai: 'Has AI note · ' + c.ai, pm: 'PM answered · ' + c.pm };
     Array.prototype.forEach.call(document.querySelectorAll('#filters .chip-filter'), function(ch){ ch.textContent = lab[ch.getAttribute('data-filter')]; });
   }
   function renderQueue(){
@@ -81,7 +82,7 @@
     detailSub.textContent = ex.id + ' · ' + statusLabel(ex.status);
     function field(label, value){ return '<div class="detail-field"><div class="f-label">' + label + '</div><div class="f-value">' + dEsc(value || '—') + '</div></div>'; }
     var fieldsHtml = field('Employee', (f.name || '') + ' (' + f.id + ')') + field('Union', f.union) + field('Day', f.iso) + field('Week', f.weekNo ? 'Week ' + f.weekNo + ' (starts ' + f.weekStart + ')' : f.weekStart) +
-      field('Rule triggered', f.ruleId === 'Data check' ? 'Data check' : (f.ruleId + ' · ' + f.ruleName)) + field('Reported', f.reported) + field('Rule says', f.expected) + field('Sent to', f.sentTo ? f.sentTo + (f.sentDate ? ' on ' + f.sentDate : '') : '');
+      field('Rule triggered', f.ruleId === 'Data check' ? 'Data check' : (f.ruleId + ' · ' + f.ruleName)) + field('Reported', f.reported) + field('Rule says', f.expected) + field('Sent to', f.sentTo ? f.sentTo + (f.sentDate ? ' on ' + f.sentDate : '') : '') + field('Jobs', f.jobs) + field('PM answer', f.pmResponse ? f.pmResponse + (f.pmNote ? ' — ' + f.pmNote : '') + (f.pmBy ? ' (' + f.pmBy + (f.pmDate ? ', ' + f.pmDate : '') + ')' : '') : '');
     var noteBlock = '<div class="rationale" style="background:var(--accent-soft); border-color:transparent; color:var(--accent-soft-ink);"><div class="r-head" style="color:var(--accent-soft-ink);">Rule broken</div>' + dEsc(f.broken ? String(f.broken).split(' | ').join(' ') : '—') + '</div>';
     var aiBlock = '';
     if(f.aiExplanation){

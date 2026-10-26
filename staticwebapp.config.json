@@ -32,6 +32,12 @@
       "headers": {
         "Cache-Control": "no-cache"
       }
+    },
+    {
+      "route": "/review.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
     }
   ],
   "globalHeaders": {
