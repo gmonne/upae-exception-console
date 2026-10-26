@@ -234,6 +234,8 @@ async function hrsRefreshSaved(){
     try{ hrsSaved = await upaeFetchWeeklyHours(); } catch(err){ console.warn('UPAE: WeeklyHours', err); hrsSavedError = err.message || String(err); }
     try{ hrsFindSaved = await upaeFetchFindings(); } catch(err){ console.warn('UPAE: WeeklyFindings', err); hrsFindError = err.message || String(err); }
     try{ hrsPMs = await upaeFetchProjectManagers(); } catch(err){ console.warn('UPAE: ProjectManagers', err); hrsPMError = err.message || String(err); }
+    hrsSums = null; hrsSumsError = null;
+    try{ hrsSums = typeof upaeFetchSummaries === 'function' ? await upaeFetchSummaries() : []; } catch(err){ console.warn('UPAE: WeeklySummaries', err); hrsSumsError = err.message || String(err); hrsSums = []; }
   }
   hrsLoadedOnce = true;
   if(hrsFindings && hrsWeek) hrsMergeSaved(hrsFindings);
@@ -287,7 +289,7 @@ function renderHoursSaved(){
 function renderHoursPanel(){
   var el = document.getElementById('hoursWork'); if(!el) return;
   var wk = hrsWeek;
-  if(!wk){ el.innerHTML = ''; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); return; }
+  if(!wk){ el.innerHTML = ''; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); renderHoursSummary(); return; }
   var plan = hrsSaved ? hrsPlanSave() : null;
   var html = '<div class="hrs-week">' +
     '<label>Week no. <input type="number" id="hrsWeekNo" min="1" max="53" value="' + (wk.weekNo || '') + '"></label>' +
@@ -314,7 +316,7 @@ function renderHoursPanel(){
     '<button class="btn ghost" type="button" id="hrsDiscardBtn">Close week</button></div>' +
     '<div class="emp-status" id="hrsStatus">' + (plan && !nSave && hrsSaved ? 'Hours for this week are already saved.' : '') + '</div>';
   el.innerHTML = html;
-  document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsShown = 150; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); });
+  document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsShown = 150; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); renderHoursSummary(); });
   document.getElementById('hrsSaveBtn').addEventListener('click', hrsSave);
   document.getElementById('hrsDiscardBtn').addEventListener('click', function(){ hrsWeek = null; hrsFindings = null; hrsSel = {}; document.getElementById('hrsFileName').textContent = 'No file chosen'; renderHoursPanel(); renderHoursSaved(); });
   document.getElementById('hrsWeekNo').addEventListener('change', function(){ wk.weekNo = parseInt(this.value, 10) || null; renderHoursKpis(); });
@@ -323,6 +325,7 @@ function renderHoursPanel(){
   renderHoursKpis();
   renderHoursFindings();
   renderHoursDash();
+  renderHoursSummary();
 }
 
 function itemLine(i){ if(i.status === STATUS_DONE && i.resReason) return 'Resolved · ' + i.resReason + (i.resolvedBy ? ' · ' + i.resolvedBy : '') + (i.resolvedDate ? ' · ' + i.resolvedDate : '') + (i.note ? ' — ' + i.note : ''); return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') : i.status; }
@@ -651,6 +654,156 @@ function dashTrend(){
   var diffRows = weeks.map(function(w){ return { l: 'Wk ' + (w.weekNo || '?') + ' · ' + fmtMD(w.start), v: fcount[w.start] || 0, cls: 'crit' }; });
   return '<div class="dash-grid" style="margin-top:12px;"><div class="dash-card"><h3>Total hours, saved weeks</h3>' + hbars(hoursRows) + '</div>' +
     '<div class="dash-card"><h3>Rule differences, saved weeks</h3>' + hbars(diffRows, 'crit') + '<div class="emp-status" style="padding:6px 0 0;">Counts the findings saved for each week.</div></div></div>';
+}
+
+// ---------------- weekly analyst summary (AI phase 2) ----------------
+var hrsSums = null, hrsSumsError = null;   // saved summaries from SharePoint
+var hrsSum = null;                          // { weekStart, state:'idle'|'loading'|'done'|'error', data, cands, id, feedback, note, saved, err, collapsed }
+
+// Every figure here is computed the same way as the dashboard above; the AI only writes words around them.
+function hrsWeekStats(){
+  var wk = hrsWeek, f = hrsFindings; if(!wk || !f) return null;
+  var tRt = 0, tOt = 0, tDt = 0;
+  wk.days.forEach(function(iso){ wk.records.forEach(function(r){ var h = r.days[iso]; if(h){ tRt += h.rt; tOt += h.ot; tDt += h.dt; } }); });
+  var tot = tRt + tOt + tDt || 1;
+  var cov = hrsCoverageRows();
+  var mism = f.items.filter(function(i){ return i.kind === 'mismatch'; });
+  var ec = {}; mism.forEach(function(i){ var o = ec[i.id] = ec[i.id] || { employee: i.name + ' (' + i.id + ')', differences: 0 }; o.differences++; });
+  var noRt = function(i){ return !!(i.rep && i.rep.rt === 0 && (i.rep.ot + i.rep.dt) > 0); };
+  var rr = {}; f.items.forEach(function(i){ if(i.resReason) rr[i.resReason] = (rr[i.resReason] || 0) + 1; });
+  var cnt = function(st){ return f.items.filter(function(i){ return i.status === st; }).length; };
+  var prior = hrsSavedWeeks().filter(function(w){ return w.start < wk.start; }).slice(0, 4).map(function(w){
+    var ot = 0, all = 0; (hrsSaved || []).forEach(function(r){ if(r.weekStart === w.start){ ot += r.ot; all += r.rt + r.ot + r.dt; } });
+    return { weekNo: w.weekNo, start: w.start, totalHours: Math.round(w.hours), ruleDifferences: (hrsFindSaved || []).filter(function(r){ return r.kind === 'mismatch' && r.weekStart === w.start; }).length, otSharePct: all ? Math.round(ot / all * 100) : null };
+  });
+  var rank = {}; rank[STATUS_OPEN] = 0; rank[STATUS_SENT] = 1; rank[STATUS_DONE] = 2;
+  var dev = function(i){ return i.rep && i.exp ? Math.abs(i.rep.rt - i.exp.rt) + Math.abs(i.rep.ot - i.exp.ot) + Math.abs(i.rep.dt - i.exp.dt) : 0; };
+  var cands = f.items.slice().sort(function(a, b){ return (rank[a.status] - rank[b.status]) || ((b.kind === 'mismatch') - (a.kind === 'mismatch')) || (dev(b) - dev(a)); }).slice(0, 25);
+  var candPayload = cands.map(function(i){ return { key: i.key, employee: i.name + ' (' + i.id + ')', union: i.union, day: i.iso ? hrsPretty(i.iso) : '', reported: i.rep ? hrsFmt(i.rep) : '', ruleSays: i.exp ? hrsFmt(i.exp) : '',
+    kind: HRS_KINDS[i.kind] || i.kind, status: i.status, noRtDay: i.kind === 'mismatch' && noRt(i), hasAiNote: !!i.ai, repeatEmployeeCount: ec[i.id] ? ec[i.id].differences : 0 }; });
+  var map = {}; candPayload.forEach(function(c){ map[c.key] = c; });
+  return { cands: map, payload: {
+    week: { weekNo: wk.weekNo, start: wk.start, end: wk.end },
+    totals: { employeesInFile: wk.records.length, rt: hrsRound(tRt), ot: hrsRound(tOt), dt: hrsRound(tDt), totalHours: hrsRound(tRt + tOt + tDt), otSharePct: Math.round(tOt / tot * 100), dtSharePct: Math.round(tDt / tot * 100) },
+    coverage: { employeesChecked: f.emp.checked, daysChecked: f.rowsChecked, daysMatching: f.matched, checkedHoursPct: cov.unionHours ? Math.round(cov.checkedHours / cov.unionHours * 100) : 0,
+      unionsSkipped: cov.rows.filter(function(r){ return r.status !== 'ok' && r.week > 0; }).map(function(r){ return { union: r.union, employees: r.week }; }) },
+    findings: {
+      total: f.items.length,
+      byKind: Object.keys(HRS_KINDS).map(function(k){ return { kind: HRS_KINDS[k], count: f.items.filter(function(i){ return i.kind === k; }).length }; }).filter(function(r){ return r.count; }),
+      byStatus: { open: cnt(STATUS_OPEN), sentToPm: cnt(STATUS_SENT), resolved: cnt(STATUS_DONE) },
+      ruleDifferencesByUnion: Object.keys(f.byUnion).map(function(u){ var b = f.byUnion[u]; return { union: u, differences: b.bad, daysChecked: b.days }; }).sort(function(a, b){ return b.differences - a.differences; }).slice(0, 8),
+      employeesWithMostDifferences: Object.keys(ec).map(function(k){ return ec[k]; }).sort(function(a, b){ return b.differences - a.differences; }).slice(0, 8),
+      noRtDayDifferences: mism.filter(noRt).length,
+      resolvedReasons: Object.keys(rr).map(function(k){ return { reason: k, count: rr[k] }; }).sort(function(a, b){ return b.count - a.count; })
+    },
+    priorWeeks: prior, candidates: candPayload } };
+}
+function hrsSumLatestSaved(start){
+  var list = (hrsSums || []).filter(function(s){ return s.weekStart === start; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); });
+  return list[0] || null;
+}
+function hrsSumText(d, cands){
+  var t = ['WEEK ' + (hrsWeek.weekNo || '') + ' (' + hrsWeek.start + ' to ' + hrsWeek.end + '): ' + d.headline, '', 'WHAT STANDS OUT'];
+  d.keyChanges.forEach(function(x){ t.push('- ' + x); });
+  t.push('', 'REVIEW FIRST');
+  d.riskRanked.forEach(function(r, n){ var c = cands && cands[r.key]; t.push((n + 1) + '. [' + r.risk + '] ' + (c ? c.employee + (c.day ? ', ' + c.day : '') + ' (reported ' + c.reported + '; rule ' + c.ruleSays + ')' : r.key) + ': ' + r.reason); });
+  t.push('', 'SUGGESTED FOLLOW-UPS'); d.suggestedFollowUps.forEach(function(x){ t.push('- ' + x); });
+  t.push('', 'LIMITS OF THIS DATA', d.dataLimits || '', '', 'AI-generated from the week\'s rule-check results. The rule check and the dashboard are the source of truth.');
+  return t.join('\n');
+}
+function renderHoursSummary(){
+  var el = document.getElementById('hoursSummary'); if(!el) return;
+  if(!hrsWeek){ el.innerHTML = '<div class="emp-status">Load or open a week, run the rule check, then write the summary.</div>'; return; }
+  if(hrsSum && hrsSum.weekStart !== hrsWeek.start) hrsSum = null;
+  if(!hrsSum){
+    var sv = hrsSumLatestSaved(hrsWeek.start);
+    if(sv){ try{ var o = JSON.parse(sv.json); hrsSum = { weekStart: hrsWeek.start, state: 'done', data: Object.assign({ model: sv.model, promptVersion: sv.promptVersion }, o.data), cands: o.cands || {}, id: sv.spItemId, feedback: sv.feedback, saved: true, note: 'Saved summary from ' + (sv.at ? new Date(sv.at).toLocaleString() : 'SharePoint') + (sv.generatedBy ? ' by ' + sv.generatedBy : '') + '.' }; } catch(e){ hrsSum = null; } }
+  }
+  var busy = hrsSum && hrsSum.state === 'loading';
+  var html = '<div class="emp-actions" style="padding:0 0 8px;"><button class="btn primary" type="button" id="hrsSumBtn"' + (!hrsFindings || busy ? ' disabled' : '') + '>' + (hrsSum && hrsSum.state === 'done' ? 'Write it again' : 'Write weekly summary') + '</button>' +
+    '<span class="panel-sub">' + (hrsFindings ? 'A short AI briefing built from this week&rsquo;s rule-check results and the last saved weeks.' : 'Run the rule check first.') + '</span></div>';
+  if(hrsSum && hrsSum.state === 'loading') html += '<div class="ai-card"><span class="ai-tag">AI</span> Writing the summary&hellip;</div>';
+  else if(hrsSum && hrsSum.state === 'error') html += '<div class="ai-card err"><span class="ai-tag">AI</span> ' + escapeHtml(hrsSum.err) + '</div>';
+  else if(hrsSum && hrsSum.state === 'done'){
+    var d = hrsSum.data, cands = hrsSum.cands || {};
+    if(hrsSum.collapsed) html += '<div class="ai-card ai-collapsed"><span class="ai-tag">AI</span><span class="ai-conf">Weekly summary &middot; confidence: ' + escapeHtml(d.confidence) + '</span><button class="btn ghost" type="button" id="hrsSumToggle">Show</button></div>';
+    else html += '<div class="ai-card"><div class="ai-head"><span class="ai-tag">AI</span><span class="ai-conf">Confidence: ' + escapeHtml(d.confidence) + '</span>' + (d.stub ? '<span class="ai-stub">Sample answer &mdash; the AI key is not set up yet</span>' : '') +
+      '<button class="btn ghost ai-hide" type="button" id="hrsSumToggle">Hide</button></div>' +
+      '<p style="font-size:15px;"><b>' + escapeHtml(d.headline) + '</b></p>' +
+      (d.keyChanges.length ? '<p><b>What stands out</b></p><ul class="sum-list">' + d.keyChanges.map(function(x){ return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>' : '') +
+      (d.riskRanked.length ? '<p><b>Review first</b></p>' + d.riskRanked.map(function(r){ var c = cands[r.key];
+        return '<div class="sum-risk"><span class="cov-pill ' + (r.risk === 'high' ? 'unreadable' : r.risk === 'medium' ? 'draft' : 'ok') + '">' + escapeHtml(r.risk) + '</span> <b>' + (c ? escapeHtml(c.employee) + (c.day ? ' · ' + escapeHtml(c.day) : '') : escapeHtml(r.key)) + '</b>' +
+          (c ? ' <span class="h-msg">reported ' + escapeHtml(c.reported || '—') + (c.ruleSays ? ' · rule says ' + escapeHtml(c.ruleSays) : '') + '</span>' : '') + '<div>' + escapeHtml(r.reason) + (c && c.noRtDay ? ' <i>(day with no RT: verify possible second shift or other job)</i>' : '') +
+          ' <button class="btn ghost" type="button" data-sum-go="' + escapeHtml(r.key) + '" style="padding:2px 8px;font-size:12px;">Show in list</button></div></div>'; }).join('') : '') +
+      (d.suggestedFollowUps.length ? '<p><b>Suggested follow-ups</b></p><ul class="sum-list">' + d.suggestedFollowUps.map(function(x){ return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>' : '') +
+      (d.dataLimits ? '<p class="ai-warn"><b>Limits of this data.</b> ' + escapeHtml(d.dataLimits) + '</p>' : '') +
+      '<div class="emp-actions" style="padding:6px 0 0;"><button class="btn" type="button" id="hrsSumSave"' + (hrsSum.saved || d.stub ? ' disabled' : '') + '>' + (hrsSum.saved ? 'Saved' : 'Save summary to SharePoint') + '</button><button class="btn ghost" type="button" id="hrsSumCopy">Copy as text</button></div>' +
+      '<div class="ai-fb">Was this helpful? <button class="btn ghost" type="button" data-sum-fb="Helpful"' + (hrsSum.feedback ? ' disabled' : '') + '>' + (hrsSum.feedback === 'Helpful' ? 'Helpful (thanks)' : 'Helpful') + '</button> <button class="btn ghost" type="button" data-sum-fb="Not helpful"' + (hrsSum.feedback ? ' disabled' : '') + '>' + (hrsSum.feedback === 'Not helpful' ? 'Not helpful (noted)' : 'Not helpful') + '</button></div>' +
+      '<div class="ai-note">AI-generated from the figures on this screen; every number was checked against them. The rule check and the dashboard are the source of truth.' + (hrsSum.note ? ' ' + escapeHtml(hrsSum.note) : '') + (d.model && d.model !== 'stub' ? ' Model: ' + escapeHtml(d.model) + '.' : '') + '</div></div>';
+  }
+  el.innerHTML = html;
+  var b = document.getElementById('hrsSumBtn'); if(b) b.addEventListener('click', hrsSummarize);
+  var tg = document.getElementById('hrsSumToggle'); if(tg) tg.addEventListener('click', function(){ hrsSum.collapsed = !hrsSum.collapsed; renderHoursSummary(); });
+  var sv2 = document.getElementById('hrsSumSave'); if(sv2) sv2.addEventListener('click', hrsSumSave);
+  var cp = document.getElementById('hrsSumCopy'); if(cp) cp.addEventListener('click', function(){
+    var txt = hrsSumText(hrsSum.data, hrsSum.cands);
+    try{ navigator.clipboard.writeText(txt).then(function(){ cp.textContent = 'Copied'; }, function(){ cp.textContent = 'Copy failed'; }); } catch(e){ cp.textContent = 'Copy failed'; }
+  });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-sum-fb]'), function(x){ x.addEventListener('click', function(){ hrsSumFeedback(x.getAttribute('data-sum-fb')); }); });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-sum-go]'), function(x){ x.addEventListener('click', function(){ hrsGoToFinding(x.getAttribute('data-sum-go')); }); });
+}
+function hrsGoToFinding(key){
+  hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsShown = Math.max(hrsShown || 150, 100000);
+  renderHoursFindings();
+  var box = null; Array.prototype.forEach.call(document.querySelectorAll('[data-hrs-sel]'), function(c){ if(c.getAttribute('data-hrs-sel') === key) box = c; });
+  if(!box) return;
+  var row = box.closest('.hrs-row') || box; row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  row.style.outline = '2px solid var(--accent)'; setTimeout(function(){ row.style.outline = ''; }, 2500);
+}
+async function hrsSummarize(){
+  if(!hrsFindings || (hrsSum && hrsSum.state === 'loading')) return;
+  var st = hrsWeekStats(); if(!st) return;
+  hrsSum = { weekStart: hrsWeek.start, state: 'loading' }; renderHoursSummary();
+  try{
+    if(typeof upaeAiSummary !== 'function') throw new Error('The AI service is not available in this view.');
+    var data = await upaeAiSummary(st.payload);
+    if(!hrsWeek || hrsWeek.start !== st.payload.week.start) return;   // the user moved to another week meanwhile
+    hrsSum = { weekStart: hrsWeek.start, state: 'done', data: data, cands: st.cands, feedback: '', saved: false, note: '' };
+    renderHoursSummary();
+    if(typeof upaeCreateAILog === 'function' && !data.stub){
+      upaeCreateAILog({ purpose: 'summary', findingKey: '', weekStart: hrsWeek.start, userEmail: (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''), model: data.model, promptVersion: data.promptVersion, confidence: data.confidence,
+        output: JSON.stringify({ headline: data.headline, keyChanges: data.keyChanges, riskRanked: data.riskRanked, suggestedFollowUps: data.suggestedFollowUps, dataLimits: data.dataLimits }) })
+        .then(function(it){ if(hrsSum && hrsSum.state === 'done') hrsSum.logId = it && it.id; })
+        .catch(function(err){ console.warn('UPAE: could not write AILog', err); });
+    }
+  } catch(err){
+    console.error('UPAE: summary failed', err);
+    hrsSum = { weekStart: hrsWeek ? hrsWeek.start : '', state: 'error', err: err.message || String(err) }; renderHoursSummary();
+  }
+}
+async function hrsSumSave(){
+  if(!hrsSum || hrsSum.state !== 'done' || hrsSum.saved) return;
+  var d = hrsSum.data, btn = document.getElementById('hrsSumSave'); if(btn){ btn.disabled = true; btn.textContent = 'Saving…'; }
+  try{
+    if(typeof upaeSaveSummary !== 'function') throw new Error('SharePoint is not connected in this view.');
+    var who = (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : '');
+    var item = await upaeSaveSummary({ weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, headline: d.headline, summaryJson: JSON.stringify({ data: { headline: d.headline, keyChanges: d.keyChanges, riskRanked: d.riskRanked, suggestedFollowUps: d.suggestedFollowUps, dataLimits: d.dataLimits, confidence: d.confidence }, cands: hrsSum.cands }),
+      model: d.model, promptVersion: d.promptVersion, confidence: d.confidence, generatedBy: who });
+    hrsSum.saved = true; hrsSum.id = item && item.id; hrsSum.note = 'Saved to SharePoint (WeeklySummaries).';
+    hrsSums = hrsSums || []; hrsSums.push({ spItemId: hrsSum.id, weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, headline: d.headline, json: JSON.stringify({ data: d, cands: hrsSum.cands }), model: d.model, promptVersion: d.promptVersion, confidence: d.confidence, generatedBy: who, feedback: '', at: new Date().toISOString() });
+  } catch(err){
+    console.warn('UPAE: could not save summary', err);
+    hrsSum.note = 'Not saved: ' + (err.message || String(err)) + ' (the WeeklySummaries list may not exist yet).';
+  }
+  renderHoursSummary();
+}
+async function hrsSumFeedback(value){
+  if(!hrsSum || hrsSum.feedback) return;
+  hrsSum.feedback = value; renderHoursSummary();
+  try{
+    if(hrsSum.id && typeof upaeUpdateSummaryFeedback === 'function') await upaeUpdateSummaryFeedback(hrsSum.id, value);
+    if(hrsSum.logId && typeof upaeUpdateAILogFeedback === 'function') await upaeUpdateAILogFeedback(hrsSum.logId, value);
+  } catch(err){ console.warn('UPAE: could not save summary feedback', err); }
 }
 
 // ---------------- save week ----------------

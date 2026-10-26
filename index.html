@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="msal-browser.min.js"></script>
-<script src="sharepoint-integration.js?v=20261025a"></script>
-<link rel="stylesheet" href="css/app.css?v=20261025a">
+<script src="sharepoint-integration.js?v=20261026a"></script>
+<link rel="stylesheet" href="css/app.css?v=20261026a">
 </head>
 <body>
 
@@ -411,6 +411,14 @@
 
       <div class="panel">
         <div class="panel-head">
+          <h2>Weekly analyst summary</h2>
+          <span class="panel-sub">An AI briefing of this week &middot; advisory only</span>
+        </div>
+        <div id="hoursSummary" style="padding:12px 18px 14px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
           <h2>Dashboard</h2>
           <span class="panel-sub">What this week&rsquo;s data shows</span>
         </div>
@@ -480,6 +488,14 @@
             <tr><td>Title</td><td>Single line of text (already there)</td></tr>
             <tr><td>Purpose, FindingKey, WeekStart, UserEmail, Model, PromptVersion, Confidence, Feedback</td><td>Single line of text (8 columns)</td></tr>
             <tr><td>Output</td><td>Multiple lines of text (plain text)</td></tr>
+          </table>
+          <p><b>WeeklySummaries</b> &mdash; one row each time a weekly AI summary is saved</p>
+          <table>
+            <tr><th>Column</th><th>Type</th></tr>
+            <tr><td>Title</td><td>Single line of text (already there)</td></tr>
+            <tr><td>WeekStart, Headline, Model, PromptVersion, Confidence, GeneratedBy, Feedback</td><td>Single line of text (7 columns)</td></tr>
+            <tr><td>WeekNo</td><td>Number</td></tr>
+            <tr><td>SummaryJSON</td><td>Multiple lines of text (plain text)</td></tr>
           </table>
           <p><b>FindingHistory</b> &mdash; one row each time a finding's status changes (who, when, from/to). Powers the History box on the Dashboard.</p>
           <table>
@@ -1095,12 +1111,12 @@
   </div>
 </div>
 
-<script src="js/dashboard.js?v=20261025a"></script>
+<script src="js/dashboard.js?v=20261026a"></script>
 
-<script src="js/rules.js?v=20261025a"></script>
-<script src="js/employees.js?v=20261025a"></script>
-<script src="js/hours-core.js?v=20261025a"></script>
-<script src="js/hours-ui.js?v=20261025a"></script>
-<script src="js/app-init.js?v=20261025a"></script>
+<script src="js/rules.js?v=20261026a"></script>
+<script src="js/employees.js?v=20261026a"></script>
+<script src="js/hours-core.js?v=20261026a"></script>
+<script src="js/hours-ui.js?v=20261026a"></script>
+<script src="js/app-init.js?v=20261026a"></script>
 </body>
 </html>

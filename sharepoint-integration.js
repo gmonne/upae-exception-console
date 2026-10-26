@@ -44,6 +44,7 @@ const UPAE_CONFIG = {
     projectManagers: "ProjectManagers",
     aiLog: "AILog",
     findingHistory: "FindingHistory",
+    weeklySummaries: "WeeklySummaries",
   },
 };
 
@@ -836,14 +837,14 @@ async function upaeGetIdToken() {
   catch (err) { result = await msalInstance.acquireTokenPopup({ scopes: graphScopes }); }
   return result.idToken;
 }
-async function upaeAiExplain(payload) {
+async function upaeAiPost(path, payload) {
   const idToken = await upaeGetIdToken();
   let lastErr = null;
   // One quiet retry: a bare 5xx from Azure (cold start, worker restart) usually clears on the second try.
   for (let attempt = 0; attempt < 2; attempt++) {
     let res;
     try {
-      res = await fetch("/api/ai/explain", {
+      res = await fetch(path, {
         method: "POST",
         // Static Web Apps rewrites the standard Authorization header on /api calls, so the sign-in token travels in its own header.
         headers: { "X-UPAE-Token": "Bearer " + idToken, "Content-Type": "application/json" },
@@ -865,6 +866,40 @@ async function upaeAiExplain(payload) {
     throw lastErr;
   }
   throw lastErr || new Error("The AI request failed.");
+}
+async function upaeAiExplain(payload) { return upaeAiPost("/api/ai/explain", payload); }
+async function upaeAiSummary(payload) { return upaeAiPost("/api/ai/summary", payload); }
+
+// ---- Weekly summaries (Phase 2): one row each time a summary is saved ----
+async function upaeSaveSummary(r) {
+  const url = await upaeListItemsUrl("weeklySummaries");
+  return upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields: {
+    Title: "Week " + (r.weekNo || "") + " " + (r.weekStart || ""),
+    WeekStart: r.weekStart || "", WeekNo: r.weekNo == null ? null : r.weekNo,
+    Headline: (r.headline || "").slice(0, 500), SummaryJSON: r.summaryJson || "",
+    Model: r.model || "", PromptVersion: r.promptVersion || "", Confidence: r.confidence || "",
+    GeneratedBy: r.generatedBy || "", Feedback: "",
+  } }) });
+}
+async function upaeFetchSummaries() {
+  let url = await upaeListItemsUrl("weeklySummaries", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 100) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => {
+      const f = item.fields || {};
+      out.push({ spItemId: item.id, weekStart: f.WeekStart || "", weekNo: f.WeekNo != null ? Number(f.WeekNo) : null, headline: f.Headline || "", json: f.SummaryJSON || "", model: f.Model || "",
+        promptVersion: f.PromptVersion || "", confidence: f.Confidence || "", generatedBy: f.GeneratedBy || "", feedback: f.Feedback || "", at: item.createdDateTime || "" });
+    });
+    const next = data["@odata.nextLink"];
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
+}
+async function upaeUpdateSummaryFeedback(spItemId, feedback) {
+  const siteId = await upaeGetSiteId();
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.weeklySummaries}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ Feedback: feedback }) });
 }
 // AILog: audit trail of every AI answer, plus the reviewer's feedback (the learning signal for later phases)
 async function upaeCreateAILog(r) {

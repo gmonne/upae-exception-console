@@ -667,3 +667,7 @@
   .emp-setup table{border-collapse:collapse; margin:8px 0;}
   .emp-setup td, .emp-setup th{border:1px solid var(--line-soft); padding:4px 10px; text-align:left; font-size:12.5px;}
   .emp-setup th{background:var(--bg); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint);}
+  .sum-list{margin:2px 0 8px 18px; padding:0;}
+  .sum-list li{margin-bottom:3px;}
+  .sum-risk{padding:6px 0; border-top:1px solid var(--line-soft);}
+  .sum-risk:first-of-type{border-top:0;}
