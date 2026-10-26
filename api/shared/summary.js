@@ -83,16 +83,19 @@ async function callClaude(input, opts) {
     const res = await (opts.fetch || fetch)("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": opts.apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: opts.model, max_tokens: 1600, system: SYSTEM, messages: [{ role: "user", content: buildUserMessage(input) + (extra || "") }] }),
+      body: JSON.stringify({ model: opts.model, max_tokens: 4096, system: SYSTEM, messages: [{ role: "user", content: buildUserMessage(input) + (extra || "") }] }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) { const e = new Error("The AI service returned " + res.status + (body.error && body.error.message ? ": " + body.error.message : "")); e.status = res.status === 429 ? 429 : 502; throw e; }
-    return (body.content || []).map((c) => c.text || "").join("");
+    const txt = (body.content || []).map((c) => c.text || "").join("");
+    if (body.stop_reason === "max_tokens") throw new Error("reply was cut off (too long)");
+    return txt;
   }
-  let text = await once("");
-  try { return parseOutput(text, input); }
+  let text;
+  try { text = await once(""); return parseOutput(text, input); }
   catch (e1) {
-    text = await once("\n\nYour previous reply was rejected (" + String(e1.message).slice(0, 120) + "). Reply with ONLY the JSON object, using only numbers that appear in the data.");
+    if (e1.status === 429 || (e1.status && e1.status >= 500)) throw e1;
+    text = await once("\n\nKeep every field short (the whole reply under 350 words). "+"\n\nYour previous reply was rejected (" + String(e1.message).slice(0, 120) + "). Reply with ONLY the JSON object, using only numbers that appear in the data.");
     try { return parseOutput(text, input); }
     catch (e2) { const e = new Error("The summary could not be checked against the data (" + String(e2.message).slice(0, 100) + "). Please try again."); e.status = 502; throw e; }
   }
