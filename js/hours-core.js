@@ -13,19 +13,6 @@ var DOW_LABEL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var HRS_EXCESSIVE = 16;    // a single day above this is flagged for a look
 var HRS_TOL = 0.01;
 
-// Paging control shared by long lists: First / Prev / Page x of y / Next / Last and a rows-per-page choice.
-function pagerHtml(ns, total, page, size){
-  var pages = Math.max(1, Math.ceil(total / size)), from = total ? (page - 1) * size + 1 : 0, to = Math.min(total, page * size);
-  var b = function(label, to2, dis){ return '<button class="btn ghost" type="button" data-pg="' + ns + '" data-to="' + to2 + '"' + (dis ? ' disabled' : '') + '>' + label + '</button>'; };
-  return '<div class="hrs-bar pager" style="flex-wrap:wrap;">' + b('« First', 1, page <= 1) + b('‹ Prev', page - 1, page <= 1) +
-    '<span class="panel-sub">Page ' + page + ' of ' + pages + ' &middot; ' + from + '–' + to + ' of ' + total + '</span>' + b('Next ›', page + 1, page >= pages) + b('Last »', pages, page >= pages) +
-    '<span style="margin-left:auto;" class="panel-sub">Rows per page <select data-pgsize="' + ns + '" style="padding:4px 6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px;">' +
-    [25, 50, 100, 250].map(function(n){ return '<option value="' + n + '"' + (n === size ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></span></div>';
-}
-function pagerWire(root, ns, onChange){
-  Array.prototype.forEach.call(root.querySelectorAll('[data-pg="' + ns + '"]'), function(b){ b.addEventListener('click', function(){ onChange(parseInt(b.getAttribute('data-to'), 10), null); }); });
-  Array.prototype.forEach.call(root.querySelectorAll('[data-pgsize="' + ns + '"]'), function(s){ s.addEventListener('change', function(){ onChange(1, parseInt(s.value, 10)); }); });
-}
 function hrsRound(n){ return Math.round(n * 100) / 100; }
 function hrsIso(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function hrsFromIso(s){ var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }

@@ -1,5 +1,6 @@
 // ---------------- the check ----------------
 var hrsFindSaved = null, hrsFindError = null;   // WeeklyFindings rows already in SharePoint
+var covPage = 1, covPageSize = 10;   // paging for the Rule coverage table
 var hrsJobRows = [], jobPage = 1, jobPageSize = 50, jobEdit = null;   // every JobAssignments row, for the Project managers page
 var hrsJobPMs = {}, hrsJobsError = null;           // job base number -> { spItemId, jobName, pmEmail, pmName }
 var hrsPMs = [], hrsPMError = null;             // Project managers (name + email)
@@ -600,11 +601,14 @@ function renderHoursCoverage(){
     (hrsWeek ? '<span class="emp-pill' + (c.unionHours && c.checkedHours < c.unionHours ? ' chg' : '') + '"><b>' + (c.unionHours ? Math.round(c.checkedHours / c.unionHours * 100) : 0) + '%</b>of this week&rsquo;s union hours can be checked</span>' +
       '<span class="emp-pill"><b>' + Math.round(c.noUnionHours).toLocaleString() + '</b>hrs with no union (regular or unassigned)</span>' : '<span class="emp-pill">Load a week to see hours covered</span>') + '</div>';
   html += '<div class="cov-row head"><div>Union</div><div>Employees</div><div>This week</div><div>Rule status</div><div>What is needed</div></div>';
-  c.rows.forEach(function(r){
+  var covPages = Math.max(1, Math.ceil(c.rows.length / covPageSize)); if(covPage > covPages) covPage = covPages; if(covPage < 1) covPage = 1;
+  c.rows.slice((covPage - 1) * covPageSize, covPage * covPageSize).forEach(function(r){
     html += '<div class="cov-row"><div class="e-name">' + escapeHtml(r.union) + '</div><div>' + r.onFile + '</div><div>' + (hrsWeek ? r.week + ' emp · ' + Math.round(r.hours).toLocaleString() + ' hrs' : '—') + '</div>' +
       '<div><span class="cov-pill ' + r.status + '">' + COV_LABEL[r.status] + '</span></div><div class="h-msg">' + (r.status === 'ok' ? '—' : escapeHtml(r.why)) + '</div></div>';
   });
+  if(c.rows.length > 10) html += pagerHtml('cov', c.rows.length, covPage, covPageSize);
   el.innerHTML = html;
+  pagerWire(el, 'cov', function(pg, size){ if(size){ covPageSize = size; covPage = 1; } else covPage = pg; renderHoursCoverage(); });
 }
 
 // ---------------- dashboard ----------------
@@ -1108,7 +1112,7 @@ function renderJobs(){
       '<div>' + (a.pmEmail ? escapeHtml(jobPmName(a) || a.pmEmail) + '<span class="e-sub">' + escapeHtml(a.pmEmail) + (pmByEmail(a.pmEmail) ? '' : ' · not in the Project managers list') + '</span>' : '<i>No manager yet</i>') + '</div>' +
       '<div>' + (a.active ? 'Yes' : 'No') + '</div><div><button class="btn ghost" type="button" data-job-edit="' + escapeHtml(a.spItemId) + '">Edit</button></div></div>';
   }).join('') || '<div class="emp-status">No jobs match.</div>';
-  html += rows.length > 25 ? pagerHtml('job', rows.length, jobPage, jobPageSize) : '';
+  html += rows.length > 10 ? pagerHtml('job', rows.length, jobPage, jobPageSize) : '';
   el.innerHTML = html;
   pagerWire(el, 'job', function(pg, size){ if(size){ jobPageSize = size; jobPage = 1; } else jobPage = pg; renderJobs(); });
   Array.prototype.forEach.call(el.querySelectorAll('[data-job-edit]'), function(b){ b.addEventListener('click', function(){ jobEdit = b.getAttribute('data-job-edit'); renderJobs(); }); });

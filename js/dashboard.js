@@ -6,7 +6,7 @@
   var detailBody = document.getElementById('detailBody');
   var detailSub = document.getElementById('detailSub');
   var selectedId = null;
-  var activeFilter = 'all';
+  var activeFilter = 'all', qPage = 1, qPageSize = 50;
 
   function statusLabel(s){
     return s === 'open' ? 'Open' : s === 'review' ? 'Sent to PM' : 'Resolved';
@@ -44,6 +44,7 @@
   }
   function renderQueue(){
     queueEl.innerHTML = '';
+    var qp = document.getElementById('queuePager'); if(qp) qp.innerHTML = '';
     renderChips();
     if(!liveLoaded){ queueEl.innerHTML = '<div class="empty-note">' + (liveError ? 'Could not read the WeeklyFindings list: ' + dEsc(liveError) : 'Sign in to load the live exception queue from SharePoint.') + '</div>'; return; }
     var visible = exceptions.filter(matchesFilter);
@@ -53,7 +54,8 @@
     }
     var rank = { open: 0, review: 1, resolved: 2 };
     visible = visible.slice().sort(function(a, b){ return (rank[a.status] - rank[b.status]) || (sevRank[a.severity] - sevRank[b.severity]) || String(b.f.weekStart).localeCompare(String(a.f.weekStart)) || String(a.f.name).localeCompare(String(b.f.name)); });
-    visible.slice(0, SHOW_MAX).forEach(function(ex){
+    var qPages = Math.max(1, Math.ceil(visible.length / qPageSize)); if(qPage > qPages) qPage = qPages; if(qPage < 1) qPage = 1;
+    visible.slice((qPage - 1) * qPageSize, qPage * qPageSize).forEach(function(ex){
       var row = document.createElement('div');
       row.className = 'qrow' + (ex.key === selectedId ? ' selected' : '');
       row.setAttribute('role','button');
@@ -72,7 +74,10 @@
       row.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(); }});
       queueEl.appendChild(row);
     });
-    if(visible.length > SHOW_MAX){ var more = document.createElement('div'); more.className = 'empty-note'; more.textContent = 'Showing the first ' + SHOW_MAX + ' of ' + visible.length + '. Use the filters to narrow the list.'; queueEl.appendChild(more); }
+    if(qp && visible.length > 10){
+      qp.innerHTML = pagerHtml('queue', visible.length, qPage, qPageSize);
+      pagerWire(qp, 'queue', function(pg, size){ if(size){ qPageSize = size; qPage = 1; } else qPage = pg; renderQueue(); });
+    }
   }
 
   function renderDetail(){
@@ -178,7 +183,7 @@
     var chips = document.querySelectorAll('#filters .chip-filter');
     chips.forEach(function(chip){
       chip.addEventListener('click', function(){
-        activeFilter = chip.getAttribute('data-filter');
+        activeFilter = chip.getAttribute('data-filter'); qPage = 1;
         chips.forEach(function(c){ c.classList.toggle('active', c === chip); });
         renderQueue();
       });

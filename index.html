@@ -121,7 +121,7 @@
 
       <section class="workspace">
 
-        <div class="panel">
+        <div class="panel" data-collapsible="queue">
           <div class="panel-head">
             <h2>Exception queue</h2>
             <span class="panel-sub" id="dashQueueSub">not loaded</span>
@@ -146,6 +146,7 @@
           <div class="queue" id="queue">
             <!-- rows injected by JS from the live WeeklyFindings list -->
           </div>
+          <div id="queuePager"></div>
         </div>
 
         <div class="panel" id="detailPanel">
@@ -422,7 +423,7 @@
         <div id="hoursSummary" style="padding:12px 18px 14px;"></div>
       </div>
 
-      <div class="panel">
+      <div class="panel" data-collapsible="hoursdash">
         <div class="panel-head">
           <h2>Dashboard</h2>
           <span class="panel-sub">What this week&rsquo;s data shows</span>
@@ -438,7 +439,7 @@
         <div id="hoursFindings"></div>
       </div>
 
-      <div class="panel">
+      <div class="panel" data-collapsible="coverage">
         <div class="panel-head">
           <h2>Rule coverage</h2>
           <span class="panel-sub">Which unions the check can and cannot cover yet</span>
@@ -1155,6 +1156,7 @@
   </div>
 </div>
 
+<script src="js/ui-helpers.js?v=20261027a"></script>
 <script src="js/dashboard.js?v=20261026a"></script>
 
 <script src="js/rules.js?v=20261026a"></script>
@@ -1162,5 +1164,6 @@
 <script src="js/hours-core.js?v=20261026a"></script>
 <script src="js/hours-ui.js?v=20261026a"></script>
 <script src="js/app-init.js?v=20261026a"></script>
+<script>upaeInitPanelToggles();</script>
 </body>
 </html>

@@ -671,3 +671,5 @@
   .sum-list li{margin-bottom:3px;}
   .sum-risk{padding:6px 0; border-top:1px solid var(--line-soft);}
   .sum-risk:first-of-type{border-top:0;}
+
+  .panel.collapsed > :not(.panel-head){display:none !important;}
