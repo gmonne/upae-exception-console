@@ -46,6 +46,7 @@ const UPAE_CONFIG = {
     aiLog: "AILog",
     findingHistory: "FindingHistory",
     weeklySummaries: "WeeklySummaries",
+    patternFindings: "PatternFindings",
   },
 };
 
@@ -901,6 +902,7 @@ async function upaeAiPost(path, payload) {
 }
 async function upaeAiExplain(payload) { return upaeAiPost("/api/ai/explain", payload); }
 async function upaeAiSummary(payload) { return upaeAiPost("/api/ai/summary", payload); }
+async function upaeAiPatterns(payload) { return upaeAiPost("/api/ai/patterns", payload); }
 
 // ---- Weekly summaries (Phase 2): one row each time a summary is saved ----
 async function upaeSaveSummary(r) {
@@ -1010,3 +1012,42 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
+
+
+// ---- Pattern findings (Phase 3): advisory observations, kept apart from the rule findings ----
+function upaePatternFields(r) {
+  return {
+    Title: r.key, WeekStart: r.weekStart || "", Kind: r.type || "", EmployeeID: r.subject || "", EmployeeName: r.employee || "", UnionName: r.union || "",
+    Score: r.score == null ? null : Math.round(r.score * 10) / 10, Facts: (r.facts || []).join("\n"),
+    Interpretation: r.interpretation || "", Leaning: r.leaning || "", Confidence: r.confidence || "", SuggestedCheck: r.suggestedCheck || "", Evidence: (r.evidence || []).join("\n"),
+    Status: r.status || "New", ReviewedBy: r.reviewedBy || "", ReviewedDate: r.reviewedDate || "", Model: r.model || "", PromptVersion: r.promptVersion || "",
+  };
+}
+async function upaeFetchPatterns() {
+  let url = await upaeListItemsUrl("patternFindings", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 100) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => {
+      const f = item.fields || {};
+      out.push({ spItemId: item.id, key: f.Title || "", weekStart: f.WeekStart || "", type: f.Kind || "", subject: f.EmployeeID || "", employee: f.EmployeeName || "", union: f.UnionName || "",
+        score: f.Score != null ? Number(f.Score) : 0, facts: (f.Facts || "").split("\n").filter(Boolean), interpretation: f.Interpretation || "", leaning: f.Leaning || "", confidence: f.Confidence || "",
+        suggestedCheck: f.SuggestedCheck || "", evidence: (f.Evidence || "").split("\n").filter(Boolean), status: f.Status || "New", reviewedBy: f.ReviewedBy || "", reviewedDate: f.ReviewedDate || "",
+        model: f.Model || "", promptVersion: f.PromptVersion || "" });
+    });
+    const next = data["@odata.nextLink"];
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
+}
+// create the row, or update it when it was saved before
+async function upaeSavePattern(r) {
+  if (r.spItemId) {
+    const siteId = await upaeGetSiteId();
+    await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.patternFindings}/items/${r.spItemId}/fields`, { method: "PATCH", body: JSON.stringify(upaePatternFields(r)) });
+    return { id: r.spItemId };
+  }
+  const url = await upaeListItemsUrl("patternFindings");
+  return upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields: upaePatternFields(r) }) });
+}
