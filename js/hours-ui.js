@@ -1,5 +1,6 @@
 // ---------------- the check ----------------
 var hrsFindSaved = null, hrsFindError = null;   // WeeklyFindings rows already in SharePoint
+var hrsJobRows = [], jobPage = 1, jobPageSize = 50, jobEdit = null;   // every JobAssignments row, for the Project managers page
 var hrsJobPMs = {}, hrsJobsError = null;           // job base number -> { spItemId, jobName, pmEmail, pmName }
 var hrsPMs = [], hrsPMError = null;             // Project managers (name + email)
 var hrsSel = {};                                // selected finding keys
@@ -225,7 +226,7 @@ function hrsOpenSaved(start){
   var days = []; for(var i = 0; i < 7; i++) days.push(hrsAddDays(start, i));
   hrsWeek = { fileName: 'Saved in SharePoint', start: start, end: days[6], weekNo: rows[0].weekNo, days: days,
               records: order.sort().map(function(k){ return by[k]; }), dupIds: [], hadRange: false, fromSaved: true };
-  hrsSel = {}; hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsShown = 150;
+  hrsSel = {}; hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsPage = 1;
   document.getElementById('hrsFileName').textContent = 'Week ' + hrsWeek.weekNo + ' (saved)';
   hrsFindings = hrsRunCheck();
   renderHoursPanel();
@@ -238,16 +239,17 @@ async function hrsRefreshSaved(){
     try{ hrsSaved = await upaeFetchWeeklyHours(); } catch(err){ console.warn('UPAE: WeeklyHours', err); hrsSavedError = err.message || String(err); }
     try{ hrsFindSaved = await upaeFetchFindings(); } catch(err){ console.warn('UPAE: WeeklyFindings', err); hrsFindError = err.message || String(err); }
     try{ hrsPMs = await upaeFetchProjectManagers(); } catch(err){ console.warn('UPAE: ProjectManagers', err); hrsPMError = err.message || String(err); }
-    hrsJobsError = null; hrsJobPMs = {};
+    hrsJobsError = null; hrsJobPMs = {}; hrsJobRows = [];
     try{
-      (typeof upaeFetchJobAssignments === 'function' ? await upaeFetchJobAssignments() : []).forEach(function(a){ if(a.active && a.job && a.pmEmail) hrsJobPMs[hrsJobBase(a.job)] = a; });
+      hrsJobRows = typeof upaeFetchJobAssignments === 'function' ? await upaeFetchJobAssignments() : [];
+      hrsJobRows.forEach(function(a){ if(a.active && a.job && a.pmEmail) hrsJobPMs[hrsJobBase(a.job)] = a; });
     } catch(err){ console.warn('UPAE: JobAssignments', err); hrsJobsError = err.message || String(err); }
     hrsSums = null; hrsSumsError = null;
     try{ hrsSums = typeof upaeFetchSummaries === 'function' ? await upaeFetchSummaries() : []; } catch(err){ console.warn('UPAE: WeeklySummaries', err); hrsSumsError = err.message || String(err); hrsSums = []; }
   }
   hrsLoadedOnce = true;
   if(hrsFindings && hrsWeek) hrsMergeSaved(hrsFindings);
-  renderHoursSaved(); renderHoursPanel(); renderPMs();
+  renderHoursSaved(); renderHoursPanel(); renderPMs(); renderJobs();
 }
 
 // ---------------- screen ----------------
@@ -324,7 +326,7 @@ function renderHoursPanel(){
     '<button class="btn ghost" type="button" id="hrsDiscardBtn">Close week</button></div>' +
     '<div class="emp-status" id="hrsStatus">' + (plan && !nSave && hrsSaved ? 'Hours for this week are already saved.' : '') + '</div>';
   el.innerHTML = html;
-  document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsShown = 150; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); renderHoursSummary(); });
+  document.getElementById('hrsCheckBtn').addEventListener('click', function(){ hrsFindings = hrsRunCheck(); hrsPage = 1; renderHoursKpis(); renderHoursFindings(); renderHoursDash(); renderHoursSummary(); });
   document.getElementById('hrsSaveBtn').addEventListener('click', hrsSave);
   document.getElementById('hrsDiscardBtn').addEventListener('click', function(){ hrsWeek = null; hrsFindings = null; hrsSel = {}; document.getElementById('hrsFileName').textContent = 'No file chosen'; renderHoursPanel(); renderHoursSaved(); });
   document.getElementById('hrsWeekNo').addEventListener('change', function(){ wk.weekNo = parseInt(this.value, 10) || null; renderHoursKpis(); });
@@ -378,13 +380,16 @@ function renderHoursFindings(){
     '<button class="btn primary" type="button" id="hrsMailBtn"' + (sel.length ? '' : ' disabled') + '>Email PM&hellip;</button>' +
     '<button class="btn" type="button" id="hrsDoneBtn"' + (sel.length ? '' : ' disabled') + '>Mark resolved</button>' +
     '<button class="btn ghost" type="button" id="hrsReopenBtn"' + (sel.length ? '' : ' disabled') + '>Reopen</button>' +
-    '<button class="btn ghost" type="button" id="hrsAiShowAll">Show AI</button><button class="btn ghost" type="button" id="hrsAiHideAll">Hide AI</button>' +
+    '<button class="btn ghost" type="button" id="hrsListToggle">' + (hrsListHidden ? 'Show list' : 'Hide list') + '</button><button class="btn ghost" type="button" id="hrsAiShowAll">Show AI</button><button class="btn ghost" type="button" id="hrsAiHideAll">Hide AI</button>' +
     '<button class="btn ghost" type="button" id="hrsCsvBtn" style="margin-left:auto;">Download CSV</button></div>' +
     '<div class="emp-status" id="hrsActionStatus"></div>';
   if(!list.length) html += '<div class="emp-status">' + (f.items.length ? 'Nothing in this filter.' : 'No findings. Every checked day matches its rule.') + '</div>';
   else {
-    html += '<div class="hrs-row head"><div></div><div>ID</div><div>Employee</div><div>Day</div><div>Reported</div><div>Rule says</div><div>Rule broken</div></div>';
-    list.slice(0, hrsShown).forEach(function(i){
+    var pages = Math.max(1, Math.ceil(list.length / hrsPageSize)); if(hrsPage > pages) hrsPage = pages; if(hrsPage < 1) hrsPage = 1;
+    var pager = pagerHtml('hrs', list.length, hrsPage, hrsPageSize);
+    html += hrsListHidden ? '<div class="emp-status">The list is hidden (' + list.length + ' finding' + (list.length === 1 ? '' : 's') + '). Press <b>Show list</b> to see it.</div>' : pager;
+    if(!hrsListHidden) html += '<div class="hrs-row head"><div></div><div>ID</div><div>Employee</div><div>Day</div><div>Reported</div><div>Rule says</div><div>Rule broken</div></div>';
+    if(!hrsListHidden) list.slice((hrsPage - 1) * hrsPageSize, hrsPage * hrsPageSize).forEach(function(i){
       html += '<div class="hrs-row ' + i.sev + '"><div><input type="checkbox" data-hrs-sel="' + escapeHtml(i.key) + '"' + (hrsSel[i.key] ? ' checked' : '') + '></div>' +
         '<div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
         '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + (i.jobs ? '<span class="e-sub">' + escapeHtml(i.jobs) + (i.jobCount > 1 ? ' · more than one job' : '') + '</span>' : '') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div>' +
@@ -393,14 +398,14 @@ function renderHoursFindings(){
         '<div class="hrs-ai-wrap"><button class="btn ghost hrs-ai-btn" type="button" data-hrs-ai="' + escapeHtml(i.key) + '"' + (hrsAi[i.key] && hrsAi[i.key].state === 'loading' ? ' disabled' : '') + '>' + (hrsAi[i.key] && hrsAi[i.key].state === 'done' ? 'Explain again' : 'Explain with AI') + '</button></div>' +
         '<div class="hrs-ai-box" data-hrs-ai-box="' + escapeHtml(i.key) + '">' + aiBoxHtml(i.key) + '</div></div></div>';
     });
-    if(list.length > hrsShown) html += '<div class="emp-actions"><button class="btn" type="button" id="hrsMoreBtn">Show ' + Math.min(150, list.length - hrsShown) + ' more (' + (list.length - hrsShown) + ' left)</button></div>';
+    if(!hrsListHidden) html += pager;
   }
   el.innerHTML = html;
   Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-filter]'), function(b){
-    b.addEventListener('click', function(){ hrsFilter = b.getAttribute('data-hrs-filter'); hrsShown = 150; renderHoursFindings(); });
+    b.addEventListener('click', function(){ hrsFilter = b.getAttribute('data-hrs-filter'); hrsPage = 1; renderHoursFindings(); });
   });
   Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-status]'), function(b){
-    b.addEventListener('click', function(){ hrsStatusFilter = b.getAttribute('data-hrs-status'); hrsShown = 150; renderHoursFindings(); });
+    b.addEventListener('click', function(){ hrsStatusFilter = b.getAttribute('data-hrs-status'); hrsPage = 1; renderHoursFindings(); });
   });
   Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-sel]'), function(c){
     c.addEventListener('change', function(){ var k = c.getAttribute('data-hrs-sel'); if(c.checked) hrsSel[k] = true; else delete hrsSel[k]; refreshSelBar(); });
@@ -410,7 +415,8 @@ function renderHoursFindings(){
   all.addEventListener('change', function(){ list.forEach(function(i){ if(all.checked) hrsSel[i.key] = true; else delete hrsSel[i.key]; }); renderHoursFindings(); });
   Array.prototype.forEach.call(el.querySelectorAll('[data-hrs-ai]'), function(b){ b.addEventListener('click', function(){ hrsExplain(b.getAttribute('data-hrs-ai')); }); });
   wireAiBoxes(el);
-  var more = document.getElementById('hrsMoreBtn'); if(more) more.addEventListener('click', function(){ hrsShown += 150; renderHoursFindings(); });
+  pagerWire(el, 'hrs', function(pg, size){ if(size){ hrsPageSize = size; hrsPage = 1; } else hrsPage = pg; renderHoursFindings(); el.scrollIntoView({ block: 'start' }); });
+  document.getElementById('hrsListToggle').addEventListener('click', function(){ hrsListHidden = !hrsListHidden; renderHoursFindings(); });
   function setAllAi(c){ Object.keys(hrsAi).forEach(function(k){ if(hrsAi[k].state === 'done') hrsAi[k].collapsed = c; }); renderHoursFindings(); }
   document.getElementById('hrsAiShowAll').addEventListener('click', function(){ setAllAi(false); });
   document.getElementById('hrsAiHideAll').addEventListener('click', function(){ setAllAi(true); });
@@ -761,7 +767,8 @@ function renderHoursSummary(){
   Array.prototype.forEach.call(el.querySelectorAll('[data-sum-go]'), function(x){ x.addEventListener('click', function(){ hrsGoToFinding(x.getAttribute('data-sum-go')); }); });
 }
 function hrsGoToFinding(key){
-  hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsShown = Math.max(hrsShown || 150, 100000);
+  hrsFilter = 'all'; hrsStatusFilter = 'all'; hrsListHidden = false;
+  var ix = visibleFindings().map(function(i){ return i.key; }).indexOf(key); if(ix >= 0) hrsPage = Math.floor(ix / hrsPageSize) + 1;
   renderHoursFindings();
   var box = null; Array.prototype.forEach.call(document.querySelectorAll('[data-hrs-sel]'), function(c){ if(c.getAttribute('data-hrs-sel') === key) box = c; });
   if(!box) return;
@@ -1074,6 +1081,78 @@ document.getElementById('hrsMailIncludeSent').addEventListener('change', functio
   renderMailGroups();
 });
 
+// ---------------- jobs and their project manager (Project managers page) ----------------
+function jobPmName(a){ var p = pmByEmail(a.pmEmail); return p ? p.name : (a.pmName || ''); }
+function jobMatches(a){
+  var q = empClean(document.getElementById('jobSearch').value).toLowerCase(), f = document.getElementById('jobFilter').value;
+  if(f === 'active' && !a.active) return false;
+  if(f === 'inactive' && a.active) return false;
+  if(f === 'nopm' && a.pmEmail) return false;
+  if(!q) return true;
+  return (a.job + ' ' + a.jobName + ' ' + jobPmName(a) + ' ' + a.pmEmail).toLowerCase().indexOf(q) >= 0;
+}
+function renderJobs(){
+  var el = document.getElementById('jobList'); if(!el) return;
+  document.getElementById('jobCount').textContent = hrsJobRows.length;
+  var rows = hrsJobRows.filter(jobMatches).sort(function(a, b){ return a.job.localeCompare(b.job); });
+  var pages = Math.max(1, Math.ceil(rows.length / jobPageSize)); if(jobPage > pages) jobPage = pages; if(jobPage < 1) jobPage = 1;
+  var html = hrsJobsError ? '<div class="emp-status err">The JobAssignments list could not be read (' + escapeHtml(hrsJobsError) + ').</div>' : '';
+  html += '<div class="hrs-row head" style="grid-template-columns:110px 1.4fr 1.4fr 70px 150px;"><div>Job</div><div>Job name</div><div>Project manager</div><div>Active</div><div></div></div>';
+  html += rows.slice((jobPage - 1) * jobPageSize, jobPage * jobPageSize).map(function(a){
+    var st = 'grid-template-columns:110px 1.4fr 1.4fr 70px 150px;';
+    if(jobEdit === a.spItemId)
+      return '<div class="hrs-row" style="' + st + '"><div><b>' + escapeHtml(a.job) + '</b></div><div><input type="text" id="jobEditName" value="' + escapeHtml(a.jobName) + '" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:12.5px;"></div>' +
+        '<div><select id="jobEditPm" style="width:100%;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:12.5px;">' + pmOptions(a.pmEmail) + '</select></div>' +
+        '<div><input type="checkbox" id="jobEditActive"' + (a.active ? ' checked' : '') + '></div><div><button class="btn primary" type="button" data-job-save="' + escapeHtml(a.spItemId) + '">Save</button> <button class="btn ghost" type="button" data-job-cancel="1">Cancel</button></div></div>';
+    return '<div class="hrs-row' + (a.pmEmail ? '' : ' warn') + '" style="' + st + '"><div><b>' + escapeHtml(a.job) + '</b></div><div>' + escapeHtml(a.jobName || '—') + '</div>' +
+      '<div>' + (a.pmEmail ? escapeHtml(jobPmName(a) || a.pmEmail) + '<span class="e-sub">' + escapeHtml(a.pmEmail) + (pmByEmail(a.pmEmail) ? '' : ' · not in the Project managers list') + '</span>' : '<i>No manager yet</i>') + '</div>' +
+      '<div>' + (a.active ? 'Yes' : 'No') + '</div><div><button class="btn ghost" type="button" data-job-edit="' + escapeHtml(a.spItemId) + '">Edit</button></div></div>';
+  }).join('') || '<div class="emp-status">No jobs match.</div>';
+  html += rows.length > 25 ? pagerHtml('job', rows.length, jobPage, jobPageSize) : '';
+  el.innerHTML = html;
+  pagerWire(el, 'job', function(pg, size){ if(size){ jobPageSize = size; jobPage = 1; } else jobPage = pg; renderJobs(); });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-job-edit]'), function(b){ b.addEventListener('click', function(){ jobEdit = b.getAttribute('data-job-edit'); renderJobs(); }); });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-job-cancel]'), function(b){ b.addEventListener('click', function(){ jobEdit = null; renderJobs(); }); });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-job-save]'), function(b){ b.addEventListener('click', function(){ saveJobEdit(b.getAttribute('data-job-save')); }); });
+  document.getElementById('jobAddPm').innerHTML = pmOptions(document.getElementById('jobAddPm').value);
+  // jobs in the loaded week that nobody owns yet
+  var hint = document.getElementById('jobWeekHint'), miss = [];
+  if(hrsWeek && hrsWeek.jobTitles){
+    var have = {}; hrsJobRows.forEach(function(a){ have[hrsJobBase(a.job)] = 1; });
+    miss = Object.keys(hrsWeek.jobTitles).filter(function(b){ return !have[b]; }).sort();
+  }
+  hint.innerHTML = miss.length ? '<div class="emp-status">' + miss.length + ' job' + (miss.length === 1 ? '' : 's') + ' in the loaded week ' + (miss.length === 1 ? 'has' : 'have') + ' no manager yet. Click one to fill the Add form: ' +
+    miss.map(function(b){ return '<button class="chip-filter" type="button" data-job-fill="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>'; }).join(' ') + '</div>' : '';
+  Array.prototype.forEach.call(hint.querySelectorAll('[data-job-fill]'), function(b){ b.addEventListener('click', function(){
+    var k = b.getAttribute('data-job-fill'); document.getElementById('jobAddNo').value = k; document.getElementById('jobAddName').value = hrsWeek.jobTitles[k] || ''; document.getElementById('jobAddPm').focus();
+  }); });
+}
+async function saveJobEdit(id){
+  var a = hrsJobRows.filter(function(x){ return x.spItemId === id; })[0], st = document.getElementById('jobStatus'); if(!a) return;
+  var email = document.getElementById('jobEditPm').value, nm = empClean(document.getElementById('jobEditName').value), act = document.getElementById('jobEditActive').checked;
+  var p = pmByEmail(email), rec = { jobName: nm, pmEmail: email, pmName: p ? p.name : (email ? a.pmName : ''), active: act };
+  try{
+    await upaeUpdateJobAssignment(id, rec);
+    a.jobName = rec.jobName; a.pmEmail = rec.pmEmail; a.pmName = rec.pmName; a.active = act; jobEdit = null;
+    delete hrsJobPMs[hrsJobBase(a.job)]; hrsJobRows.forEach(function(x){ if(x.active && x.job && x.pmEmail) hrsJobPMs[hrsJobBase(x.job)] = x; });
+    st.className = 'emp-status'; st.textContent = 'Saved ' + a.job + '.'; renderJobs();
+  } catch(err){ st.className = 'emp-status err'; st.textContent = 'Could not save: ' + (err.message || err); }
+}
+async function addJob(){
+  var st = document.getElementById('jobStatus'), no = hrsJobBase(document.getElementById('jobAddNo').value), nm = empClean(document.getElementById('jobAddName').value), email = document.getElementById('jobAddPm').value;
+  if(!no){ st.className = 'emp-status err'; st.textContent = 'Enter a job number.'; return; }
+  if(hrsJobRows.some(function(a){ return hrsJobBase(a.job) === no; })){ st.className = 'emp-status err'; st.textContent = 'Job ' + no + ' is already on the list. Edit it above instead.'; return; }
+  var p = pmByEmail(email), rec = { job: no, jobName: nm, pmEmail: email, pmName: p ? p.name : '' };
+  try{
+    var r = await upaeCreateJobAssignment(rec);
+    var row = Object.assign({ spItemId: r && r.id, active: true }, rec); hrsJobRows.push(row); if(email) hrsJobPMs[no] = row;
+    document.getElementById('jobAddNo').value = ''; document.getElementById('jobAddName').value = '';
+    st.className = 'emp-status'; st.textContent = 'Added job ' + no + '.'; renderJobs();
+  } catch(err){ st.className = 'emp-status err'; st.textContent = 'Could not add: ' + (err.message || err); }
+}
+['jobSearch', 'jobFilter'].forEach(function(id){ var e = document.getElementById(id); if(e) e.addEventListener(id === 'jobSearch' ? 'input' : 'change', function(){ jobPage = 1; renderJobs(); }); });
+if(document.getElementById('jobAddBtn')) document.getElementById('jobAddBtn').addEventListener('click', addJob);
+
 // ---------------- project managers ----------------
 function renderPMs(){
   var el = document.getElementById('hrsPmList'); if(!el) return;
@@ -1163,4 +1242,7 @@ if(hrsFileInput){
 Array.prototype.forEach.call(document.querySelectorAll('a[data-view="hours"]'), function(a){
   a.addEventListener('click', function(){ if(!hrsLoadedOnce) hrsRefreshSaved().then(renderPMs); });
 });
-renderHoursKpis(); renderHoursSaved(); renderHoursDash(); renderPMs();
+Array.prototype.forEach.call(document.querySelectorAll('a[data-view="pms"]'), function(a){
+  a.addEventListener('click', function(){ (hrsLoadedOnce ? Promise.resolve() : hrsRefreshSaved()).then(function(){ renderPMs(); renderJobs(); }); });
+});
+renderHoursKpis(); renderHoursSaved(); renderHoursDash(); renderPMs(); renderJobs();

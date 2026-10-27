@@ -83,6 +83,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           Weekly Hours
         </a>
+        <a href="#" data-view="pms">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M17 4.5l1.5 1.5L21 3.5"/></svg>
+          Project managers
+        </a>
         <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Folded into Dashboard in this concept">
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 7l8 10"/></svg><span class="nav-label">Routing matrix</span></span>
           <span class="soon-tag">Merged</span>
@@ -442,16 +446,6 @@
         <div id="hoursCoverage"></div>
       </div>
 
-      <details class="emp-setup">
-        <summary>Project managers (<span id="hrsPmCount">0</span>) &mdash; who the review emails go to</summary>
-        <div class="emp-setup-body">
-          <div id="hrsPmList"></div>
-          <p style="margin-top:12px;"><b>Add project managers.</b> One per line as <i>Name, email</i> (a tab between them also works, so you can paste two columns straight from Excel).</p>
-          <textarea id="hrsPmPaste" rows="5" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="Jane Smith, jsmith@cacindinc.com"></textarea>
-          <div class="emp-actions" style="padding-left:0;"><button class="btn primary" type="button" id="hrsPmAdd">Add to list</button></div>
-          <div class="emp-status" id="hrsPmStatus" style="padding-left:0;"></div>
-        </div>
-      </details>
 
       <details class="emp-setup">
         <summary>One-time setup: the three SharePoint lists this screen uses</summary>
@@ -508,6 +502,54 @@
           <p>Sending email needs the <b>Mail.Send</b> delegated permission on the app registration (an administrator may need to grant consent).</p>
         </div>
       </details>
+    </div>
+
+    <div id="view-pms" hidden>
+
+      <section class="rules-intro">
+        <span class="help-eyebrow">UPAE &middot; Project managers</span>
+        <h2>Project managers and the jobs they own</h2>
+        <p>Review emails go to the project manager who owns each job. Keep the people here, and the job-to-manager assignments below. A job sent to a manager for the first time is remembered automatically.</p>
+      </section>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Project managers (<span id="hrsPmCount">0</span>)</h2>
+          <span class="panel-sub">Who the review emails go to</span>
+        </div>
+        <div class="emp-setup-body" style="padding:0 18px 14px; font-size:13px; color:var(--ink-soft); line-height:1.55;">
+
+          <div id="hrsPmList"></div>
+          <p style="margin-top:12px;"><b>Add project managers.</b> One per line as <i>Name, email</i> (a tab between them also works, so you can paste two columns straight from Excel).</p>
+          <textarea id="hrsPmPaste" rows="5" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;" placeholder="Jane Smith, jsmith@cacindinc.com"></textarea>
+          <div class="emp-actions" style="padding-left:0;"><button class="btn primary" type="button" id="hrsPmAdd">Add to list</button></div>
+          <div class="emp-status" id="hrsPmStatus" style="padding-left:0;"></div>
+                </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Jobs and their project manager (<span id="jobCount">0</span>)</h2>
+          <span class="panel-sub">One row per job &middot; sub-jobs such as 23-430~0328 follow the main job</span>
+        </div>
+        <div id="jobWeekHint"></div>
+        <div class="hrs-bar" style="flex-wrap:wrap;">
+          <input type="search" id="jobSearch" placeholder="Search job, name or manager" style="flex:1; min-width:200px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;">
+          <select id="jobFilter" style="padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"><option value="active">Active jobs</option><option value="all">All jobs</option><option value="nopm">No manager</option><option value="inactive">Inactive</option></select>
+        </div>
+        <div id="jobList"></div>
+        <div style="padding:6px 18px 14px;">
+          <b style="font-size:13px;">Add a job</b>
+          <div class="hrs-bar" style="flex-wrap:wrap; padding-left:0;">
+            <input type="text" id="jobAddNo" placeholder="Job no, e.g. 23-430" style="width:150px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;">
+            <input type="text" id="jobAddName" placeholder="Job name (optional)" style="flex:1; min-width:180px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;">
+            <select id="jobAddPm" style="min-width:200px; padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px;"></select>
+            <button class="btn primary" type="button" id="jobAddBtn">Add job</button>
+          </div>
+          <div class="emp-status" id="jobStatus" style="padding-left:0;"></div>
+        </div>
+      </div>
+
     </div>
 
     <div id="view-employees" hidden>

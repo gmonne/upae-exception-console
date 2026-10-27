@@ -828,7 +828,7 @@ async function upaeCreateJobAssignment(a) {
 }
 async function upaeUpdateJobAssignment(spItemId, a) {
   const siteId = await upaeGetSiteId();
-  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.jobAssignments}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ JobName: a.jobName || "", PMEmail: a.pmEmail || "", PMName: a.pmName || "" }) });
+  await upaeGraphFetch(`/sites/${siteId}/lists/${UPAE_CONFIG.lists.jobAssignments}/items/${spItemId}/fields`, { method: "PATCH", body: JSON.stringify({ JobName: a.jobName || "", PMEmail: a.pmEmail || "", PMName: a.pmName || "", ...(a.active === undefined ? {} : { Active: !!a.active }) }) });
 }
 
 // ---- Send an email as the signed-in user (needs the Mail.Send delegated permission) ----
