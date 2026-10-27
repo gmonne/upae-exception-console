@@ -22,6 +22,13 @@ assert.throws(() => sm.parseOutput(JSON.stringify(Object.assign({}, good, { head
 // dates and comma numbers from the data are allowed
 sm.parseOutput(JSON.stringify(Object.assign({}, good, { headline: "Total of 10,000.5 hours in week 43 (10/18 to 10/24)." })), inp);
 assert.throws(() => sm.parseOutput("nope", inp), /No JSON/);
+// job focus: only jobs in byJob, numbers checked
+const jb = sm.trimInput(Object.assign({}, body, { source: "detail", byJob: [{ job: "20-103", name: "Manhattan Gas", pm: "Gus Monne", findings: 33, open: 20, sentToPm: 13, pmAnswered: 2, resolved: 0 }], pmWaiting: [{ pm: "Gus Monne", waiting: 11, answered: 2 }], jobsWithoutPm: 4 }));
+const withJobs = Object.assign({}, good, { jobFocus: [{ job: "20-103", note: "33 findings, 11 waiting on Gus Monne." }, { job: "99-999", note: "invented job" }] });
+const oj = sm.parseOutput(JSON.stringify(withJobs), jb);
+assert.strictEqual(oj.jobFocus.length, 1, "unknown jobs must be dropped");
+assert.throws(() => sm.parseOutput(JSON.stringify(Object.assign({}, good, { jobFocus: [{ job: "20-103", note: "47 findings." }] })), jb), /figures not in the data: 47/);
+assert.strictEqual(sm.trimInput(body).source, "summary");
 
 let calls = 0;
 const reply = (txt) => ({ ok: true, status: 200, json: async () => ({ content: [{ type: "text", text: txt }] }) });

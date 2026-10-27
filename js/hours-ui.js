@@ -339,6 +339,23 @@ function renderHoursPanel(){
   renderHoursSummary();
 }
 
+// Phase 3a: what happened to similar findings before (same union, rule and kind, already resolved with a reason). Counts only, no AI.
+function hrsSimilarOutcomes(i){
+  if(i.status === STATUS_DONE || !i.ruleName || i.ruleId === 'Data check') return null;
+  var c = {}, n = 0;
+  (hrsFindSaved || []).forEach(function(r){
+    if(r.key === i.key || r.status !== STATUS_DONE || !r.resReason) return;
+    if(r.kind !== i.kind || (r.union || '') !== (i.union || '') || (r.ruleName || '') !== (i.ruleName || '')) return;
+    c[r.resReason] = (c[r.resReason] || 0) + 1; n++;
+  });
+  if(n < 3) return null;
+  var parts = Object.keys(c).map(function(k){ return [k, c[k]]; }).sort(function(a, b){ return b[1] - a[1]; });
+  return { n: n, parts: parts.slice(0, 3), top: parts[0] };
+}
+function similarHtml(i){
+  var o = hrsSimilarOutcomes(i); if(!o) return '';
+  return '<div class="h-msg" style="font-size:12px;color:var(--ink-faint);">Past outcomes for this rule and union (' + o.n + ' resolved): ' + o.parts.map(function(p){ return escapeHtml(p[0]) + ' ' + p[1]; }).join(', ') + '. History only, not a decision.</div>';
+}
 function itemLine(i){ if(i.status === STATUS_DONE && i.resReason) return 'Resolved · ' + i.resReason + (i.resolvedBy ? ' · ' + i.resolvedBy : '') + (i.resolvedDate ? ' · ' + i.resolvedDate : '') + (i.note ? ' — ' + i.note : ''); return i.status === STATUS_SENT ? 'Sent to PM' + (i.sentTo ? ' · ' + i.sentTo : '') + (i.sentDate ? ' · ' + i.sentDate : '') + (i.pmResponse ? ' — PM answered: ' + i.pmResponse + (i.pmNote ? ' (' + i.pmNote + ')' : '') + (i.pmBy ? ' · ' + i.pmBy : '') : '') : i.status; }
 function visibleFindings(){
   var f = hrsFindings; if(!f) return [];
@@ -395,7 +412,7 @@ function renderHoursFindings(){
         '<div class="e-id">' + escapeHtml(i.id) + '</div><div class="e-name">' + escapeHtml(i.name) + (i.union ? '<span class="e-sub">' + escapeHtml(i.union) + '</span>' : '') + '</div>' +
         '<div>' + (i.iso ? hrsPretty(i.iso) : '—') + (i.jobs ? '<span class="e-sub">' + escapeHtml(i.jobs) + (i.jobCount > 1 ? ' · more than one job' : '') + '</span>' : '') + '</div><div>' + (i.rep ? hrsFmt(i.rep) : '—') + '</div><div>' + (i.exp ? hrsFmt(i.exp) : '—') + '</div>' +
         '<div class="h-msg"><b>' + escapeHtml(i.ruleId === 'Data check' ? 'Data check' : i.ruleId + ' · ' + i.ruleName) + '</b>' + (i.cba ? ' <span class="e-sub" style="display:inline;">' + escapeHtml(i.cba) + '</span>' : '') +
-        '<div>' + escapeHtml(i.broken.join(' ')) + '</div><div class="h-stat ' + (i.status === STATUS_DONE ? 'done' : i.status === STATUS_SENT ? 'sent' : '') + '">' + escapeHtml(itemLine(i)) + '</div>' +
+        '<div>' + escapeHtml(i.broken.join(' ')) + '</div>' + similarHtml(i) + '<div class="h-stat ' + (i.status === STATUS_DONE ? 'done' : i.status === STATUS_SENT ? 'sent' : '') + '">' + escapeHtml(itemLine(i)) + '</div>' +
         '<div class="hrs-ai-wrap"><button class="btn ghost hrs-ai-btn" type="button" data-hrs-ai="' + escapeHtml(i.key) + '"' + (hrsAi[i.key] && hrsAi[i.key].state === 'loading' ? ' disabled' : '') + '>' + (hrsAi[i.key] && hrsAi[i.key].state === 'done' ? 'Explain again' : 'Explain with AI') + '</button></div>' +
         '<div class="hrs-ai-box" data-hrs-ai-box="' + escapeHtml(i.key) + '">' + aiBoxHtml(i.key) + '</div></div></div>';
     });
@@ -700,7 +717,23 @@ function hrsWeekStats(){
   var candPayload = cands.map(function(i){ return { key: i.key, employee: i.name + ' (' + i.id + ')', union: i.union, day: i.iso ? hrsPretty(i.iso) : '', reported: i.rep ? hrsFmt(i.rep) : '', ruleSays: i.exp ? hrsFmt(i.exp) : '',
     kind: HRS_KINDS[i.kind] || i.kind, status: i.status, noRtDay: i.kind === 'mismatch' && noRt(i), hasAiNote: !!i.ai, repeatEmployeeCount: ec[i.id] ? ec[i.id].differences : 0 }; });
   var map = {}; candPayload.forEach(function(c){ map[c.key] = c; });
+  var jb = {}, pmw = {}, noPm = {};
+  f.items.forEach(function(i){
+    itemJobBases(i).forEach(function(b){
+      var jp = hrsJobPMs[b], o = jb[b] = jb[b] || { job: b, name: jobTitleOf(b), pm: jp ? (jp.pmName || jp.pmEmail) : '', findings: 0, open: 0, sentToPm: 0, pmAnswered: 0, resolved: 0 };
+      o.findings++; if(i.status === STATUS_OPEN) o.open++; if(i.status === STATUS_SENT) o.sentToPm++; if(i.status === STATUS_DONE) o.resolved++; if(i.pmResponse && i.status !== STATUS_DONE) o.pmAnswered++;
+      if(!jp) noPm[b] = 1;
+      if(jp && i.status === STATUS_SENT){ var q = pmw[o.pm] = pmw[o.pm] || { pm: o.pm, waiting: 0, answered: 0 }; if(i.pmResponse) q.answered++; else q.waiting++; }
+    });
+  });
+  var byJob = Object.keys(jb).map(function(k){ return jb[k]; }).sort(function(a, b){ return (b.open + b.sentToPm) - (a.open + a.sentToPm) || b.findings - a.findings; }).slice(0, 12);
+  var pmAns = { correct: 0, needsCorrection: 0, question: 0 };
+  f.items.forEach(function(i){ if(i.pmResponse && i.status !== STATUS_DONE){ var r = String(i.pmResponse).toLowerCase(); if(r.indexOf('correct as') === 0) pmAns.correct++; else if(r.indexOf('needs') === 0) pmAns.needsCorrection++; else pmAns.question++; } });
+  candPayload.forEach(function(c, n){ var i = cands[n]; var bs = itemJobBases(i); c.jobs = bs.join(', '); c.pm = bs.map(function(b){ var jp = hrsJobPMs[b]; return jp ? (jp.pmName || jp.pmEmail) : ''; }).filter(Boolean).join(', '); c.pmResponse = i.pmResponse || ''; });
   return { cands: map, payload: {
+    source: hrsWeek.source === 'detail' ? 'detail' : 'summary',
+    byJob: hrsWeek.source === 'detail' ? byJob : [], pmWaiting: hrsWeek.source === 'detail' ? Object.keys(pmw).map(function(k){ return pmw[k]; }).sort(function(a, b){ return b.waiting - a.waiting; }).slice(0, 10) : [],
+    jobsWithoutPm: hrsWeek.source === 'detail' ? Object.keys(noPm).length : 0, pmAnswers: pmAns,
     week: { weekNo: wk.weekNo, start: wk.start, end: wk.end },
     totals: { employeesInFile: wk.records.length, rt: hrsRound(tRt), ot: hrsRound(tOt), dt: hrsRound(tDt), totalHours: hrsRound(tRt + tOt + tDt), otSharePct: Math.round(tOt / tot * 100), dtSharePct: Math.round(tDt / tot * 100) },
     coverage: { employeesChecked: f.emp.checked, daysChecked: f.rowsChecked, daysMatching: f.matched, checkedHoursPct: cov.unionHours ? Math.round(cov.checkedHours / cov.unionHours * 100) : 0,
@@ -725,6 +758,7 @@ function hrsSumText(d, cands){
   d.keyChanges.forEach(function(x){ t.push('- ' + x); });
   t.push('', 'REVIEW FIRST');
   d.riskRanked.forEach(function(r, n){ var c = cands && cands[r.key]; t.push((n + 1) + '. [' + r.risk + '] ' + (c ? c.employee + (c.day ? ', ' + c.day : '') + ' (reported ' + c.reported + '; rule ' + c.ruleSays + ')' : r.key) + ': ' + r.reason); });
+  if(d.jobFocus && d.jobFocus.length){ t.push('', 'JOBS TO LOOK AT'); d.jobFocus.forEach(function(j){ t.push('- Job ' + j.job + ': ' + j.note); }); }
   t.push('', 'SUGGESTED FOLLOW-UPS'); d.suggestedFollowUps.forEach(function(x){ t.push('- ' + x); });
   t.push('', 'LIMITS OF THIS DATA', d.dataLimits || '', '', 'AI-generated from the week\'s rule-check results. The rule check and the dashboard are the source of truth.');
   return t.join('\n');
@@ -753,6 +787,7 @@ function renderHoursSummary(){
         return '<div class="sum-risk"><span class="cov-pill ' + (r.risk === 'high' ? 'unreadable' : r.risk === 'medium' ? 'draft' : 'ok') + '">' + escapeHtml(r.risk) + '</span> <b>' + (c ? escapeHtml(c.employee) + (c.day ? ' · ' + escapeHtml(c.day) : '') : escapeHtml(r.key)) + '</b>' +
           (c ? ' <span class="h-msg">reported ' + escapeHtml(c.reported || '—') + (c.ruleSays ? ' · rule says ' + escapeHtml(c.ruleSays) : '') + '</span>' : '') + '<div>' + escapeHtml(r.reason) + (c && c.noRtDay ? ' <i>(day with no RT: verify possible second shift or other job)</i>' : '') +
           ' <button class="btn ghost" type="button" data-sum-go="' + escapeHtml(r.key) + '" style="padding:2px 8px;font-size:12px;">Show in list</button></div></div>'; }).join('') : '') +
+      (d.jobFocus && d.jobFocus.length ? '<p><b>Jobs to look at</b></p><ul class="sum-list">' + d.jobFocus.map(function(j){ return '<li><b>Job ' + escapeHtml(j.job) + '</b>' + (jobTitleOf(j.job) ? ' &middot; ' + escapeHtml(jobTitleOf(j.job)) : '') + ': ' + escapeHtml(j.note) + '</li>'; }).join('') + '</ul>' : '') +
       (d.suggestedFollowUps.length ? '<p><b>Suggested follow-ups</b></p><ul class="sum-list">' + d.suggestedFollowUps.map(function(x){ return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>' : '') +
       (d.dataLimits ? '<p class="ai-warn"><b>Limits of this data.</b> ' + escapeHtml(d.dataLimits) + '</p>' : '') +
       '<div class="emp-actions" style="padding:6px 0 0;"><button class="btn" type="button" id="hrsSumSave"' + (hrsSum.saved || d.stub ? ' disabled' : '') + '>' + (hrsSum.saved ? 'Saved' : 'Save summary to SharePoint') + '</button><button class="btn ghost" type="button" id="hrsSumCopy">Copy as text</button></div>' +
@@ -806,7 +841,7 @@ async function hrsSumSave(){
   try{
     if(typeof upaeSaveSummary !== 'function') throw new Error('SharePoint is not connected in this view.');
     var who = (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : '');
-    var item = await upaeSaveSummary({ weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, headline: d.headline, summaryJson: JSON.stringify({ data: { headline: d.headline, keyChanges: d.keyChanges, riskRanked: d.riskRanked, suggestedFollowUps: d.suggestedFollowUps, dataLimits: d.dataLimits, confidence: d.confidence }, cands: hrsSum.cands }),
+    var item = await upaeSaveSummary({ weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, headline: d.headline, summaryJson: JSON.stringify({ data: { headline: d.headline, keyChanges: d.keyChanges, riskRanked: d.riskRanked, jobFocus: d.jobFocus || [], suggestedFollowUps: d.suggestedFollowUps, dataLimits: d.dataLimits, confidence: d.confidence }, cands: hrsSum.cands }),
       model: d.model, promptVersion: d.promptVersion, confidence: d.confidence, generatedBy: who });
     hrsSum.saved = true; hrsSum.id = item && item.id; hrsSum.note = 'Saved to SharePoint (WeeklySummaries).';
     hrsSums = hrsSums || []; hrsSums.push({ spItemId: hrsSum.id, weekStart: hrsWeek.start, weekNo: hrsWeek.weekNo, headline: d.headline, json: JSON.stringify({ data: d, cands: hrsSum.cands }), model: d.model, promptVersion: d.promptVersion, confidence: d.confidence, generatedBy: who, feedback: '', at: new Date().toISOString() });

@@ -1,7 +1,7 @@
 // Prompt, input trimming, output validation and the Claude call for the Weekly Analyst Summary (Phase 2).
 // All figures are computed in the browser from the same data as the dashboard. The model only writes the narrative,
 // and every number in its reply is checked against the figures it was given.
-const PROMPT_VERSION = "summary-v1";
+const PROMPT_VERSION = "summary-v2";
 
 const SYSTEM = [
   "You are the weekly analyst assistant inside UPAE, a payroll accuracy tool for a construction company.",
@@ -11,13 +11,14 @@ const SYSTEM = [
   "Rules you must follow:",
   "1. Use ONLY the supplied data. Every number you write must appear exactly in the supplied data. Do not add, subtract, average or compute percentages yourself; use the percentages supplied.",
   "2. Compare with the prior weeks only when prior weeks are supplied; say so plainly if there are none.",
-  "3. The weekly report has NO job numbers and NO clock times. A day with OT or DT hours and no RT hours (flagged noRtDay) can be a legitimate second shift or work on another job. Describe such items as 'to verify', never as errors, and say in dataLimits that job detail is not available.",
+  "3. A day with OT or DT hours and no RT hours (flagged noRtDay) can be a legitimate second shift or work on another job. Describe such items as 'to verify', never as errors. If source is 'summary', the report has NO job numbers, so say in dataLimits that job detail is not available. If source is 'detail', each candidate carries the jobs worked that day and the owning project manager, and 'byJob' and 'pmWaiting' are supplied: use them.",
+  "3b. Jobs and project managers: mention a job or PM only if it appears in byJob, pmWaiting or a candidate. In jobFocus, list up to 5 jobs that need attention first (most open findings, or findings waiting on a PM), each with one short sentence. Say plainly when jobs have no PM assigned (jobsWithoutPm) because nobody can be asked yet. A PM answer of 'Needs correction' or 'Question' is waiting on payroll; 'Correct as reported' still needs payroll to resolve it.",
   "4. Do not mention pay rates or dollar amounts. Do not give legal advice. Do not guess causes you cannot see in the data.",
   "5. In riskRanked, use only finding keys from the supplied candidates list, most important first, and explain each in one short sentence. Prefer items that are still Open, repeat employees, and large differences.",
   "6. Keep everything short, concrete and written for a busy reader.",
   "",
   "Reply with a single JSON object and nothing else, with exactly these keys:",
-  '{"headline": string (1-2 sentences), "keyChanges": string[] (2-5 short items: what stands out, and how the week compares with prior weeks if available), "riskRanked": [{"key": string, "risk": "high"|"medium"|"low", "reason": string}] (up to 8), "suggestedFollowUps": string[] (up to 5 concrete next steps for payroll or project managers), "dataLimits": string (1-2 sentences on what this data cannot show), "confidence": "low"|"medium"|"high"}',
+  '{"headline": string (1-2 sentences), "keyChanges": string[] (2-5 short items: what stands out, and how the week compares with prior weeks if available), "riskRanked": [{"key": string, "risk": "high"|"medium"|"low", "reason": string}] (up to 8), "suggestedFollowUps": string[] (up to 5 concrete next steps for payroll or project managers), "jobFocus": [{"job": string (a job number from byJob), "note": string}] (up to 5, empty array if source is summary), "dataLimits": string (1-2 sentences on what this data cannot show), "confidence": "low"|"medium"|"high"}',
 ].join("\n");
 
 const s = (v, n) => String(v == null ? "" : v).slice(0, n || 200);
@@ -40,8 +41,13 @@ function trimInput(body) {
       noRtDayDifferences: num(body.findings && body.findings.noRtDayDifferences),
       resolvedReasons: list(body.findings && body.findings.resolvedReasons, 8).map((r) => ({ reason: s(r.reason, 60), count: num(r.count) })),
     },
+    source: body.source === "detail" ? "detail" : "summary",
+    byJob: list(body.byJob, 12).map((j) => ({ job: s(j.job, 20), name: s(j.name, 80), pm: s(j.pm, 80), findings: num(j.findings), open: num(j.open), sentToPm: num(j.sentToPm), pmAnswered: num(j.pmAnswered), resolved: num(j.resolved) })),
+    pmWaiting: list(body.pmWaiting, 10).map((p) => ({ pm: s(p.pm, 80), waiting: num(p.waiting), answered: num(p.answered) })),
+    jobsWithoutPm: num(body.jobsWithoutPm),
+    pmAnswers: { correct: num(body.pmAnswers && body.pmAnswers.correct), needsCorrection: num(body.pmAnswers && body.pmAnswers.needsCorrection), question: num(body.pmAnswers && body.pmAnswers.question) },
     priorWeeks: list(body.priorWeeks, 6).map((w) => ({ weekNo: w.weekNo == null ? null : num(w.weekNo), start: s(w.start, 10), totalHours: num(w.totalHours), ruleDifferences: num(w.ruleDifferences), otSharePct: w.otSharePct == null ? null : num(w.otSharePct) })),
-    candidates: list(body.candidates, 25).map((c) => ({ key: s(c.key, 80), employee: s(c.employee, 100), union: s(c.union, 80), day: s(c.day, 20), reported: s(c.reported, 60), ruleSays: s(c.ruleSays, 60), kind: s(c.kind, 30), status: s(c.status, 20), noRtDay: !!c.noRtDay, hasAiNote: !!c.hasAiNote, repeatEmployeeCount: num(c.repeatEmployeeCount) })),
+    candidates: list(body.candidates, 25).map((c) => ({ key: s(c.key, 80), employee: s(c.employee, 100), union: s(c.union, 80), day: s(c.day, 20), reported: s(c.reported, 60), ruleSays: s(c.ruleSays, 60), kind: s(c.kind, 30), status: s(c.status, 20), jobs: s(c.jobs, 120), pm: s(c.pm, 80), pmResponse: s(c.pmResponse, 30), noRtDay: !!c.noRtDay, hasAiNote: !!c.hasAiNote, repeatEmployeeCount: num(c.repeatEmployeeCount) })),
   };
 }
 
@@ -54,7 +60,7 @@ function numbersIn(text) { return (String(text).match(/\d+(?:,\d{3})*(?:\.\d+)?/
 function allowedNumbers(input) { return new Set(numbersIn(JSON.stringify(input))); }
 function checkNumbers(out, input) {
   const ok = allowedNumbers(input), bad = [];
-  const texts = [out.headline, out.dataLimits].concat(out.keyChanges, out.suggestedFollowUps, out.riskRanked.map((r) => r.reason));
+  const texts = [out.headline, out.dataLimits].concat(out.keyChanges, out.suggestedFollowUps, out.riskRanked.map((r) => r.reason), (out.jobFocus || []).map((j) => j.note));
   texts.forEach((t) => numbersIn(t).forEach((n) => { if (!ok.has(n)) bad.push(n); }));
   return bad;
 }
@@ -70,8 +76,10 @@ function parseOutput(text, input) {
   const keys = new Set((input && input.candidates || []).map((c) => c.key));
   const risk = (Array.isArray(o.riskRanked) ? o.riskRanked : []).filter((r) => r && keys.has(r.key) && typeof r.reason === "string").slice(0, 8)
     .map((r) => ({ key: r.key, risk: ["high", "medium", "low"].includes(r.risk) ? r.risk : "medium", reason: r.reason.slice(0, 300) }));
+  const jobSet = new Set((input && input.byJob || []).map((j) => j.job));
+  const jobFocus = (Array.isArray(o.jobFocus) ? o.jobFocus : []).filter((j) => j && jobSet.has(String(j.job)) && typeof j.note === "string").slice(0, 5).map((j) => ({ job: String(j.job), note: j.note.slice(0, 300) }));
   const out = {
-    headline: o.headline.slice(0, 500), keyChanges: strs(o.keyChanges, 5, 400), riskRanked: risk, suggestedFollowUps: strs(o.suggestedFollowUps, 5, 400),
+    jobFocus, headline: o.headline.slice(0, 500), keyChanges: strs(o.keyChanges, 5, 400), riskRanked: risk, suggestedFollowUps: strs(o.suggestedFollowUps, 5, 400),
     dataLimits: typeof o.dataLimits === "string" ? o.dataLimits.slice(0, 500) : "", confidence: conf,
   };
   if (input) { const bad = checkNumbers(out, input); if (bad.length) throw new Error("figures not in the data: " + bad.slice(0, 5).join(", ")); }
@@ -109,7 +117,7 @@ function stubOutput(input) {
     keyChanges: ["Sample text. Once the API key is added, this describes what stands out this week and how it compares with prior weeks."],
     riskRanked: input.candidates.slice(0, 3).map((c) => ({ key: c.key, risk: "medium", reason: "Sample ranking for " + c.employee + "." })),
     suggestedFollowUps: ["Review the open findings and email the project managers."],
-    dataLimits: "The weekly report has no job numbers or clock times.", confidence: "low",
+    jobFocus: [], dataLimits: "The weekly report has no job numbers or clock times.", confidence: "low",
   };
 }
 
