@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="msal-browser.min.js"></script>
-<script src="sharepoint-integration.js?v=20261027c"></script>
-<link rel="stylesheet" href="css/app.css?v=20261027c">
+<script src="sharepoint-integration.js?v=20261027d"></script>
+<link rel="stylesheet" href="css/app.css?v=20261027d">
 </head>
 <body>
 
@@ -57,6 +57,10 @@
         <a href="#" data-view="insights">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
           Insights
+        </a>
+        <a href="#" data-view="usage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 19v-6M12 19V6M17 19v-9"/></svg>
+          AI usage
         </a>
         <a href="#" class="soon" tabindex="-1" aria-disabled="true" title="Folded into Dashboard in this concept">
           <span class="nav-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/></svg><span class="nav-label">Exception queue</span></span>
@@ -498,6 +502,23 @@
           <p>Sending email needs the <b>Mail.Send</b> delegated permission on the app registration (an administrator may need to grant consent).</p>
         </div>
       </details>
+    </div>
+
+    <div id="view-usage" hidden>
+      <section class="rules-intro">
+        <span class="help-eyebrow">UPAE &middot; AI usage</span>
+        <h2>How many AI tokens are being used</h2>
+        <p>Every AI call (Explain with AI and the Weekly Analyst Summary) is logged with the tokens it used. Enter the per-million-token prices from the Anthropic pricing page to see an estimated cost. Prices and budget are saved in this browser only.</p>
+      </section>
+      <div class="panel">
+        <div class="panel-head"><h2>Prices and budget</h2><button class="btn ghost" type="button" id="aiuRefresh" style="margin-left:auto;padding:4px 10px;font-size:12px;">Refresh</button></div>
+        <div class="emp-import" style="gap:14px;flex-wrap:wrap;">
+          <label>Input price per million tokens ($) <input type="number" min="0" step="0.01" id="aiuInPrice" style="width:90px;"></label>
+          <label>Output price per million tokens ($) <input type="number" min="0" step="0.01" id="aiuOutPrice" style="width:90px;"></label>
+          <label>Monthly budget ($, optional) <input type="number" min="0" step="1" id="aiuBudget" style="width:90px;"></label>
+        </div>
+      </div>
+      <div id="aiuBody"></div>
     </div>
 
     <div id="view-pms" hidden>
@@ -1151,14 +1172,15 @@
   </div>
 </div>
 
-<script src="js/ui-helpers.js?v=20261027c"></script>
-<script src="js/dashboard.js?v=20261027c"></script>
+<script src="js/ui-helpers.js?v=20261027d"></script>
+<script src="js/dashboard.js?v=20261027d"></script>
 
-<script src="js/rules.js?v=20261027c"></script>
-<script src="js/employees.js?v=20261027c"></script>
-<script src="js/hours-core.js?v=20261027c"></script>
-<script src="js/hours-ui.js?v=20261027c"></script>
-<script src="js/app-init.js?v=20261027c"></script>
+<script src="js/rules.js?v=20261027d"></script>
+<script src="js/employees.js?v=20261027d"></script>
+<script src="js/hours-core.js?v=20261027d"></script>
+<script src="js/hours-ui.js?v=20261027d"></script>
+<script src="js/ai-usage.js?v=20261027d"></script>
+<script src="js/app-init.js?v=20261027d"></script>
 <script>upaeInitPanelToggles();</script>
 </body>
 </html>

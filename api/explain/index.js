@@ -27,11 +27,14 @@ module.exports = async function (context, req) {
     if (!apiKey || process.env.UPAE_AI_STUB === "1") {
       return send(200, Object.assign({ stub: true, model: "stub", promptVersion: PROMPT_VERSION }, stubOutput(input)));
     }
-    const out = await callClaude(input, { apiKey, model });
-    return send(200, Object.assign({ stub: false, model, promptVersion: PROMPT_VERSION }, out));
+    const usage = { inputTokens: 0, outputTokens: 0, calls: 0 };
+    try {
+      const out = await callClaude(input, { apiKey, model, usage });
+      return send(200, Object.assign({ stub: false, model, promptVersion: PROMPT_VERSION, usage }, out));
+    } catch (e) { e.usage = usage; throw e; }
   } catch (err) {
     const status = err.status || 500;
     if (status >= 500) context.log.error("explain failed: " + (err && err.message));
-    return send(status, { error: status >= 500 && status !== 502 ? "The AI request failed. Please try again." : (err.message || "Request failed.") });
+    return send(status, { error: status >= 500 && status !== 502 ? "The AI request failed. Please try again." : (err.message || "Request failed."), usage: err.usage && err.usage.calls ? err.usage : undefined });
   }
 };

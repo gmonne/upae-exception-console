@@ -536,13 +536,14 @@ async function hrsExplain(key){
     }
     if(typeof upaeCreateAILog === 'function'){
       upaeCreateAILog({ purpose: 'explain', findingKey: key, weekStart: hrsWeek.start, userEmail: (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''),
-                        model: data.model, promptVersion: data.promptVersion, confidence: data.confidence,
+                        model: data.model, promptVersion: data.promptVersion, confidence: data.confidence, usage: data.usage,
                         output: JSON.stringify({ explanation: data.explanation, likelyCause: data.likelyCause, suggestedAction: data.suggestedAction, evidence: data.evidence, needsMoreInfo: data.needsMoreInfo, stub: !!data.stub }) })
         .then(function(it){ if(hrsAi[key]) hrsAi[key].logId = it && it.id; })
         .catch(function(err){ console.warn('UPAE: could not write AILog', err); });
     }
   } catch(err){
     console.error('UPAE: explain failed', err);
+    if(typeof upaeLogFailedUsage === 'function') upaeLogFailedUsage('explain', err, hrsWeek && hrsWeek.start);
     hrsAi[key] = { state: 'error', err: err.message || String(err) }; refreshAiBox(key);
   }
 }
@@ -825,13 +826,14 @@ async function hrsSummarize(){
     hrsSum = { weekStart: hrsWeek.start, state: 'done', data: data, cands: st.cands, feedback: '', saved: false, note: '' };
     renderHoursSummary();
     if(typeof upaeCreateAILog === 'function' && !data.stub){
-      upaeCreateAILog({ purpose: 'summary', findingKey: '', weekStart: hrsWeek.start, userEmail: (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''), model: data.model, promptVersion: data.promptVersion, confidence: data.confidence,
+      upaeCreateAILog({ purpose: 'summary', findingKey: '', weekStart: hrsWeek.start, userEmail: (typeof upaeCurrentUserEmail === 'function' ? upaeCurrentUserEmail() : ''), model: data.model, promptVersion: data.promptVersion, confidence: data.confidence, usage: data.usage,
         output: JSON.stringify({ headline: data.headline, keyChanges: data.keyChanges, riskRanked: data.riskRanked, suggestedFollowUps: data.suggestedFollowUps, dataLimits: data.dataLimits }) })
         .then(function(it){ if(hrsSum && hrsSum.state === 'done') hrsSum.logId = it && it.id; })
         .catch(function(err){ console.warn('UPAE: could not write AILog', err); });
     }
   } catch(err){
     console.error('UPAE: summary failed', err);
+    if(typeof upaeLogFailedUsage === 'function') upaeLogFailedUsage('summary', err, hrsWeek && hrsWeek.start);
     hrsSum = { weekStart: hrsWeek ? hrsWeek.start : '', state: 'error', err: err.message || String(err) }; renderHoursSummary();
   }
 }

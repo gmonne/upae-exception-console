@@ -59,3 +59,14 @@ const mk = (replies) => async (url, o) => { const sent = JSON.parse(o.body); ass
   assert.strictEqual((await run({ "x-upae-token": "Bearer " + tok("a@b.com") }, body)).status, 403);
   console.log("summary tests passed");
 })().catch((e) => { console.error("FAIL", e); process.exit(1); });
+
+// token usage is added up across the first try and the retry
+(async () => {
+  const good2 = JSON.stringify({ headline: "Week 43 had 25 findings.", keyChanges: [], riskRanked: [], suggestedFollowUps: [], dataLimits: "x", confidence: "low" });
+  const rep = (txt, i, o) => ({ ok: true, status: 200, json: async () => ({ content: [{ type: "text", text: txt }], usage: { input_tokens: i, output_tokens: o } }) });
+  const seq = [rep("not json", 1000, 50), rep(good2, 1100, 120)]; let n = 0;
+  const usage = { inputTokens: 0, outputTokens: 0, calls: 0 };
+  await sm.callClaude(inp, { apiKey: "k", model: "m", usage, fetch: async () => seq[n++] });
+  assert.deepStrictEqual(usage, { inputTokens: 2100, outputTokens: 170, calls: 2 });
+  console.log("usage tests passed");
+})().catch((e) => { console.error(e); process.exit(1); });

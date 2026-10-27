@@ -70,6 +70,7 @@ async function callClaude(input, opts) {
       body: JSON.stringify({ model, max_tokens: 900, system: SYSTEM, messages: [{ role: "user", content: buildUserMessage(input) + (extra || "") }] }),
     });
     const body = await res.json().catch(() => ({}));
+    if (opts.usage && body && body.usage) { opts.usage.inputTokens += Number(body.usage.input_tokens) || 0; opts.usage.outputTokens += Number(body.usage.output_tokens) || 0; opts.usage.calls += 1; }
     if (!res.ok) { const e = new Error("The AI service returned " + res.status + (body.error && body.error.message ? ": " + body.error.message : "")); e.status = res.status === 429 ? 429 : 502; throw e; }
     return (body.content || []).map((c) => c.text || "").join("");
   }

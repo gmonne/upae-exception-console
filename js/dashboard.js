@@ -194,7 +194,7 @@
   (function initViews(){
     var navLinks = document.querySelectorAll('.rail nav a[data-view]');
     var allTriggers = document.querySelectorAll('a[data-view]');
-    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), admin: document.getElementById('view-admin'), employees: document.getElementById('view-employees'), hours: document.getElementById('view-hours'), pms: document.getElementById('view-pms'), help: document.getElementById('view-help') };
+    var views = { dashboard: document.getElementById('view-dashboard'), insights: document.getElementById('view-insights'), rules: document.getElementById('view-rules'), admin: document.getElementById('view-admin'), employees: document.getElementById('view-employees'), hours: document.getElementById('view-hours'), pms: document.getElementById('view-pms'), usage: document.getElementById('view-usage'), help: document.getElementById('view-help') };
     allTriggers.forEach(function(link){
       link.addEventListener('click', function(e){
         e.preventDefault();

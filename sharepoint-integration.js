@@ -892,6 +892,7 @@ async function upaeAiPost(path, payload) {
     if (res.ok && body) return body;
     const serverMsg = body && body.error;
     lastErr = new Error(serverMsg || (res.status === 404 ? "The AI service is not deployed yet (404)." : res.status >= 500 ? "The AI service had a temporary problem (" + res.status + "). Please try again." : "The AI service returned " + res.status + "."));
+    if (body && body.usage) lastErr.usage = body.usage;
     // retry only bare server errors (no message from our own code)
     if (attempt === 0 && res.status >= 500 && !serverMsg) { await new Promise((r) => setTimeout(r, 1500)); continue; }
     throw lastErr;
@@ -935,21 +936,48 @@ async function upaeUpdateSummaryFeedback(spItemId, feedback) {
 // AILog: audit trail of every AI answer, plus the reviewer's feedback (the learning signal for later phases)
 async function upaeCreateAILog(r) {
   const url = await upaeListItemsUrl("aiLog");
-  return upaeGraphFetch(url, {
-    method: "POST",
-    body: JSON.stringify({ fields: {
-      Title: (r.purpose || "explain") + " " + (r.findingKey || ""),
-      Purpose: r.purpose || "explain",
-      FindingKey: r.findingKey || "",
-      WeekStart: r.weekStart || "",
-      UserEmail: r.userEmail || "",
-      Model: r.model || "",
-      PromptVersion: r.promptVersion || "",
-      Confidence: r.confidence || "",
-      Output: r.output || "",
-      Feedback: "",
-    } }),
-  });
+  const fields = {
+    Title: (r.purpose || "explain") + " " + (r.findingKey || ""),
+    Purpose: r.purpose || "explain",
+    FindingKey: r.findingKey || "",
+    WeekStart: r.weekStart || "",
+    UserEmail: r.userEmail || "",
+    Model: r.model || "",
+    PromptVersion: r.promptVersion || "",
+    Confidence: r.confidence || "",
+    Output: r.output || "",
+    Feedback: "",
+  };
+  const u = r.usage;
+  if (u && (u.inputTokens || u.outputTokens)) {
+    // token columns are optional: if the list does not have them yet, save the row without them
+    try {
+      return await upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields: Object.assign({}, fields, { InputTokens: u.inputTokens || 0, OutputTokens: u.outputTokens || 0, ApiCalls: u.calls || 1, Outcome: r.outcome || "ok" }) }) });
+    } catch (err) { console.warn("UPAE: AILog token columns missing, saving without them", err); }
+  }
+  return upaeGraphFetch(url, { method: "POST", body: JSON.stringify({ fields }) });
+}
+// a call that failed after the model had already used tokens still costs money, so it is logged too
+function upaeLogFailedUsage(purpose, err, weekStart) {
+  if (!err || !err.usage || !(err.usage.inputTokens || err.usage.outputTokens)) return;
+  upaeCreateAILog({ purpose, findingKey: "", weekStart: weekStart || "", userEmail: upaeCurrentUserEmail(), usage: err.usage, outcome: "failed", output: String(err.message || "").slice(0, 200) }).catch(() => {});
+}
+async function upaeFetchAILog() {
+  let url = await upaeListItemsUrl("aiLog", "?expand=fields&$top=500");
+  const out = [];
+  let guard = 0;
+  while (url && guard++ < 100) {
+    const data = await upaeGraphFetch(url);
+    (data.value || []).forEach((item) => {
+      const f = item.fields || {};
+      out.push({ id: item.id, at: item.createdDateTime || "", purpose: f.Purpose || "", user: f.UserEmail || "", model: f.Model || "", promptVersion: f.PromptVersion || "",
+        inputTokens: f.InputTokens != null ? Number(f.InputTokens) : null, outputTokens: f.OutputTokens != null ? Number(f.OutputTokens) : null,
+        calls: f.ApiCalls != null ? Number(f.ApiCalls) : 1, outcome: f.Outcome || "ok" });
+    });
+    const next = data["@odata.nextLink"];
+    url = next ? next.replace("https://graph.microsoft.com/v1.0", "") : null;
+  }
+  return out;
 }
 async function upaeUpdateAILogFeedback(spItemId, feedback) {
   const siteId = await upaeGetSiteId();
