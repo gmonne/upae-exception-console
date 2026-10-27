@@ -989,8 +989,10 @@ function closeMailModal(){ if(mailBusy) return; mailOverlay.hidden = true; }
 function reviewLinkHtml(){
   var on = document.getElementById('hrsMailLink');
   if(!on || !on.checked) return '';
-  var url = location.origin + '/review.html';
-  return '<p style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin:10px 0;"><a href="' + url + '" style="background:#235870;color:#fff;padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:600;">Open the review page</a><br><span style="color:#666;font-size:12px;">Sign in with your company account. Mark each record Correct as reported, Needs correction or Question, and add a note. Payroll sees your answer straight away, so there is no need to reply by email.</span></p>';
+  var url = location.origin + '/review.html', f = 'font-family:Segoe UI,Arial,sans-serif;';
+  return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 6px;"><tr><td bgcolor="#235870" style="background:#235870;border-radius:6px;padding:10px 18px;"><a href="' + url + '" style="' + f + 'color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;display:inline-block;">Open the review page</a></td></tr></table>' +
+    '<p style="' + f + 'color:#666;font-size:12px;margin:6px 0 14px;">Sign in with your company account. Mark each record Correct as reported, Needs correction or Question, and add a note. Payroll sees your answer straight away, so there is no need to reply by email.</p>' +
+    '<hr style="border:0;border-top:1px solid #ddd;margin:0 0 4px;">';
 }
 function mailBody(pmName, e){
   var items = e.items;
@@ -1249,4 +1251,28 @@ Array.prototype.forEach.call(document.querySelectorAll('a[data-view="hours"]'), 
 Array.prototype.forEach.call(document.querySelectorAll('a[data-view="pms"]'), function(a){
   a.addEventListener('click', function(){ (hrsLoadedOnce ? Promise.resolve() : hrsRefreshSaved()).then(function(){ renderPMs(); renderJobs(); }); });
 });
-renderHoursKpis(); renderHoursSaved(); renderHoursDash(); renderPMs(); renderJobs();
+function upaeUpdateTopbar(){
+  var v = document.getElementById('topWeekVal'); if(!v) return;
+  var wk = hrsWeek, txt = 'none loaded';
+  if(wk) txt = 'Week ' + (wk.weekNo || '?') + ' \u00b7 ' + fmtMD(wk.start) + '\u2013' + fmtMD(wk.end);
+  else if(typeof hrsSavedWeeks === 'function' && hrsSaved != null){ var ws = hrsSavedWeeks(); if(ws.length) txt = 'Latest saved: week ' + (ws[0].weekNo || '?') + ' \u00b7 ' + fmtMD(ws[0].start) + '\u2013' + fmtMD(hrsAddDays(ws[0].start, 6)); }
+  v.textContent = txt;
+}
+function upaeGoWeekly(run){
+  var nav = document.querySelector('.rail nav a[data-view="hours"]'); if(nav) nav.click();
+  if(!run) return;
+  setTimeout(function(){
+    var b = document.getElementById('hrsCheckBtn');
+    if(b) b.click(); else { var f = document.getElementById('hrsFileInput'); if(f) f.click(); }
+  }, 50);
+}
+(function(){
+  var a = document.getElementById('topWeek'), b = document.getElementById('runWeeklyBtn');
+  if(a) a.addEventListener('click', function(){ upaeGoWeekly(false); });
+  if(b) b.addEventListener('click', function(){ upaeGoWeekly(true); });
+  ['renderHoursPanel','renderHoursSaved'].forEach(function(n){
+    var orig = window[n]; if(typeof orig !== 'function') return;
+    window[n] = function(){ var r = orig.apply(this, arguments); upaeUpdateTopbar(); return r; };
+  });
+})();
+renderHoursKpis(); renderHoursSaved(); renderHoursDash(); renderPMs(); renderJobs(); upaeUpdateTopbar();

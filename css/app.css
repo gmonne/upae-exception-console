@@ -119,11 +119,11 @@
     font-family:"Barlow Condensed",sans-serif;
   }
   .partner-mark{
-    display:flex; align-items:center; padding-left:14px; margin-left:2px; border-left:1px solid var(--line); height:36px;
+    display:flex; align-items:center; padding-left:14px; margin-left:2px; border-left:1px solid var(--line); height:56px;
   }
   .partner-mark img{
-    height:30px; width:auto; display:block;
-    background:#fff; border-radius:5px; padding:3px 7px;
+    height:52px; width:auto; display:block;
+    background:#fff; border-radius:6px; padding:4px 9px;
   }
   .run-btn{display:flex; align-items:center; gap:7px; white-space:nowrap; flex:none;}
   .run-btn svg{flex:none;}
@@ -673,3 +673,7 @@
   .sum-risk:first-of-type{border-top:0;}
 
   .panel.collapsed > :not(.panel-head){display:none !important;}
+
+  .week-pill{font:inherit; cursor:pointer; color:var(--ink);}
+  .week-pill:hover{border-color:var(--accent);}
+  .week-pill .wk-val{font-weight:600;}

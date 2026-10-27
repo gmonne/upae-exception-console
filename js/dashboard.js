@@ -319,7 +319,7 @@
     }
     function closeModal(){ overlay.hidden = true; }
 
-    openBtn.addEventListener('click', openModal);
+    if(openBtn) openBtn.addEventListener('click', openModal);
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
